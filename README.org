@@ -1,0 +1,28 @@
+* hola-tact-meet
+
+Holocracy has many practical concepts, one of them is Tactical Meetings - structured
+way to discuss & action on the ongoing project issues.
+
+We are not using Holacracy but I want to replicate some of its structure with this
+program so we can try some concepts in our team.
+
+** Architecture
+
+MPA - Clojure / Luminos framework on backend and HTMX on frontend.
+
+** Prerequisites
+
+You will need [[https://github.com/technomancy/leiningen][Leiningen]] 2.0 or above installed.
+
+** Running
+
+To start a web server for the application, run:
+
+#+begin_example
+lein run 
+#+end_example
+
+** License
+
+Generated using Luminus version "3.91"
+Copyright © 2024 Oleksii Koval
