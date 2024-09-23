@@ -6,6 +6,8 @@ way to discuss & action on the ongoing project issues.
 We are not using Holacracy but I want to replicate some of its structure with this
 program so we can try some concepts in our team.
 
+See also [[https://orgpad.info/o/AZXSvxkUdIo7kZUmIwy7SP][Orgpad: Structural Meetings Idea]]
+
 ** Architecture
 
 MPA - Clojure / Luminos framework on backend and HTMX on frontend.
