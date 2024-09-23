@@ -22,6 +22,29 @@ To start a web server for the application, run:
 lein run 
 #+end_example
 
+** Development plan
+
+*** TODO Static files libraries to use
+    :LOGBOOK:
+    - State "TODO"       from              [2024-09-23 Mon 08:30]
+    :END:
+**** TODO Bulma CSS - use latest version
+     :LOGBOOK:
+     - State "TODO"       from              [2024-09-23 Mon 08:30]
+     :END:
+**** TODO Add both Htmx & Alpine
+     :LOGBOOK:
+     - State "TODO"       from              [2024-09-23 Mon 08:30]
+     :END:
+*** TODO Implement Google SSO 
+    :LOGBOOK:
+    - State "TODO"       from              [2024-09-23 Mon 08:30]
+    :END:
+*** TODO Decide & implement screen/app basic layout
+    :LOGBOOK:
+    - State "TODO"       from              [2024-09-23 Mon 08:30]
+    :END:
+
 ** License
 
 Generated using Luminus version "3.91"
