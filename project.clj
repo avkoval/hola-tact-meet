@@ -23,14 +23,16 @@
                  [org.clojure/clojure "1.10.1"]
                  [org.clojure/tools.cli "1.0.194"]
                  [org.clojure/tools.logging "1.1.0"]
-                 [org.webjars.npm/bulma "0.9.1"]
+                 [org.webjars.npm/bulma "1.0.2"]
+                 [org.webjars.npm/htmx.org "2.0.2"]
+                 [org.webjars.npm/alpinejs "3.14.1"]
                  [org.webjars.npm/material-icons "0.3.1"]
                  [org.webjars/webjars-locator "0.40"]
                  [org.xerial/sqlite-jdbc "3.32.3"]
                  [ring-webjars "0.2.0"]
                  [ring/ring-core "1.8.2"]
                  [ring/ring-defaults "0.3.2"]
-                 [selmer "1.12.31"]]
+                 [selmer "1.12.56"]]
 
   :min-lein-version "2.0.0"
   
