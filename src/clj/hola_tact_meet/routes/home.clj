@@ -5,9 +5,11 @@
    [clojure.java.io :as io]
    [hola-tact-meet.middleware :as middleware]
    [ring.util.response]
+   [clojure.pprint]
    [ring.util.http-response :as response]))
 
 (defn home-page [request]
+  (clojure.pprint/pprint (:headers request))
   (layout/render request "home.html" {:docs (-> "docs/docs.md" io/resource slurp)}))
 
 (defn about-page [request]

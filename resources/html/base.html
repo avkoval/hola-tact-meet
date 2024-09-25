@@ -7,53 +7,58 @@
 
     <!-- styles -->
     {% style "/assets/bulma/css/bulma.min.css" %}
-    {% style "/assets/material-icons/css/material-icons.min.css" %}
+    {#% style "/assets/material-icons/css/material-icons.min.css" %#}
     {% script "/assets/htmx.org/dist/htmx.min.js" %}
     {% script "/assets/alpinejs/dist/cdn.min.js" defer="true" %}
     {% style "/css/screen.css" %}
   </head>
-  <body>
-      <!-- navbar -->
-      <nav class="navbar is-info">
-          <div class="container">
-              <div class="navbar-brand">
-                  <a class="navbar-item" href="/" style="font-weight:bold;">hola-tact-meet</a>
-                  <span class="navbar-burger burger" data-target="nav-menu">
-                      <span></span>
-                      <span></span>
-                      <span></span>
-                  </span>
-              </div>
-              <div id="nav-menu" class="navbar-menu">
-                  <div class="navbar-start">
-                      <a href="/" class="navbar-item{% ifequal page "home.html" %} is-active{%endifequal%}">Home</a>
-                      <a href="/about" class="navbar-item{% ifequal page "about.html" %} is-active{%endifequal%}">About</a>
-                  </div>
-              </div>
+  <body x-data="{showBurgerMenu: false}">
+    <!-- navbar -->
+    <nav class="navbar is-info">
+      <div class="container">
+        <div class="navbar-brand">
+          <a class="navbar-item" href="/" style="font-weight:bold;">hola-tact-meet</a>
+          <span :class="showBurgerMenu ? 'navbar-burger burger is-active' : 'navbar-burger burger'" @click="showBurgerMenu = !showBurgerMenu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </div>
+        <div id="nav-menu" :class="showBurgerMenu ? 'navbar-menu is-active' : 'navbar-menu'">
+          <div class="navbar-start">
+            <a href="/" class="navbar-item{% ifequal page "home.html" %} is-active{%endifequal%}">Home</a>
+            <a href="/about" class="navbar-item{% ifequal page "about.html" %} is-active{%endifequal%}">About</a>
           </div>
-      </nav>
+        </div>
+      </div>
+    </nav>
 
-      <section class="section">
-          <div class="container">
-              {% block content %}
-              {% endblock %}
-          </div>
-      </section>
+    <section class="section">
+      <div class="container">
+        {% block content %}
+        {% endblock %}
+      </div>
+    </section>
 
-    <!-- scripts -->
-    <script type="text/javascript">
-      (function() {
-        var burger = document.querySelector('.burger');
-        var nav = document.querySelector('#'+burger.dataset.target);
-        burger.addEventListener('click', function(){
-          burger.classList.toggle('is-active');
-          nav.classList.toggle('is-active');
-        });
-      })();
-    </script>
-
-    
     {% block page-scripts %}
     {% endblock %}
   </body>
+
+<footer class="footer">
+  <div class="content has-text-centered">
+    <p>
+      <strong>hola-tact-meet</strong>
+      (C) 2024
+      by <a href="https://alex.koval.kharkov.ua">Oleksii Koval</a> implemented
+      as part of Daily Learning Excercise. <br>This software is provided as-is without any guarantees.
+    </p>
+    <p>Technologies used to implment this page:
+      <a href="https://luminusweb.com/" target="_blank">Luminus</a>,
+      <a href="https://htmx.org" target="_blank">htmx.org</a>,
+      <a href="https://alpinejs.dev" target="_blank">alpinejs</a>
+    </p>
+
+  </div>
+</footer>
+
 </html>

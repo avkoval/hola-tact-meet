@@ -21,11 +21,10 @@ You will need [[https://github.com/technomancy/leiningen][Leiningen]] 2.0 or abo
 To start a web server for the application, run:
 
 #+begin_example
-lein run 
+lein run
 #+end_example
 
-** Development plan
-
+** Development plan [/]
 *** DONE Static files libraries to use
     CLOSED: [2024-09-24 Tue 11:10]
     :LOGBOOK:
@@ -45,17 +44,34 @@ lein run
      - State "DONE"       from "TODO"       [2024-09-24 Tue 11:10]
      - State "TODO"       from              [2024-09-23 Mon 08:30]
      :END:
-*** TODO Implement Google SSO 
+*** NEXT Implement Google SSO
     :LOGBOOK:
+    - State "NEXT"       from "TODO"       [2024-09-24 Tue 14:10]
     - State "TODO"       from              [2024-09-23 Mon 08:30]
     :END:
 
- - May be use shortcut from Ngrok? https://ngrok.com/docs/integrations/google/oauth/
+ - [X] May be use shortcut from Ngrok? https://ngrok.com/docs/integrations/google/oauth/
+
+*** WORKING Develop (ngrok?) authentication middleware
+    :LOGBOOK:
+    CLOCK: [2024-09-25 Wed 09:59]
+    - State "WORKING"    from "TODO"       [2024-09-25 Wed 10:00]
+    - State "TODO"       from              [2024-09-25 Wed 09:55]
+    :END:
+
+ - Reading:
+   - https://dev.to/fpsd/clojure-bites-ring-basic-auth-2jf2
+   - https://cljdoc.org/d/ring-auth/ring-auth/0.1.0/api/ring-auth.middleware
+   - https://github.com/weavejester/ring-oauth2
+   -
 
 *** TODO Decide & implement screen/app basic layout
     :LOGBOOK:
     - State "TODO"       from              [2024-09-23 Mon 08:30]
     :END:
+
+ - [X] Fix burger - use alpine instead of vanilla JS
+ - [ ] Switch menu using htmx reload of content
 
 ** License
 
