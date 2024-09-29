@@ -14,7 +14,7 @@
   </head>
   <body x-data="{showBurgerMenu: false}">
     <!-- navbar -->
-    <nav class="navbar is-info">
+    <nav class="navbar">
       <div class="container">
         <div class="navbar-brand">
           <a class="navbar-item" href="/" style="font-weight:bold;">hola-tact-meet</a>
@@ -26,8 +26,10 @@
         </div>
         <div id="nav-menu" :class="showBurgerMenu ? 'navbar-menu is-active' : 'navbar-menu'">
           <div class="navbar-start">
-            <a href="/" class="navbar-item{% ifequal page "home.html" %} is-active{%endifequal%}">Home</a>
-            <a href="/about" class="navbar-item{% ifequal page "about.html" %} is-active{%endifequal%}">About</a>
+            <a href="/" class="navbar-item{% ifequal page "home.html" %} is-selected{%endifequal%}">Home</a>
+            <a href="/about" class="navbar-item{% ifequal page "about.html" %} is-selected{%endifequal%}">About</a>
+            <a href="/config" class="navbar-item{% ifequal page "teams.html" %} is-selected{%endifequal%}">Actions</a>
+            <a href="/config" class="navbar-item{% ifequal page "teams.html" %} is-selected{%endifequal%}">System Logs</a>
           </div>
         </div>
       </div>
@@ -52,7 +54,7 @@
       by <a href="https://alex.koval.kharkov.ua">Oleksii Koval</a> implemented
       as part of Daily Learning Excercise. <br>This software is provided as-is without any guarantees.
     </p>
-    <p>Technologies used to implment this page:
+    <p>Technologies used to implement this page:
       <a href="https://luminusweb.com/" target="_blank">Luminus</a>,
       <a href="https://htmx.org" target="_blank">htmx.org</a>,
       <a href="https://alpinejs.dev" target="_blank">alpinejs</a>

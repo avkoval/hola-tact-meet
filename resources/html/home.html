@@ -3,21 +3,39 @@
 
   <h2 class="title is-h2">Hola {{user-email}}! Tactical meeting!</h2>
 
-  <p>This software is provided as-is without any guarantees.</p>
+  <div id="id-modal-here"></div>
 
-  {% comment %}
-  <h4 class="title is-4 mt-4">Lets meet (and solve issues)!</h2>
-  <div class="buttons mt-4">
-    <button class="button is-dark">1. Connect with teams</button> →
-    <button class="button is-dark">2. Select your team</button> →
-    <button class="button is-light" disabled>2. Join meeting</button>
+  <div class="box">
+    <h4 class="title is-4">Teams</h3>
+    <table class="table">
+    <thead>
+      <th>Name</th>
+      <th>Your membership status</th>
+      <th>Joined at</th>
+    </thead>
+    <tbody>
+      <tr><td>...</td></tr>
+    </tbody>
+  </table>
+  <a href="/add-meeting" hx-get="/add-team" hx-target="#id-modal-here">Add new team</a>
   </div>
 
-  <h4 class="title is-4 mt-4">Whats next?</h2>
-  <div class="buttons mt-4">
-    <button class="button is-info" disabled>Download meetings summary</button> ||
-    <button class="button is-info" disabled>Action!</button>
+<div class="box">
+    <h2 class="title is-h2">Meetings</h2>
+  <i class="tag is-info is-light">TODO: add tabs "Current & recent|Today|Future|Past"</i>
+  <table class="table">
+    <thead>
+      <th>Scheduled date</th>
+      <th>Teams invited to this meeting</th>
+      <th>Agenda</th>
+      <th>Topics</th>
+      <th>Actions</th>
+    </thead>
+    <tbody>
+      <tr><td>...</td></tr>
+    </tbody>
+  </table>
+  <a href="/add-meeting">Add new meeting</a>
   </div>
-  {% endcomment %}
 
 {% endblock %}

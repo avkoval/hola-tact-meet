@@ -1,0 +1,28 @@
+<div x-data="{ open: true }">
+  <form hx-post="/add-team">
+    {% csrf-field %}
+    <div :class="open ? 'is-active modal' : 'modal'">
+      <div class="modal-background"></div>
+      <div class="modal-card">
+        <header class="modal-card-head">
+          <p class="modal-card-title">Add Team</p>
+          <button class="delete" aria-label="close" x-on:click="open = ! open"></button>
+        </header>
+        <section class="modal-card-body">
+          <div class="field">
+            <label class="label">Name</label>
+            <div class="control">
+              <input class="input" name="name" type="text" placeholder="enter team name">
+            </div>
+          </div>
+        </section>
+        <footer class="modal-card-foot">
+          <div class="buttons">
+            <button class="button is-success">Save changes</button>
+            <button class="button" x-on:click="open = ! open">Cancel</button>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </form>
+</div>

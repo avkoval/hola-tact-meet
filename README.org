@@ -79,11 +79,12 @@ lein run
     :END:
 
  - [X] Fix burger - use alpine instead of vanilla JS
+ - [ ] add user - auto
+   - [ ] use logging!
  - [ ] Switch menu using htmx reload of content
  - [ ] Redesign error message differently
  - [ ] use logging, create user if not exists and add user
  - [ ] add team[s]
- - 
 
 ** License
 

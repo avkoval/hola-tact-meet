@@ -19,7 +19,23 @@
   ))
 
 (defn about-page [request]
-  (layout/render request "about.html"))
+  (layout/render request "about.html" {:docs (-> "docs/process.md" io/resource slurp)}))
+
+(defn config-page [request]
+  (layout/render request "config.html" {}))
+
+(defn teams-page [request]
+  (layout/render request "teams.html" {}))
+
+(defn add-team [request]
+  ;; (clojure.pprint/pprint request)
+  (if (= :post (:request-method request)) 
+    (do
+      (db/create-team! (select-keys (:params request) [:name]))
+      (response/ok "")) 
+    (layout/render request "add-team.html" {}))
+  )
+
 
 (defn home-routes []
   [""
@@ -28,5 +44,8 @@
                  middleware/wrap-formats
                  ]}
    ["/" {:get home-page}]
-   ["/about" {:get about-page}]])
+   ["/about" {:get about-page}]
+   ["/config" {:get config-page}]
+   ["/add-team" {:get add-team :post add-team}]
+])
 

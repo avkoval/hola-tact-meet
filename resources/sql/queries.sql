@@ -80,3 +80,9 @@ WHERE
 DELETE FROM user_team
 WHERE 
 --~ (cond (not (nil? (:user_id params))) "user_id = :user_id" (not (nil? (:team_id params))) "team_id = :team_id" :else "id = :id")
+
+-- :name insert-log! :! :n
+-- :doc creates a new user record
+INSERT INTO system_log
+(added_by, stamp, data)
+VALUES (:added_by, :stamp, :data)

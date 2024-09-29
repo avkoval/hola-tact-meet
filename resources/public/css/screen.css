@@ -33,3 +33,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+a.navbar-item.is-selected {
+  color: #ffffff;
+  font-weight: bold;
+}
