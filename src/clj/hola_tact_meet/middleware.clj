@@ -37,6 +37,16 @@
       ;; since they're not compatible with this middleware
       ((if (:websocket? request) handler wrapped) request))))
 
+
+;; (defn wrap-ngrok-auth-middleware
+;;   ([handler]
+;;      (fn
+;;        ([request]
+;;         (println "hello there!")
+;;         ;;(assoc request :my-key "val" )
+;;         request
+;;         ))))
+
 (defn wrap-base [handler]
   (-> ((:middleware defaults) handler)
       (wrap-defaults

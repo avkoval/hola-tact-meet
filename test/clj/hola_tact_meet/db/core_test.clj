@@ -19,20 +19,112 @@
 
 (deftest test-users
   (jdbc/with-transaction [t-conn *db* {:rollback-only true}]
+
     (is (= 1 (db/create-user!
               t-conn
-              {:id         "1"
-               :first_name "Sam"
-               :last_name  "Smith"
-               :email      "sam.smith@example.com"
-               :pass       "pass"}
+              {:email      "sam.smith@example.com"}
               {})))
-    (is (= {:id         "1"
-            :first_name "Sam"
-            :last_name  "Smith"
-            :email      "sam.smith@example.com"
-            :pass       "pass"
-            :admin      nil
-            :last_login nil
-            :is_active  nil}
-           (db/get-user t-conn {:id "1"} {})))))
+
+    (is (= {:id         1
+            :email      "sam.smith@example.com"}
+           (db/get-user t-conn {:id "1"} {})))
+
+    (is (= 1 (db/update-user! t-conn {:id 1 :email "alex@smith.kharkov.ua"} {})))
+
+    (is (= {:id         1
+            :email      "alex@smith.kharkov.ua"}
+           (db/get-user t-conn {:id "1"} {})))
+
+    (is (= 1 (db/delete-user! t-conn {:id 1} {})))
+    ))
+
+
+(deftest test-team
+  (jdbc/with-transaction [t-conn *db* {:rollback-only true}]
+
+    (is (= 1 (db/create-team!
+              t-conn
+              {:name      "Team A"}
+              {})))
+
+    (is (= 1 (db/create-team!
+              t-conn
+              {:name      "Team B"}
+              {})))
+
+    (is (= {:id         1
+            :name      "Team A"
+            :archived nil
+            :created nil}
+           (db/get-team t-conn {:id "1"} {})))
+
+    (is (= [{:id         1
+             :name      "Team A"
+             :archived nil
+             :created nil}
+            {:id         2
+             :name      "Team B"
+             :archived nil
+             :created nil}]
+           (db/get-teams t-conn {:id 1} {})))
+
+    (is (= 1 (db/update-team! t-conn {:id 2 :name "Team B-1"} {})))
+
+    (is (= {:id         2
+            :name      "Team B-1"
+            :archived nil
+            :created nil}
+           (db/get-team t-conn {:id 2} {})))
+
+
+    (is (= {:cnt 2} (db/count-teams t-conn {} {})))
+    (is (= 1 (db/delete-team! t-conn {:id 2} {})))
+    (is (= {:cnt 1} (db/count-teams t-conn {} {})))
+    ))
+
+
+(deftest test-users-teams
+  (jdbc/with-transaction [t-conn *db* {:rollback-only true}]
+
+    (is (= 1 (db/create-user!
+              t-conn
+              {:email      "sam.smith@example.com"}
+              {})))
+
+
+    (is (= 1 (db/create-team!
+              t-conn
+              {:name      "Team A"}
+              {})))
+
+    (is (= 1 (db/create-user-team!
+              t-conn
+              {:user_id      1
+               :team_id      1}
+              {})))
+
+    (is (= {:id              1
+            :user_id         1
+            :team_id         1}
+           (db/get-user-team t-conn {:id 1} {})))
+
+    (is (= [{:user_id         1
+             :user_email      "sam.smith@example.com"
+             :team_name       "Team A"
+             :team_created    nil
+             :team_archived   nil
+             :team_id         1
+             }]
+           (db/get-users-teams t-conn {:user_id 1} {})))
+
+    (is (= [{:user_id         1
+             :user_email      "sam.smith@example.com"
+             :team_name       "Team A"
+             :team_created    nil
+             :team_archived   nil
+             :team_id         1
+             }]
+           (db/get-users-teams t-conn {:team_id 1} {})))
+
+    (is (= 1 (db/delete-user-team! t-conn {:id 1} {})))
+    ))

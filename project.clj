@@ -25,7 +25,7 @@
                  [org.clojure/tools.logging "1.1.0"]
                  [org.webjars.npm/bulma "1.0.2"]
                  [org.webjars.npm/htmx.org "2.0.2"]
-                 [org.webjars.npm/alpinejs "3.14.1"]
+                 [org.webjars.npm/alpinejs "3.14.1" :exclusions [org.webjars.npm/vue__shared org.webjars.npm/vue__reactivity]]
                  [org.webjars.npm/material-icons "0.3.1"]
                  [org.webjars/webjars-locator "0.40"]
                  [org.xerial/sqlite-jdbc "3.32.3"]

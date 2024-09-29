@@ -24,7 +24,7 @@ To start a web server for the application, run:
 lein run
 #+end_example
 
-** Development plan [/]
+** Development plan [2/5]
 *** DONE Static files libraries to use
     CLOSED: [2024-09-24 Tue 11:10]
     :LOGBOOK:
@@ -44,17 +44,21 @@ lein run
      - State "DONE"       from "TODO"       [2024-09-24 Tue 11:10]
      - State "TODO"       from              [2024-09-23 Mon 08:30]
      :END:
-*** NEXT Implement Google SSO
+*** DONE Implement Google SSO
+    CLOSED: [2024-09-29 Sun 08:30]
     :LOGBOOK:
+    - State "DONE"       from "NEXT"       [2024-09-29 Sun 08:30]
     - State "NEXT"       from "TODO"       [2024-09-24 Tue 14:10]
     - State "TODO"       from              [2024-09-23 Mon 08:30]
     :END:
 
  - [X] May be use shortcut from Ngrok? https://ngrok.com/docs/integrations/google/oauth/
 
-*** WORKING Develop (ngrok?) authentication middleware
+*** NEXT Develop (ngrok?) authentication middleware
     :LOGBOOK:
-    CLOCK: [2024-09-25 Wed 09:59]
+    - State "NEXT"       from "TODO"       [2024-09-29 Sun 08:30]
+    - State "TODO"       from "WORKING"    [2024-09-29 Sun 08:30]
+    CLOCK: [2024-09-25 Wed 09:59]--[2024-09-25 Wed 10:45] =>  0:46
     - State "WORKING"    from "TODO"       [2024-09-25 Wed 10:00]
     - State "TODO"       from              [2024-09-25 Wed 09:55]
     :END:
@@ -63,15 +67,23 @@ lein run
    - https://dev.to/fpsd/clojure-bites-ring-basic-auth-2jf2
    - https://cljdoc.org/d/ring-auth/ring-auth/0.1.0/api/ring-auth.middleware
    - https://github.com/weavejester/ring-oauth2
-   -
+   - https://stackoverflow.com/questions/48953586/how-to-authenticate-a-subset-of-routes-in-ring-application
+   - https://github.com/funcool/buddy-auth
+   - https://medium.com/helpshift-engineering/on-the-testability-of-ring-middlewares-in-clojure-6795eae60f2a
+   - [2024-09-29 Sun 08:30] stuck with middleware, continue on other side
 
 *** TODO Decide & implement screen/app basic layout
     :LOGBOOK:
+    CLOCK: [2024-09-29 Sun 08:34]--[2024-09-29 Sun 09:03] =>  0:29
     - State "TODO"       from              [2024-09-23 Mon 08:30]
     :END:
 
  - [X] Fix burger - use alpine instead of vanilla JS
  - [ ] Switch menu using htmx reload of content
+ - [ ] Redesign error message differently
+ - [ ] use logging, create user if not exists and add user
+ - [ ] add team[s]
+ - 
 
 ** License
 

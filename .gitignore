@@ -17,3 +17,4 @@ profiles.clj
 hola_tact_meet_dev.db.mv.db
 hola_tact_meet_dev.db.trace.db
 hola_tact_meet_dev.db
+hola_tact_meet_test.db

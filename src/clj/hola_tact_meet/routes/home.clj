@@ -9,8 +9,14 @@
    [ring.util.http-response :as response]))
 
 (defn home-page [request]
-  (clojure.pprint/pprint (:headers request))
-  (layout/render request "home.html" {:docs (-> "docs/docs.md" io/resource slurp)}))
+  (let [headers (:headers request)
+        user-email (get headers "ngrok-auth-user-email")]
+    (if (nil? user-email)
+      (layout/render request "error.html" {:title "Authentication error" :message "User is not recognized"})
+      (do 
+        (layout/render request "home.html" {:user-email user-email}))
+      )
+  ))
 
 (defn about-page [request]
   (layout/render request "about.html"))
@@ -18,7 +24,9 @@
 (defn home-routes []
   [""
    {:middleware [middleware/wrap-csrf
-                 middleware/wrap-formats]}
+;;                 middleware/wrap-ngrok-auth-middleware
+                 middleware/wrap-formats
+                 ]}
    ["/" {:get home-page}]
    ["/about" {:get about-page}]])
 
