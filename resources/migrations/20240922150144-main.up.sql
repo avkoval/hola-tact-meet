@@ -14,7 +14,7 @@ CREATE TABLE user_team
 (id INTEGER PRIMARY KEY AUTOINCREMENT,
 user_id INT,
 team_id INT,
-joined_at TIMESTAMP WITH TIME ZONE,
+joined_at TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp,
 FOREIGN KEY (user_id) REFERENCES users(id),
 FOREIGN KEY (team_id) REFERENCES team(id)
 );

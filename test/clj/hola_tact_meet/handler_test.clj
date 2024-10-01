@@ -1,7 +1,7 @@
 (ns hola-tact-meet.handler-test
   (:require
     [clojure.test :refer :all]
-    [ring.mock.request :refer :all]
+    [ring.mock.request :as mock]
     [hola-tact-meet.handler :refer :all]
     [hola-tact-meet.middleware.formats :as formats]
     [muuntaja.core :as m]
@@ -19,9 +19,14 @@
 
 (deftest test-app
   (testing "main route"
-    (let [response ((app) (request :get "/"))]
-      (is (= 200 (:status response)))))
+    (let [request (-> (mock/request :get "/")
+                      (mock/header "ngrok-auth-user-email" "alex@smith.com")
+                      )
+          response ((app) request)
+          ]
+      (is (= 200 (:status response)))
+      ))
 
   (testing "not-found route"
-    (let [response ((app) (request :get "/invalid"))]
+    (let [response ((app) (mock/request :get "/invalid"))]
       (is (= 404 (:status response))))))

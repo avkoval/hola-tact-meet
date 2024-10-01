@@ -43,6 +43,11 @@
     </section>
 
     {% block page-scripts %}
+      <script>
+      document.body.addEventListener("htmx:configRequest", (event) => {
+        event.detail.headers["x-csrf-token"] = "{{ csrf-token }}";
+      });
+      </script>
     {% endblock %}
   </body>
 

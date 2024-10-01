@@ -24,7 +24,7 @@ To start a web server for the application, run:
 lein run
 #+end_example
 
-** Development plan [2/5]
+** Development plan [3/10]
 *** DONE Static files libraries to use
     CLOSED: [2024-09-24 Tue 11:10]
     :LOGBOOK:
@@ -54,6 +54,19 @@ lein run
 
  - [X] May be use shortcut from Ngrok? https://ngrok.com/docs/integrations/google/oauth/
 
+*** WORKING Basic Layout: Decide & implement  [60%]
+    :LOGBOOK:
+    - State "WORKING"    from "TODO"       [2024-09-30 Mon 07:45]
+    CLOCK: [2024-09-29 Sun 08:34]--[2024-09-29 Sun 09:03] =>  0:29
+    - State "TODO"       from              [2024-09-23 Mon 08:30]
+    :END:
+
+ - [X] Fix burger - use alpine instead of vanilla JS
+ - [ ] Switch menu using htmx reload of content
+ - [X] Redesign error message differently
+ - [X] Teams list
+ - [ ] Meetings list
+
 *** NEXT Develop (ngrok?) authentication middleware
     :LOGBOOK:
     - State "NEXT"       from "TODO"       [2024-09-29 Sun 08:30]
@@ -72,19 +85,48 @@ lein run
    - https://medium.com/helpshift-engineering/on-the-testability-of-ring-middlewares-in-clojure-6795eae60f2a
    - [2024-09-29 Sun 08:30] stuck with middleware, continue on other side
 
-*** TODO Decide & implement screen/app basic layout
+*** NEXT use some clojure oauth library instead of ngrok!
     :LOGBOOK:
-    CLOCK: [2024-09-29 Sun 08:34]--[2024-09-29 Sun 09:03] =>  0:29
-    - State "TODO"       from              [2024-09-23 Mon 08:30]
+    - State "NEXT"       from              [2024-10-01 Tue 10:30]
     :END:
 
- - [X] Fix burger - use alpine instead of vanilla JS
- - [ ] add user - auto
-   - [ ] use logging!
- - [ ] Switch menu using htmx reload of content
- - [ ] Redesign error message differently
- - [ ] use logging, create user if not exists and add user
- - [ ] add team[s]
+ - Reason #1 - more sub-domains are not provided even in paid version :-(
+
+*** DONE Add User (auto)
+    CLOSED: [2024-10-01 Tue 10:30]
+    :LOGBOOK:
+    - State "DONE"       from "TODO"       [2024-10-01 Tue 10:30]
+    - State "TODO"       from              [2024-09-30 Mon 07:45]
+    :END:
+
+*** WORKING Add Team [1/1]
+    :LOGBOOK:
+    CLOCK: [2024-09-30 Mon 08:02]--[2024-09-30 Mon 09:30] =>  1:28
+    - State "WORKING"    from "TODO"       [2024-09-30 Mon 07:50]
+    - State "TODO"       from              [2024-09-30 Mon 07:45]
+    :END:
+
+ - [X] Add team
+ - [X] Refresh page after adding (use HX-redirect)
+ - [ ] Add validation?
+
+*** TODO Join Team / Leave Team
+    :LOGBOOK:
+    - State "TODO"       from              [2024-09-30 Mon 07:45]
+    :END:
+
+*** TODO Actions list
+    :LOGBOOK:
+    - State "TODO"       from              [2024-09-30 Mon 07:45]
+    :END:
+
+*** TODO Use db logging [/]
+    :LOGBOOK:
+    - State "TODO"       from              [2024-09-30 Mon 07:45]
+    :END:
+
+ - [ ] use system / file logging!
+ - [ ] use db logging
 
 ** License
 

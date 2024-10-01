@@ -1,5 +1,5 @@
 <div x-data="{ open: true }">
-  <form hx-post="/add-team">
+  <form hx-post="/team/add">
     {% csrf-field %}
     <div :class="open ? 'is-active modal' : 'modal'">
       <div class="modal-background"></div>

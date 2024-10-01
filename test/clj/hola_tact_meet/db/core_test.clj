@@ -4,7 +4,7 @@
    [java-time.pre-java8]
    [java-time.api :as jt]
    [luminus-migrations.core :as migrations]
-   [clojure.test :refer :all]
+   [clojure.test :refer [deftest use-fixtures is]]
    [next.jdbc :as jdbc]
    [hola-tact-meet.config :refer [env]]
    [mount.core :as mount]))
@@ -26,9 +26,9 @@
               {:email      "sam.smith@example.com"}
               {})))
 
-    (is (= {:id         1
+    (is (= {:id         2
             :email      "sam.smith@example.com"}
-           (db/get-user t-conn {:id "1"} {})))
+           (db/get-user t-conn {:id 2} {})))
 
     (is (= 1 (db/update-user! t-conn {:id 1 :email "alex@smith.kharkov.ua"} {})))
 
@@ -77,7 +77,6 @@
             :created nil}
            (db/get-team t-conn {:id 2} {})))
 
-
     (is (= {:cnt 2} (db/count-teams t-conn {} {})))
     (is (= 1 (db/delete-team! t-conn {:id 2} {})))
     (is (= {:cnt 1} (db/count-teams t-conn {} {})))
@@ -98,28 +97,28 @@
               {:name      "Team A"}
               {})))
 
-    (is (= 1 (db/create-user-team!
+    (is (= 1 (db/join-team!
               t-conn
-              {:user_id      1
+              {:user_id      2
                :team_id      1}
               {})))
 
     (is (= {:id              1
-            :user_id         1
+            :user_id         2
             :team_id         1
             :joined_at       nil}
            (db/get-user-team t-conn {:id 1} {})))
 
-    (is (= [{:user_id         1
+    (is (= [{:user_id         2
              :user_email      "sam.smith@example.com"
              :team_name       "Team A"
              :team_created    nil
              :team_archived   nil
              :team_id         1
              }]
-           (db/get-users-teams t-conn {:user_id 1} {})))
+           (db/get-users-teams t-conn {:user_id 2} {})))
 
-    (is (= [{:user_id         1
+    (is (= [{:user_id         2
              :user_email      "sam.smith@example.com"
              :team_name       "Team A"
              :team_created    nil
@@ -127,6 +126,9 @@
              :team_id         1
              }]
            (db/get-users-teams t-conn {:team_id 1} {})))
+
+    (is (= [{:id 1 :name "Team A", :joined_at nil}]
+           (db/teams-and-user t-conn {:email "sam.smith@example.com"} {})))
 
     (is (= 1 (db/delete-user-team! t-conn {:id 1} {})))
     ))
@@ -146,41 +148,4 @@
                :data "{'test': true}"
                }
               {})))
-
-
-    ;; (is (= 1 (db/create-team!
-    ;;           t-conn
-    ;;           {:name      "Team A"}
-    ;;           {})))
-
-    ;; (is (= 1 (db/create-user-team!
-    ;;           t-conn
-    ;;           {:user_id      1
-    ;;            :team_id      1}
-    ;;           {})))
-
-    ;; (is (= {:id              1
-    ;;         :user_id         1
-    ;;         :team_id         1}
-    ;;        (db/get-user-team t-conn {:id 1} {})))
-
-    ;; (is (= [{:user_id         1
-    ;;          :user_email      "sam.smith@example.com"
-    ;;          :team_name       "Team A"
-    ;;          :team_created    nil
-    ;;          :team_archived   nil
-    ;;          :team_id         1
-    ;;          }]
-    ;;        (db/get-users-teams t-conn {:user_id 1} {})))
-
-    ;; (is (= [{:user_id         1
-    ;;          :user_email      "sam.smith@example.com"
-    ;;          :team_name       "Team A"
-    ;;          :team_created    nil
-    ;;          :team_archived   nil
-    ;;          :team_id         1
-    ;;          }]
-    ;;        (db/get-users-teams t-conn {:team_id 1} {})))
-
-    ;; (is (= 1 (db/delete-user-team! t-conn {:id 1} {})))
     ))

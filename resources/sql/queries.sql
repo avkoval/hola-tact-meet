@@ -13,7 +13,9 @@ WHERE id = :id
 -- :name get-user :? :1
 -- :doc retrieves a user record given the id
 SELECT * FROM users
-WHERE id = :id
+WHERE
+--~ (when-not (nil? (:id params)) "id = :id")
+--~ (when-not (nil? (:email params)) "email = :email")
 
 -- :name get-users :? :*
 -- :doc retrieves all users
@@ -54,7 +56,7 @@ SELECT * FROM team
 DELETE FROM team
 WHERE id = :id
 
--- :name create-user-team! :! :n
+-- :name join-team! :! :n
 -- :doc creates a new team record
 INSERT INTO user_team
 (user_id, team_id)
@@ -71,14 +73,14 @@ SELECT users.id as user_id, users.email as user_email, team.name as team_name, t
 FROM user_team
 LEFT JOIN users ON users.id = user_team.user_id
 LEFT JOIN team ON team.id = user_team.team_id
-WHERE 
+WHERE
 --~ (if (nil? (:user_id params)) "team_id = :team_id" "user_id = :user_id")
 
 
 -- :name delete-user-team! :! :n
 -- :doc deletes a team record given the id
 DELETE FROM user_team
-WHERE 
+WHERE
 --~ (cond (not (nil? (:user_id params))) "user_id = :user_id" (not (nil? (:team_id params))) "team_id = :team_id" :else "id = :id")
 
 -- :name insert-log! :! :n
@@ -86,3 +88,18 @@ WHERE
 INSERT INTO system_log
 (added_by, stamp, data)
 VALUES (:added_by, :stamp, :data)
+
+-- :name teams-and-user :? :*
+-- :doc Get team name and membership status for user by email
+select
+  team.id,
+  team.name,
+  (select
+    joined_at
+   from user_team
+   join users on users.id=user_id
+   where
+     team_id=team.id
+     and email=:email
+   ) as joined_at
+from team;

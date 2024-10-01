@@ -2,7 +2,7 @@
   (:require
     [hola-tact-meet.middleware :as middleware]
     [hola-tact-meet.layout :refer [error-page]]
-    [hola-tact-meet.routes.home :refer [home-routes]]
+    [hola-tact-meet.routes.main :refer [main-routes]]
     [reitit.ring :as ring]
     [ring.middleware.content-type :refer [wrap-content-type]]
     [ring.middleware.webjars :refer [wrap-webjars]]
@@ -17,7 +17,7 @@
   :start
   (ring/ring-handler
     (ring/router
-      [(home-routes)])
+      [(main-routes)])
     (ring/routes
       (ring/create-resource-handler
         {:path "/"})

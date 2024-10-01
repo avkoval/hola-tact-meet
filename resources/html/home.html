@@ -10,14 +10,35 @@
     <table class="table">
     <thead>
       <th>Name</th>
-      <th>Your membership status</th>
-      <th>Joined at</th>
+      <th>Description</th>
+      <th>Meetings</th>
+      <th>Join/Leave</th>
+      <th>Actions</th>
     </thead>
     <tbody>
-      <tr><td>...</td></tr>
+      {% for team in teams %}
+        <tr><td>{{ team.name }}</td>
+          <td></td>
+          <td></td>
+          <td>
+            {% if team.joined_at %}
+              {% include "team/joined.html" %}
+              {% else %}
+              <button class="button is-light" hx-post="/team/join?team_id={{ team.id }}" hx-swap="outerHTML">Join</button>
+            {% endif %}
+          </td>
+          <td>
+            <a>Edit</a>
+            {% comment %}
+            <button class="button is-primary">Edit</button>
+            <button class="button is-danger" data-tooltip="archive">❌</button>
+            {% endcomment %}
+          </td>
+        </tr>
+      {% endfor %}
     </tbody>
   </table>
-  <a href="/add-meeting" hx-get="/add-team" hx-target="#id-modal-here">Add new team</a>
+  <a href="/add-meeting" hx-get="/team/add" hx-target="#id-modal-here">Add new team</a>
   </div>
 
 <div class="box">
