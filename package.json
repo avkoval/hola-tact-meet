@@ -1,0 +1,17 @@
+{
+  "name": "hola-tact-meet",
+  "version": "1.0.0",
+  "description": "* hola-tact-meet",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Oleksii Koval",
+  "license": "ISC",
+  "dependencies": {
+    "bulma-calendar": "^7.1.1"
+  }
+}

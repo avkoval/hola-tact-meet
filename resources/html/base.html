@@ -11,6 +11,8 @@
     {% script "/assets/htmx.org/dist/htmx.min.js" %}
     {% script "/assets/alpinejs/dist/cdn.min.js" defer="true" %}
     {% style "/css/screen.css" %}
+    {% style "/css/bulma-calendar.min.css" %}
+
   </head>
   <body x-data="{showBurgerMenu: false}">
     <!-- navbar -->
@@ -44,10 +46,10 @@
 
     {% block page-scripts %}
       <script>
-      document.body.addEventListener("htmx:configRequest", (event) => {
-        event.detail.headers["x-csrf-token"] = "{{ csrf-token }}";
-      });
+      document.body.addEventListener("htmx:configRequest", (event) => { event.detail.headers["x-csrf-token"] = "{{ csrf-token }}"; });
+      document.body.addEventListener("htmx:afterSwap", (event) => { bulmaCalendar.attach('[type="date"]', {}); });
       </script>
+      {% script "/js/bulma-calendar.min.js" %}
     {% endblock %}
   </body>
 

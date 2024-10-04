@@ -24,7 +24,19 @@ To start a web server for the application, run:
 lein run
 #+end_example
 
-** Development plan [3/10]
+** Dev info
+
+*** Reload queries in REPL
+    :LOGBOOK:
+    - Note taken on [2024-10-02 Wed 07:10]
+    :END:
+
+    #+begin_example
+    (in-ns 'hola-tact-meet.db.core)
+    (conman/bind-connection *db* "sql/queries.sql")
+    #+end_example
+
+** Development plan [4/11]
 *** DONE Static files libraries to use
     CLOSED: [2024-09-24 Tue 11:10]
     :LOGBOOK:
@@ -54,7 +66,14 @@ lein run
 
  - [X] May be use shortcut from Ngrok? https://ngrok.com/docs/integrations/google/oauth/
 
-*** WORKING Basic Layout: Decide & implement  [60%]
+*** WORKING Which calendar to use for date & time fields?
+    :LOGBOOK:
+    CLOCK: [2024-10-03 Thu 07:30]--[2024-10-03 Thu 10:53] =>  3:23
+    - State "WORKING"    from              [2024-10-02 Wed 21:05]
+    :END:
+ - https://doc.mh-s.de/bulma-calendar/demonstration/date/
+ - 
+*** WORKING Basic Layout: Decide & implement  [80%]
     :LOGBOOK:
     - State "WORKING"    from "TODO"       [2024-09-30 Mon 07:45]
     CLOCK: [2024-09-29 Sun 08:34]--[2024-09-29 Sun 09:03] =>  0:29
@@ -65,7 +84,7 @@ lein run
  - [ ] Switch menu using htmx reload of content
  - [X] Redesign error message differently
  - [X] Teams list
- - [ ] Meetings list
+ - [X] Meetings list
 
 *** NEXT Develop (ngrok?) authentication middleware
     :LOGBOOK:
@@ -99,8 +118,10 @@ lein run
     - State "TODO"       from              [2024-09-30 Mon 07:45]
     :END:
 
-*** WORKING Add Team [1/1]
+*** DONE Add Team [2/2]
+    CLOSED: [2024-10-04 Fri 08:20]
     :LOGBOOK:
+    - State "DONE"       from "WORKING"    [2024-10-04 Fri 08:20]
     CLOCK: [2024-09-30 Mon 08:02]--[2024-09-30 Mon 09:30] =>  1:28
     - State "WORKING"    from "TODO"       [2024-09-30 Mon 07:50]
     - State "TODO"       from              [2024-09-30 Mon 07:45]
@@ -108,7 +129,29 @@ lein run
 
  - [X] Add team
  - [X] Refresh page after adding (use HX-redirect)
- - [ ] Add validation?
+ - +[ ] Add validation?+
+
+*** Unique team name
+
+ - [ ] Add form validation
+ - [ ] Add unique index
+
+*** Manage meetings [0/3]
+
+ - [ ] Add meeting
+   - [ ] validate time
+   - [ ] validate duration: int, less then 3 hrs = 180min
+   - [ ] agenda should not exceed N chars
+   - [ ] date should not be in past
+   - [ ] combine time & date into datetime
+ - [ ] Basic meetings list
+ - [ ] Topic, Actions counts
+ - [ ] Teams, invited
+ - [ ] Additional selections:
+   - [ ] Current
+   - [ ] today
+   - [ ] future
+   - [ ] past
 
 *** TODO Join Team / Leave Team
     :LOGBOOK:

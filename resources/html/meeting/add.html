@@ -1,0 +1,59 @@
+<div x-data="{ open: true }">
+  <form hx-post="/meeting/add" hx-trigger="click target:#save-changes">
+    {% csrf-field %}
+    <div :class="open ? 'is-active modal' : 'modal'">
+      <div class="modal-background"></div>
+      <div class="modal-card">
+        <header class="modal-card-head">
+          <p class="modal-card-title">Add Meeting</p>
+          <button class="delete" aria-label="close" x-on:click="open = ! open"></button>
+        </header>
+        <section class="modal-card-body">
+          <div class="field">
+            <label class="label">Date</label>
+            <div class="control">
+              <input name="scheduled_to" class="input" type="date" value="2024-10-02">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Start Time</label>
+            <div class="control">
+              <input class="input" type="text" name="start_time" placeholder="e.g. 12:10">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Expected duration</label>
+            <div class="control">
+              <input class="radio" name="duration" type="radio" value="10"> 10 min
+              <input class="radio" name="duration" type="radio" value="20"> 20 min
+              <input class="radio" name="duration" type="radio" value="30"> 30 min
+              <input class="radio" name="duration" type="radio" value="45" checked="checked"> 45 min
+              <input class="radio" name="duration" type="radio" value="50"> 50 min
+              <input class="radio" name="duration" type="radio" value="60"> 1 h
+              <input class="radio" name="duration" type="radio" value="90"> 1.5 h
+              <input class="radio" name="duration" type="radio" value="120"> 2h
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Agenda</label>
+            <div class="control">
+              <input class="input" name="agenda" type="text" placeholder="Meeting agenda">
+            </div>
+          </div>
+          <div class="field">
+            <label class="label">Description</label>
+            <div class="control">
+              <textarea class="textarea" name="description" placeholder="More detailed description (optional)"></textarea>
+            </div>
+          </div>
+        </section>
+        <footer class="modal-card-foot">
+          <div class="buttons">
+            <button class="button is-success" id="save-changes">💾 Save changes</button>
+            <button class="button" x-on:click="open = ! open">❌ Cancel</button>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </form>
+</div>

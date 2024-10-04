@@ -29,13 +29,29 @@ WHERE id = :id
 -- :name create-team! :! :n
 -- :doc creates a new team record
 INSERT INTO team
-(name)
-VALUES (:name)
+(name, description)
+VALUES (:name, :description)
 
 -- :name update-team! :! :n
 -- :doc updates an existing team record
 UPDATE team
-SET name = :name
+SET 
+ name = :name,
+ description = :description
+WHERE id = :id
+
+-- :name archive-team! :! :n
+-- :doc archives an existing team record
+UPDATE team
+SET 
+ archived = CURRENT_TIMESTAMP
+WHERE id = :id
+
+-- :name unarchive-team! :! :n
+-- :doc unarchives an existing team record
+UPDATE team
+SET 
+ archived = null
 WHERE id = :id
 
 -- :name get-team :? :1
@@ -79,9 +95,16 @@ WHERE
 
 -- :name delete-user-team! :! :n
 -- :doc deletes a team record given the id
+/* :require [clojure.string :as s] */
 DELETE FROM user_team
-WHERE
---~ (cond (not (nil? (:user_id params))) "user_id = :user_id" (not (nil? (:team_id params))) "team_id = :team_id" :else "id = :id")
+/*~
+(let [params (filter (comp some? val) params)]
+  (when (not (empty? params))
+    (str "WHERE "
+      (s/join " AND "
+              (for [[field _] params]
+                (str (name field) " = " field))))))
+~*/
 
 -- :name insert-log! :! :n
 -- :doc creates a new user record
@@ -92,8 +115,7 @@ VALUES (:added_by, :stamp, :data)
 -- :name teams-and-user :? :*
 -- :doc Get team name and membership status for user by email
 select
-  team.id,
-  team.name,
+  team.*,
   (select
     joined_at
    from user_team
@@ -101,5 +123,18 @@ select
    where
      team_id=team.id
      and email=:email
-   ) as joined_at
-from team;
+   ) as joined_at,
+   (select count(*) from meeting) as meetings_count
+from team
+  where
+    team.archived is NULL;
+
+-- :name create-meeting! :! :n
+-- :doc creates a new meeting record
+INSERT INTO meeting
+(agenda, description, scheduled_to, duration, added_by)
+VALUES (:agenda, :description, :scheduled_to, :duration, :added_by)
+
+-- :name get-meetings :? :*
+-- :doc retrieves meetings
+SELECT * FROM meeting
