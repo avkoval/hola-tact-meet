@@ -188,6 +188,7 @@
               {:agenda      "test agenda"
                :scheduled_to "2021-01-01"
                :duration 20
+               :description "hi there!"
                :added_by 1} {})))
 
     (is (= [{:id 1
@@ -196,6 +197,7 @@
              :duration 20
              :added_by 1
              :started_at nil  
-             :finished_at nil}]
+             :finished_at nil
+             :description "hi there!"}]
            (db/get-meetings t-conn {} {})))
     ))

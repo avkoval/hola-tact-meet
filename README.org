@@ -26,6 +26,16 @@ lein run
 
 ** Dev info
 
+*** Cider start
+
+    #+begin_example
+    {M-x cider-jack-in RET lein RET}
+    #+end_example
+
+    #+begin_example
+    {C-x o (start) RET}
+    #+end_example
+
 *** Reload queries in REPL
     :LOGBOOK:
     - Note taken on [2024-10-02 Wed 07:10]
@@ -36,7 +46,13 @@ lein run
     (conman/bind-connection *db* "sql/queries.sql")
     #+end_example
 
-** Development plan [4/11]
+*** Running continuous test
+
+    #+begin_example
+    lein test-refresh
+    #+end_example
+
+** Development plan [6/12]
 *** DONE Static files libraries to use
     CLOSED: [2024-09-24 Tue 11:10]
     :LOGBOOK:
@@ -66,25 +82,42 @@ lein run
 
  - [X] May be use shortcut from Ngrok? https://ngrok.com/docs/integrations/google/oauth/
 
-*** WORKING Which calendar to use for date & time fields?
+*** DONE Which calendar to use for date & time fields?
+    CLOSED: [2024-10-04 Fri 21:55]
     :LOGBOOK:
+    - State "DONE"       from "WORKING"    [2024-10-04 Fri 21:55]
     CLOCK: [2024-10-03 Thu 07:30]--[2024-10-03 Thu 10:53] =>  3:23
     - State "WORKING"    from              [2024-10-02 Wed 21:05]
     :END:
  - https://doc.mh-s.de/bulma-calendar/demonstration/date/
  - 
-*** WORKING Basic Layout: Decide & implement  [80%]
+*** DONE Basic Layout: Decide & implement  [100%]
+    CLOSED: [2024-10-05 Sat 07:35]
     :LOGBOOK:
+    - State "DONE"       from "WORKING"    [2024-10-05 Sat 07:35]
     - State "WORKING"    from "TODO"       [2024-09-30 Mon 07:45]
     CLOCK: [2024-09-29 Sun 08:34]--[2024-09-29 Sun 09:03] =>  0:29
     - State "TODO"       from              [2024-09-23 Mon 08:30]
     :END:
 
  - [X] Fix burger - use alpine instead of vanilla JS
- - [ ] Switch menu using htmx reload of content
+ - +[ ] Switch menu using htmx reload of content+
+   - Despite the occasional size change of top menu during reload I've decided not to do: 
+     it is more/less acceptable the way it is now.
  - [X] Redesign error message differently
  - [X] Teams list
  - [X] Meetings list
+
+*** WORKING add validation of fields for meeting add
+    :LOGBOOK:
+    - State "WORKING"    from "TODO"       [2024-10-18 Fri 08:50]
+    - State "TODO"       from              [2024-10-17 Thu 09:30]
+    :END:
+ - [ ] time format
+ - https://github.com/exoscale/coax
+ - https://dev.to/kspeakman/validation-approaches-in-clojure-3e0e
+ - https://github.com/metosin/malli
+ - https://www.metosin.fi/blog/transforming-data-with-malli-and-meander
 
 *** NEXT Develop (ngrok?) authentication middleware
     :LOGBOOK:
@@ -104,12 +137,19 @@ lein run
    - https://medium.com/helpshift-engineering/on-the-testability-of-ring-middlewares-in-clojure-6795eae60f2a
    - [2024-09-29 Sun 08:30] stuck with middleware, continue on other side
 
+ #+begin_src tmux :session hola-ngrok
+ ngrok http 3000 --oauth google
+ #+end_src
+
 *** NEXT use some clojure oauth library instead of ngrok!
     :LOGBOOK:
+    CLOCK: [2024-11-30 Sat 09:43]
     - State "NEXT"       from              [2024-10-01 Tue 10:30]
     :END:
 
- - Reason #1 - more sub-domains are not provided even in paid version :-(
+ Reason #1 - more sub-domains are not provided even in paid version :-(
+ https://github.com/weavejester/ring-oauth2
+
 
 *** DONE Add User (auto)
     CLOSED: [2024-10-01 Tue 10:30]

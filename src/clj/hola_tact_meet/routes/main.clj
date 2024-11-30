@@ -7,7 +7,8 @@
    [ring.util.response]
    [clojure.pprint]
    [java-time.api :as jt]
-   [ring.util.http-response :as response]))
+   [ring.util.http-response :as response]
+   [struct.core :as st]))
 
 (defn get-or-add-user [email]
   (let [user (db/get-user {:email email})]
@@ -29,7 +30,7 @@
       (layout/render request "error.html"
                      {:title "Authentication error" :message "User is not recognized"})
       (layout/render request "home.html"
-                     {:user-email user-email 
+                     {:user-email user-email
                       :teams (db/teams-and-user {:email user-email})
                       :meetings (db/get-meetings)})
       )
@@ -44,16 +45,44 @@
 (defn teams-page [request]
   (layout/render request "teams.html" {}))
 
+(def team-schema
+  [[:name
+    st/required
+    st/string]
+   [:description
+    st/string]]
+)
+
+(defn validate-team-params [params]
+  (first (st/validate params team-schema)))
+
 (defn add-team [request]
   ;; (clojure.pprint/pprint request)
+
   (if (= :post (:request-method request))
-    (do
-      (db/create-team! (select-keys (:params request) [:name :description]))
-      {:status 200
-       :headers {"HX-Redirect" "/"}
-       :body ""})
+    (let [params (:params request)
+          errors (validate-team-params params)]
+      (println errors)
+      (if errors
+        (layout/render request "team/add.html" (assoc params :errors errors))
+        (do
+          (db/create-team! (select-keys (:params request) [:name :description]))
+          {:status 200
+           :headers {"HX-Redirect" "/"}
+           :body ""})))
     (layout/render request "team/add.html" {}))
   )
+
+(def meeting-schema
+  [[:scheduled_to
+    st/required
+    st/string]
+   [:description
+    st/string]]
+)
+
+(defn validate-meeting-params [params]
+  (first (st/validate params meeting-schema)))
 
 (defn add-meeting [request]
   ;; (clojure.pprint/pprint request)
@@ -63,9 +92,9 @@
         user-id (:id user)]
     (if (= :post (:request-method request))
       (do
-        (db/create-meeting! 
+        (db/create-meeting!
          (merge {:added_by user-id}
-                (select-keys (:params request) 
+                (select-keys (:params request)
                              [:agenda :scheduled_to :description :duration :added_by])))
         {:status 200
          :headers {"HX-Redirect" "/"}
@@ -112,7 +141,7 @@
         team_id (:team_id (:params request))
         team (db/get-team {:id team_id})
         ]
-    (db/delete-user-team! {:user_id user-id :team_id team_id}) 
+    (db/delete-user-team! {:user_id user-id :team_id team_id})
     (layout/render request "team/leave.html" {:team team}))
   )
 

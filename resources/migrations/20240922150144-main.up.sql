@@ -28,6 +28,7 @@ duration INT,
 started_at TIMESTAMP WITH TIME ZONE,
 finished_at TIMESTAMP WITH TIME ZONE,
 added_by INT,
+description TEXT,
 FOREIGN KEY (added_by) REFERENCES users(id)
 );
 --;;

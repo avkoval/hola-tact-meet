@@ -12,13 +12,15 @@
           <div class="field">
             <label class="label">Name</label>
             <div class="control">
-              <input class="input" name="name" type="text" placeholder="Team name">
+              <input class="input{% if errors.name %} is-danger{% endif %}" name="name" type="text" placeholder="Team name" value="{{ name }}">
+              {% if errors.name %}<div class="help is-danger">{{errors.name|join}}</div>{% endif %}
             </div>
           </div>
           <div class="field">
             <label class="label">Description</label>
             <div class="control">
-              <textarea class="textarea" name="description" placeholder="What this team do?"></textarea>
+              <textarea class="textarea{% if errors.description %} is-danger{% endif %}" name="description" placeholder="What this team do?">{{ description }}</textarea>
+              {% if errors.description %}<div class="help is-danger">{{errors.description|join}}</div>{% endif %}
             </div>
           </div>
         </section>
