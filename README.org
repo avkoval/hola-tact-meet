@@ -1,217 +1,178 @@
 * hola-tact-meet
 
-Holacracy has many practical concepts, one of them is Tactical Meetings - structured
-way to discuss & action on the ongoing project issues.
+** Purpose
 
-We are not using Holacracy but I want to replicate some of its structure with this
-program so we can try some concepts in our team.
+This is my 3rd attempt to write a software which will help to facilitate and structure my team meetings
+in a Holacracy style. While there are some limitations of a typical non-Holacracy teams (e.g. absense of Roles etc) 
+I still feel the great potential of performing Holacracy style meetings with facilitation & clear outcome
+for my team.
 
-See also [[https://orgpad.info/o/AZXSvxkUdIo7kZUmIwy7SP][Orgpad: Structural Meetings Idea]]
+** Planned features
 
-** Architecture
+ - Identification & Authorization
 
-MPA - Clojure / Luminos framework on backend and HTMX on frontend.
+   - [ ] Google Auth
+   - (maybe) Jira auth
 
-** Prerequisites
+ - Permission levels
+   - Admin (can manager allowed domains and setup Oauth screens)
+   - Manager (can manage teams)
+   - User (can participate in the teams and meetings)
 
-You will need [[https://github.com/technomancy/leiningen][Leiningen]] 2.0 or above installed.
+ - Main screen
+   - Some explanation what this is and what it does
+   - Login button
 
-** Running
+ - App screen (for logged in users)
+   - User:
+     - Join existing meeting
+     - List past meetings
+     - Personal actions - todo list
+     - ⚙ user profile settings
+       - avatar, username, etc
 
-To start a web server for the application, run:
+   - Manager
+     - Create/start new meeting
+       - Meeting description
+       - ☑ Allow vote for topic
+       - ☑ Sort topics by votes
+       - Join URL (Google Meet, Zoom, etc)
+     - Edit past meetings data (todo actions etc)
+     - Activate/Deactivate (show/hide) past meetings data
+
+   - Admin
+     - ⚙ project settings link
+
+ - Meeting
+
+   - Rounds:
+     
+     For each round - display the actual documentation at the other half of the screen, explaning roles & actions
+     of people involved, to easy the process of onboarding to this new meeting structure.
+
+     - Check-in round
+     - Checklist review
+     - Metrics review
+     - +Project progress updates+ (Projects are not planned for 1st release)
+
+   - Topics (tensions)
+     - Add topic to discuss
+     - Voting for topic (if enabled)
+     - Sorting topics by vote (if enabled)
+     - Countdown timer (if enabled and set for topic)
+     - Discussion phases: (traige issues)
+       - Explanation
+       - Questions round
+       - Opinions round
+       - Objections round
+       - Decision round: accept / decline
+       - Secretary write down the action items
+
+   - Finalize:
+     - Export as:
+       - Doc
+       - PDF
+       - Directly to Confluence via API (if API is enabled)
+
+** Installation
+:PROPERTIES:
+:CUSTOM_ID: installation
+:END:
+
+Download from https://github.com/avkoval/hola-tact-meet
+
+** Usage
+:PROPERTIES:
+:CUSTOM_ID: usage
+:END:
+FIXME: explanation
+
+Run the project directly, via =:exec-fn=:
 
 #+begin_example
-lein run
+$ clojure -X:run-x
+Hello, Clojure!
 #+end_example
 
-** Dev info
+Run the project, overriding the name to be greeted:
 
-*** Cider start
+#+begin_example
+$ clojure -X:run-x :name '"Someone"'
+Hello, Someone!
+#+end_example
 
-    #+begin_example
-    {M-x cider-jack-in RET lein RET}
-    #+end_example
+Run the project directly, via =:main-opts= (=-m ok.hola-tact-meet=):
 
-    #+begin_example
-    {C-x o (start) RET}
-    #+end_example
+#+begin_example
+$ clojure -M:run-m
+Hello, World!
+#+end_example
 
-*** Reload queries in REPL
-    :LOGBOOK:
-    - Note taken on [2024-10-02 Wed 07:10]
-    :END:
+Run the project, overriding the name to be greeted:
 
-    #+begin_example
-    (in-ns 'hola-tact-meet.db.core)
-    (conman/bind-connection *db* "sql/queries.sql")
-    #+end_example
+#+begin_example
+$ clojure -M:run-m Via-Main
+Hello, Via-Main!
+#+end_example
 
-*** Running continuous test
+Run the project's tests (they'll fail until you edit them):
 
-    #+begin_example
-    lein test-refresh
-    #+end_example
+#+begin_example
+$ clojure -T:build test
+#+end_example
 
-** Development plan [6/12]
-*** DONE Static files libraries to use
-    CLOSED: [2024-09-24 Tue 11:10]
-    :LOGBOOK:
-    - State "DONE"       from "TODO"       [2024-09-24 Tue 11:10]
-    CLOCK: [2024-09-24 Tue 08:49]--[2024-09-24 Tue 11:12] =>  2:23
-    - State "TODO"       from              [2024-09-23 Mon 08:30]
-    :END:
-**** DONE Bulma CSS - use latest version
-     CLOSED: [2024-09-24 Tue 08:50]
-     :LOGBOOK:
-     - State "DONE"       from "TODO"       [2024-09-24 Tue 08:50]
-     - State "TODO"       from              [2024-09-23 Mon 08:30]
-     :END:
-**** DONE Add both Htmx & Alpine
-     CLOSED: [2024-09-24 Tue 11:10]
-     :LOGBOOK:
-     - State "DONE"       from "TODO"       [2024-09-24 Tue 11:10]
-     - State "TODO"       from              [2024-09-23 Mon 08:30]
-     :END:
-*** DONE Implement Google SSO
-    CLOSED: [2024-09-29 Sun 08:30]
-    :LOGBOOK:
-    - State "DONE"       from "NEXT"       [2024-09-29 Sun 08:30]
-    - State "NEXT"       from "TODO"       [2024-09-24 Tue 14:10]
-    - State "TODO"       from              [2024-09-23 Mon 08:30]
-    :END:
+Run the project's CI pipeline and build an uberjar (this will fail until
+you edit the tests to pass):
 
- - [X] May be use shortcut from Ngrok? https://ngrok.com/docs/integrations/google/oauth/
+#+begin_example
+$ clojure -T:build ci
+#+end_example
 
-*** DONE Which calendar to use for date & time fields?
-    CLOSED: [2024-10-04 Fri 21:55]
-    :LOGBOOK:
-    - State "DONE"       from "WORKING"    [2024-10-04 Fri 21:55]
-    CLOCK: [2024-10-03 Thu 07:30]--[2024-10-03 Thu 10:53] =>  3:23
-    - State "WORKING"    from              [2024-10-02 Wed 21:05]
-    :END:
- - https://doc.mh-s.de/bulma-calendar/demonstration/date/
- - 
-*** DONE Basic Layout: Decide & implement  [100%]
-    CLOSED: [2024-10-05 Sat 07:35]
-    :LOGBOOK:
-    - State "DONE"       from "WORKING"    [2024-10-05 Sat 07:35]
-    - State "WORKING"    from "TODO"       [2024-09-30 Mon 07:45]
-    CLOCK: [2024-09-29 Sun 08:34]--[2024-09-29 Sun 09:03] =>  0:29
-    - State "TODO"       from              [2024-09-23 Mon 08:30]
-    :END:
+Run that uberjar:
 
- - [X] Fix burger - use alpine instead of vanilla JS
- - +[ ] Switch menu using htmx reload of content+
-   - Despite the occasional size change of top menu during reload I've decided not to do: 
-     it is more/less acceptable the way it is now.
- - [X] Redesign error message differently
- - [X] Teams list
- - [X] Meetings list
+#+begin_example
+$ java -jar target/hola-tact-meet-0.1.0-SNAPSHOT.jar
+#+end_example
 
-*** WORKING add validation of fields for meeting add
-    :LOGBOOK:
-    - State "WORKING"    from "TODO"       [2024-10-18 Fri 08:50]
-    - State "TODO"       from              [2024-10-17 Thu 09:30]
-    :END:
- - [ ] time format
- - https://github.com/exoscale/coax
- - https://dev.to/kspeakman/validation-approaches-in-clojure-3e0e
- - https://github.com/metosin/malli
- - https://www.metosin.fi/blog/transforming-data-with-malli-and-meander
+** Options
+:PROPERTIES:
+:CUSTOM_ID: options
+:END:
+FIXME: listing of options this app accepts.
 
-*** NEXT Develop (ngrok?) authentication middleware
-    :LOGBOOK:
-    - State "NEXT"       from "TODO"       [2024-09-29 Sun 08:30]
-    - State "TODO"       from "WORKING"    [2024-09-29 Sun 08:30]
-    CLOCK: [2024-09-25 Wed 09:59]--[2024-09-25 Wed 10:45] =>  0:46
-    - State "WORKING"    from "TODO"       [2024-09-25 Wed 10:00]
-    - State "TODO"       from              [2024-09-25 Wed 09:55]
-    :END:
+** Examples
+:PROPERTIES:
+:CUSTOM_ID: examples
+:END:
+...
 
- - Reading:
-   - https://dev.to/fpsd/clojure-bites-ring-basic-auth-2jf2
-   - https://cljdoc.org/d/ring-auth/ring-auth/0.1.0/api/ring-auth.middleware
-   - https://github.com/weavejester/ring-oauth2
-   - https://stackoverflow.com/questions/48953586/how-to-authenticate-a-subset-of-routes-in-ring-application
-   - https://github.com/funcool/buddy-auth
-   - https://medium.com/helpshift-engineering/on-the-testability-of-ring-middlewares-in-clojure-6795eae60f2a
-   - [2024-09-29 Sun 08:30] stuck with middleware, continue on other side
+*** Bugs
+:PROPERTIES:
+:CUSTOM_ID: bugs
+:END:
+...
 
- #+begin_src tmux :session hola-ngrok
- ngrok http 3000 --oauth google
- #+end_src
-
-*** NEXT use some clojure oauth library instead of ngrok!
-    :LOGBOOK:
-    CLOCK: [2024-11-30 Sat 09:43]
-    - State "NEXT"       from              [2024-10-01 Tue 10:30]
-    :END:
-
- Reason #1 - more sub-domains are not provided even in paid version :-(
- https://github.com/weavejester/ring-oauth2
-
-
-*** DONE Add User (auto)
-    CLOSED: [2024-10-01 Tue 10:30]
-    :LOGBOOK:
-    - State "DONE"       from "TODO"       [2024-10-01 Tue 10:30]
-    - State "TODO"       from              [2024-09-30 Mon 07:45]
-    :END:
-
-*** DONE Add Team [2/2]
-    CLOSED: [2024-10-04 Fri 08:20]
-    :LOGBOOK:
-    - State "DONE"       from "WORKING"    [2024-10-04 Fri 08:20]
-    CLOCK: [2024-09-30 Mon 08:02]--[2024-09-30 Mon 09:30] =>  1:28
-    - State "WORKING"    from "TODO"       [2024-09-30 Mon 07:50]
-    - State "TODO"       from              [2024-09-30 Mon 07:45]
-    :END:
-
- - [X] Add team
- - [X] Refresh page after adding (use HX-redirect)
- - +[ ] Add validation?+
-
-*** Unique team name
-
- - [ ] Add form validation
- - [ ] Add unique index
-
-*** Manage meetings [0/3]
-
- - [ ] Add meeting
-   - [ ] validate time
-   - [ ] validate duration: int, less then 3 hrs = 180min
-   - [ ] agenda should not exceed N chars
-   - [ ] date should not be in past
-   - [ ] combine time & date into datetime
- - [ ] Basic meetings list
- - [ ] Topic, Actions counts
- - [ ] Teams, invited
- - [ ] Additional selections:
-   - [ ] Current
-   - [ ] today
-   - [ ] future
-   - [ ] past
-
-*** TODO Join Team / Leave Team
-    :LOGBOOK:
-    - State "TODO"       from              [2024-09-30 Mon 07:45]
-    :END:
-
-*** TODO Actions list
-    :LOGBOOK:
-    - State "TODO"       from              [2024-09-30 Mon 07:45]
-    :END:
-
-*** TODO Use db logging [/]
-    :LOGBOOK:
-    - State "TODO"       from              [2024-09-30 Mon 07:45]
-    :END:
-
- - [ ] use system / file logging!
- - [ ] use db logging
-
+*** Any Other Sections
+:PROPERTIES:
+:CUSTOM_ID: any-other-sections
+:END:
+*** That You Think
+:PROPERTIES:
+:CUSTOM_ID: that-you-think
+:END:
+*** Might be Useful
+:PROPERTIES:
+:CUSTOM_ID: might-be-useful
+:END:
 ** License
+:PROPERTIES:
+:CUSTOM_ID: license
+:END:
+Copyright © 2025 Oleksii
 
-Generated using Luminus version "3.91"
-Copyright © 2024 Oleksii Koval
+/EPLv1.0 is just the default for projects generated by =clj-new=: you
+are not/ /required to open source this project, nor are you required to
+use EPLv1.0!/ /Feel free to remove or change the =LICENSE= file and
+remove or update this/ /section of the =README.md= file!/
+
+Distributed under the Eclipse Public License version 1.0.
