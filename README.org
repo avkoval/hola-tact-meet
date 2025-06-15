@@ -2,10 +2,15 @@
 
 ** Purpose
 
-This is my 3rd attempt to write a software which will help to facilitate and structure my team meetings
-in a Holacracy style. While there are some limitations of a typical non-Holacracy teams (e.g. absense of Roles etc) 
-I still feel the great potential of performing Holacracy style meetings with facilitation & clear outcome
-for my team.
+This is my third attempt to develop software that facilitates and structures team meetings in a Holacracy style.
+Although my team does not operate under a typical Holacracy framework, I believe there is significant potential in
+adopting its principles, especially when it comes to effective facilitation and achieving clear outcomes.
+
+One practical concept from Holacracy is Tactical Meetings, which provide a structured approach to discussing and
+addressing ongoing project issues. My goal with this program is to incorporate some of these elements into our team
+meetings, allowing us to experiment with Holacracy concepts and use them in current projects.
+
+See also [[https://orgpad.info/o/AZXSvxkUdIo7kZUmIwy7SP][Orgpad: Structural Meetings Idea]]
 
 ** Planned features
 
@@ -46,7 +51,7 @@ for my team.
  - Meeting
 
    - Rounds:
-     
+
      For each round - display the actual documentation at the other half of the screen, explaning roles & actions
      of people involved, to easy the process of onboarding to this new meeting structure.
 
@@ -61,12 +66,13 @@ for my team.
      - Sorting topics by vote (if enabled)
      - Countdown timer (if enabled and set for topic)
      - Discussion phases: (traige issues)
-       - Explanation
+       - Explanation (Raise Topic)
        - Questions round
        - Opinions round
        - Objections round
-       - Decision round: accept / decline
-       - Secretary write down the action items
+       - Acceptance (Decision round):
+         - Accept or Decline
+         - Secretary: write down the action items
 
    - Finalize:
      - Export as:
