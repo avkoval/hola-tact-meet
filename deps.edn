@@ -1,5 +1,21 @@
 {:paths ["src" "resources"]
- :deps {org.clojure/clojure {:mvn/version "1.12.0"}}
+ :deps {org.clojure/clojure {:mvn/version "1.12.0"}
+        ring/ring-core {:mvn/version "1.14.1"}
+        ring/ring-jetty-adapter {:mvn/version "1.14.1"}
+        nrepl/nrepl {:mvn/version "1.3.1"}
+        metosin/reitit-ring {:mvn/version "0.9.1"}
+        cider/cider-nrepl {:mvn/version "0.56.0"}
+        ring/ring-devel {:mvn/version "1.14.1"}
+        selmer/selmer {:mvn/version "1.12.62"}
+        org.clojure.clr/data.json {:mvn/version "2.5.1"}
+        ;; datastar
+        datastar/sdk {:git/url "https://github.com/starfederation/datastar/"
+              :git/sha "03164b47af392a8e25275e14c46ce2a9a1935a37"
+              :deps/root "sdk/clojure/sdk"}
+        datastar/ring {:git/url "https://github.com/starfederation/datastar/"
+               :git/sha "03164b47af392a8e25275e14c46ce2a9a1935a37"
+               :deps/root "sdk/clojure/adapter-ring"}
+        }
  :aliases
  {:run-m {:main-opts ["-m" "ok.hola-tact-meet"]}
   :run-x {:ns-default ok.hola-tact-meet
