@@ -176,7 +176,7 @@ Copyright © 2025 Oleksii Koval
 
 Distributed under the MIT License
 
-** COMMENT Work plan & progress
+** COMMENT Current work plan & progress [75%]
 
 *** DONE Set appropriate License
     CLOSED: [2025-06-15 Sun 21:30]
@@ -199,11 +199,19 @@ Distributed under the MIT License
     - [X] cider-nrepl
     - [X] nrepl
 
-*** TODO Main page and reload
+*** DONE Home page and reload
+    CLOSED: [2025-06-16 Mon 08:55]
+    :LOGBOOK:
+    - State "DONE"       from "DONE"       [2025-06-16 Mon 08:55]
+    - State "DONE"       from "WORKING"    [2025-06-16 Mon 08:55]
+    CLOCK: [2025-06-16 Mon 07:14]--[2025-06-16 Mon 08:55] =>  1:41
+    - State "WORKING"    from "TODO"       [2025-06-16 Mon 07:15]
+    :END:
 
- - [ ] Add home.html template
- - [ ] Make sure code reload is working fine
- - [ ] Use bulma.css from CDN
+ - [X] Add home.html template
+ - [X] Add ring server handler, homepage view
+ - [X] Make sure code reload is working fine
+ - [X] Use bulma.css from CDN
 
 *** TODO Make sure to enable gzip or even better: brothli compression
     :LOGBOOK:

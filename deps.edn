@@ -7,7 +7,7 @@
         cider/cider-nrepl {:mvn/version "0.56.0"}
         ring/ring-devel {:mvn/version "1.14.1"}
         selmer/selmer {:mvn/version "1.12.62"}
-        org.clojure.clr/data.json {:mvn/version "2.5.1"}
+        org.clojure/data.json {:mvn/version "2.5.1"}
         ;; datastar
         datastar/sdk {:git/url "https://github.com/starfederation/datastar/"
               :git/sha "03164b47af392a8e25275e14c46ce2a9a1935a37"
@@ -17,10 +17,9 @@
                :deps/root "sdk/clojure/adapter-ring"}
         }
  :aliases
- {:run-m {:main-opts ["-m" "ok.hola-tact-meet"]}
-  :run-x {:ns-default ok.hola-tact-meet
-          :exec-fn greet
-          :exec-args {:name "Clojure"}}
+ {:dev {:main-opts ["-m" "ok.hola-tact-meet.core"
+                      "--middleware" "[cidernrepl/cider-middleware]"
+                      ]}
   :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
           :ns-default build}
   :test {:extra-paths ["test"]
