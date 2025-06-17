@@ -1,1 +1,55 @@
 {% extends "templates/base.html" %}
+
+{% block content %}
+  <section class="section">
+    <div class="container">
+      <h1 class="title">
+        Holacracy (like) Tactical Meeting organizer
+      </h1>
+      <p class="subtitle">
+        Brings the structured meetings approach into your team!
+      </p>
+
+
+      <div class="content">
+        <p>
+          This software will help you to:
+          <ul>
+            <li><strong>List</strong> the issues/tasks/tensions in a collaborative manner</li>
+            <li>Provide the tools to <strong>facilitate</strong> the meeting and discuss every topic</li>
+            <li>Store/keep/control/export <strong>action</strong> results</li>
+          </ul>
+        </p>
+      </div>
+
+      <script src="https://accounts.google.com/gsi/client" async></script>
+      <div id="g_id_onload"
+           data-client_id="YOUR_GOOGLE_CLIENT_ID
+
+               "
+           data-login_uri="https://your.domain/your_login_endpoint
+
+               "
+           data-auto_prompt="false">
+      </div>
+      <div class="g_id_signin"
+           style="width: 350px"
+           data-type="standard"
+           data-size="large"
+           data-theme="outline"
+           data-text="sign_in_with"
+           data-shape="rectangular"
+           data-logo_alignment="left">
+      </div>
+
+    </div>
+    <div class="column">
+      <button class="button" style="width: 350px">
+        <span class="icon">
+          <i class="fab fa-jira"></i>
+        </span>
+        <span>Login via JIRA</span>
+      </button>
+    </div>
+  </section>
+{% endblock %}

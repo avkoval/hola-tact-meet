@@ -3,6 +3,7 @@
    [nrepl.server :as nrepl-server]
    [cider.nrepl :refer (cider-nrepl-handler)]
    [ring.adapter.jetty :as jetty]
+   [ring.util.response :as response]
    [reitit.ring :as ring]
    [ring.middleware.reload :refer [wrap-reload]]
    [ring.middleware.params :refer [wrap-params]]
@@ -29,6 +30,8 @@
     (ring/router
      [
       ["/" {:get home}]
+      ["/favicon.ico" {:get (fn [_] (response/file-response "resources/public/favicon.ico"))}]
+      ["/assets/*" (ring/create-resource-handler)]
       ])
     (constantly {:status 404, :body "Not Found."})))
 
