@@ -24,12 +24,8 @@
 
       <script src="https://accounts.google.com/gsi/client" async></script>
       <div id="g_id_onload"
-           data-client_id="YOUR_GOOGLE_CLIENT_ID
-
-               "
-           data-login_uri="https://your.domain/your_login_endpoint
-
-               "
+           data-client_id="{{ google_client_id }}"
+           data-login_uri="https://{{ host }}{{ google_launch_uri }}"
            data-auto_prompt="false">
       </div>
       <div class="g_id_signin"
@@ -43,6 +39,7 @@
       </div>
 
     </div>
+    {% comment %}
     <div class="column">
       <button class="button" style="width: 350px">
         <span class="icon">
@@ -51,5 +48,6 @@
         <span>Login via JIRA</span>
       </button>
     </div>
+    {% endcomment %}
   </section>
 {% endblock %}

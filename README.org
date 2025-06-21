@@ -176,7 +176,7 @@ Copyright © 2025 Oleksii Koval
 
 Distributed under the MIT License
 
-** COMMENT Current work plan & progress [75%]
+** COMMENT Current work plan & progress [42%]
 
 *** DONE Set appropriate License
     CLOSED: [2025-06-15 Sun 21:30]
@@ -220,3 +220,55 @@ Distributed under the MIT License
 
     https://andersmurphy.com/2025/04/15/why-you-should-use-brotli-sse.html
 
+*** TODO Admin settings & preferences
+    :LOGBOOK:
+    - State "TODO"       from              [2025-06-18 Wed 10:45]
+    :END:
+**** TODO List users (separate page) (for admin)
+     :LOGBOOK:
+     - State "TODO"       from              [2025-06-18 Wed 10:25]
+     :END:
+***** TODO Change access level to manager (as admin)
+      :LOGBOOK:
+      - State "TODO"       from              [2025-06-18 Wed 10:25]
+      :END:
+*** TODO Enable Datomic
+    :LOGBOOK:
+    - State "TODO"       from              [2025-06-18 Wed 10:20]
+    :END:
+*** TODO First App screen [0%]
+    :LOGBOOK:
+    - State "TODO"       from              [2025-06-18 Wed 10:45]
+    :END:
+**** WORKING config
+     :LOGBOOK:
+     CLOCK: [2025-06-21 Sat 08:37]--[2025-06-21 Sat 08:52] =>  0:15
+     CLOCK: [2025-06-21 Sat 07:02]--[2025-06-21 Sat 07:13] =>  0:11
+     CLOCK: [2025-06-20 Fri 08:10]--[2025-06-20 Fri 08:54] =>  0:44
+     - State "WORKING"    from "TODO"       [2025-06-19 Thu 07:50]
+     - State "TODO"       from              [2025-06-19 Thu 07:50]
+     :END:
+https://github.com/juxt/aero
+**** ring-oauth2/ring-oauth2
+https://github.com/weavejester/ring-oauth2
+**** TODO Implement Sign In with Google
+     :LOGBOOK:
+     - State "TODO"       from              [2025-06-18 Wed 10:20]
+     :END:
+**** TODO Implement Sign In with Jira
+     :LOGBOOK:
+     - State "TODO"       from              [2025-06-18 Wed 10:20]
+     :END:
+**** TODO Add top menu
+     :LOGBOOK:
+     - State "TODO"       from              [2025-06-18 Wed 10:20]
+     :END:
+**** TODO Add help / from markdown as usual
+**** TODO List past meetings
+     :LOGBOOK:
+     - State "TODO"       from              [2025-06-18 Wed 10:25]
+     :END:
+**** TODO Make some user admin (from cli, after registration)
+     :LOGBOOK:
+     - State "TODO"       from              [2025-06-18 Wed 10:25]
+     :END:

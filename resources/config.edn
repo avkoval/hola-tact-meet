@@ -1,0 +1,12 @@
+{
+ :secrets #include #join [#env HOME "/.secrets.edn"]
+ :oauth2/providers ["google"]
+ :oauth2/google-authorize-uri     "https://accounts.google.com/o/oauth2/auth"
+ :oauth2/google-access-token-uri  "https://accounts.google.com/o/oauth2/token"
+ :oauth2/google-scopes             ["https://www.googleapis.com/auth/userinfo.email"]
+ :oauth2/google-redirect-uri       "/oauth2/google/callback"
+ :oauth2/google-launch-uri         "/oauth2/google/log-in"
+ :oauth2/google-landing-url        "/app"
+ :oauth2/google-client-id          #or [#ref [:secrets :app1/google-client-id] [#env OAUTH2_GOOGLE_CLIENT_ID]]
+ :oauth2/google-client-secret      #or [#ref [:secrets :app1/google-client-secret] [#env OAUTH2_GOOGLE_CLIENT_SECRET]]
+}
