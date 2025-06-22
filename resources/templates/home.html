@@ -22,10 +22,11 @@
         </p>
       </div>
 
+      <!-- docs: https://developers.google.com/identity/gsi/web/guides/display-button -->
       <script src="https://accounts.google.com/gsi/client" async></script>
       <div id="g_id_onload"
            data-client_id="{{ google_client_id }}"
-           data-login_uri="https://{{ host }}{{ google_launch_uri }}"
+           data-login_uri="https://{{ host }}{{ google_login_uri }}"
            data-auto_prompt="false">
       </div>
       <div class="g_id_signin"
@@ -39,6 +40,18 @@
       </div>
 
     </div>
+
+    {% comment %}
+    <div class="column">
+      <a class="button" style="width: 228px" href="https://{{ host }}{{ google_launch_uri }}">
+        <span class="icon">
+          <i class="fab fa-google"></i>
+        </span>
+        <span>Login via Google</span>
+      </a>
+    </div>
+    {% endcomment %}
+
     {% comment %}
     <div class="column">
       <button class="button" style="width: 350px">
