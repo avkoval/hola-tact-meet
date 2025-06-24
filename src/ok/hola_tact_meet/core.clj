@@ -33,17 +33,21 @@
 
 (defn home [request]
   (let [oauth2-config (get-oauth-config (app-config))
+        remote-addr (:remote-addr request)
+        dev_mode (= "127.0.0.1" remote-addr)
         ]
+    
     ;; (println "test reload")
     ;; (pprint (config))
-    (pprint request)
-    (println (get-in request [:session ::state]))
+    ;;(pprint request)
+    ;; (println (get-in request [:session ::state]))
     {:status 200
      :headers {"Content-Type" "text/html"}
      :body (render-file "templates/home.html" {:google_client_id (get-in oauth2-config [:google :client-id])
                                                :google_launch_uri (get-in oauth2-config [:google :launch-uri])
                                                :google_login_uri "/google-login"
-                                               :host (get-in request [:headers "host"])})}))
+                                               :host (get-in request [:headers "host"])
+                                               :dev_mode dev_mode})}))
 
 (defn app-main [request]
   (let [oauth2-config (get-oauth-config (app-config))]
@@ -65,8 +69,8 @@
 (defn google-login [{session :session :as request}]
 (let [login-count   (:login-count session 0)
       session (assoc session :count (inc login-count))]
-  (pprint session)
-  (pprint request)
+  ;; (pprint session)
+  ;; (pprint request)
   (-> (response/response (str "Logged IN. " count " times."))
       (assoc :session session))))
 
@@ -92,7 +96,7 @@
       (handler request'))))
 
 (defn my-wrap-oauth2 [base-handler]
-  (let [config (get-oauth-config (config))]
+  (let [config (get-oauth-config (app-config))]
     (wrap-oauth2 base-handler config)))
 
 

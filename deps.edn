@@ -11,6 +11,7 @@
         aero/aero {:mvn/version "1.1.6"}
         ring-oauth2/ring-oauth2 {:mvn/version "0.3.0"}
         ring/ring-headers {:mvn/version "0.4.0"}
+        helpshift/faker {:mvn/version "0.3.0"}
         ;; datastar
         datastar/sdk {:git/url "https://github.com/starfederation/datastar/"
               :git/sha "03164b47af392a8e25275e14c46ce2a9a1935a37"
