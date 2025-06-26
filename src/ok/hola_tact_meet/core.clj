@@ -25,6 +25,7 @@
    [ok.oauth2.core :refer [get-oauth-config]]
    [ok.session.utils :refer [encode-secret-key]]
    [ring.middleware.oauth2 :refer [wrap-oauth2]]
+   [clojure.tools.logging :as log]
   )
   (:gen-class))
 
@@ -36,7 +37,8 @@
         remote-addr (:remote-addr request)
         dev_mode (= "127.0.0.1" remote-addr)
         ]
-    
+
+    (log/info "Home page accessed from" remote-addr)
     ;; (println "test reload")
     ;; (pprint (config))
     ;;(pprint request)
@@ -51,6 +53,7 @@
 
 (defn app-main [request]
   (let [oauth2-config (get-oauth-config (app-config))]
+    (log/info "Main app page accessed")
     ;; (println "test reload")
     ;; (pprint (config))
     ;; (pprint oauth2-config)
@@ -69,9 +72,10 @@
 (defn google-login [{session :session :as request}]
 (let [login-count   (:login-count session 0)
       session (assoc session :count (inc login-count))]
+  (log/info "Google login attempt from" (:remote-addr request))
   ;; (pprint session)
   ;; (pprint request)
-  (-> (response/response (str "Logged IN. " count " times."))
+  (-> (response/response (str "Logged IN. " login-count " times."))
       (assoc :session session))))
 
 (def base-app
@@ -86,6 +90,18 @@
       ["/google-login" {:post google-login}]
       ])
     (constantly {:status 404, :body "Not Found."})))
+
+(defn wrap-request-logging [handler]
+  (fn [request]
+    (let [start-time (System/currentTimeMillis)
+          response (handler request)
+          duration (- (System/currentTimeMillis) start-time)]
+      (log/info (format "%s %s %d (%dms)"
+                       (:request-method request)
+                       (:uri request)
+                       (:status response)
+                       duration))
+      response)))
 
 (defn wrap-force-https [handler]
   (fn [request]
@@ -108,11 +124,13 @@
       (wrap-session {:store (cookie-store {:key secret-key})
                      :cookie-attrs {:http-only true}
                      })
+      wrap-request-logging
       ))
 
 (defonce server (atom nil))
 
 (defn start! []
+  (log/info "Starting server on port 8080")
   (reset! server
           (jetty/run-jetty
            (-> #'app
