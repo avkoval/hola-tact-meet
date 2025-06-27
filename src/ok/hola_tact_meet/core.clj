@@ -87,6 +87,7 @@
                                         :picture nil
                                         :auth-provider "fake"
                                         :logged-in true
+                                        :access-level "admin"
                                         })]
   (log/info "Fake login attempt from" (:remote-addr request))
   ;;(pprint session)

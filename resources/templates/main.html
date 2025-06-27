@@ -1,14 +1,210 @@
 {% extends "templates/base.html" %}
 
 {% block content %}
-  <section class="section">
-    <div class="container">
+  <!-- Navigation -->
+  <nav class="navbar is-primary" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="/">
+        <strong>Hola-Tact-Meet</strong>
+      </a>
+    </div>
 
-      <div class="content">
-        <p>
-          Main app page
-        </p>
+    <div class="navbar-menu">
+      <div class="navbar-start">
+        <a class="navbar-item" href="/app">
+          Dashboard
+        </a>
+        <a class="navbar-item" href="/meetings">
+          Meetings
+        </a>
+        <a class="navbar-item" href="/actions">
+          My Actions
+        </a>
       </div>
 
+      <div class="navbar-end">
+        <div class="navbar-item has-dropdown is-hoverable">
+          <a class="navbar-link">
+            Profile
+          </a>
+          <div class="navbar-dropdown">
+            <a class="navbar-item" href="/profile">
+              Settings
+            </a>
+            <hr class="navbar-divider">
+            <a class="navbar-item" href="/logout">
+              Logout
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <section class="section">
+    <div class="container">
+      
+      <!-- Welcome Message -->
+      <div class="notification is-info is-light">
+        <h1 class="title is-4">Welcome to Hola-Tact-Meet</h1>
+        <p>Facilitate structured team meetings using Holacracy-inspired Tactical Meeting principles.</p>
+      </div>
+
+      <div class="columns">
+        <!-- User Actions Column -->
+        <div class="column is-one-third">
+          <div class="card">
+            <header class="card-header">
+              <p class="card-header-title">
+                <span class="icon">
+                  <i class="fas fa-user"></i>
+                </span>
+                User Actions
+              </p>
+            </header>
+            <div class="card-content">
+              <div class="content">
+                <div class="buttons">
+                  <button class="button is-primary is-fullwidth">
+                    <span class="icon">
+                      <i class="fas fa-plus"></i>
+                    </span>
+                    <span>Join Meeting</span>
+                  </button>
+                  <button class="button is-link is-fullwidth">
+                    <span class="icon">
+                      <i class="fas fa-history"></i>
+                    </span>
+                    <span>Past Meetings</span>
+                  </button>
+                  <button class="button is-info is-fullwidth">
+                    <span class="icon">
+                      <i class="fas fa-tasks"></i>
+                    </span>
+                    <span>My Action Items</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manager Actions Column -->
+        <div class="column is-one-third">
+          <div class="card">
+            <header class="card-header">
+              <p class="card-header-title">
+                <span class="icon">
+                  <i class="fas fa-users-cog"></i>
+                </span>
+                Manager Actions
+              </p>
+            </header>
+            <div class="card-content">
+              <div class="content">
+                <div class="buttons">
+                  <button class="button is-success is-fullwidth">
+                    <span class="icon">
+                      <i class="fas fa-calendar-plus"></i>
+                    </span>
+                    <span>Create New Meeting</span>
+                  </button>
+                  <button class="button is-warning is-fullwidth">
+                    <span class="icon">
+                      <i class="fas fa-edit"></i>
+                    </span>
+                    <span>Edit Past Meetings</span>
+                  </button>
+                  <button class="button is-light is-fullwidth">
+                    <span class="icon">
+                      <i class="fas fa-eye"></i>
+                    </span>
+                    <span>Manage Visibility</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin Actions Column -->
+        <div class="column is-one-third">
+          <div class="card">
+            <header class="card-header">
+              <p class="card-header-title">
+                <span class="icon">
+                  <i class="fas fa-cog"></i>
+                </span>
+                Admin Actions
+              </p>
+            </header>
+            <div class="card-content">
+              <div class="content">
+                <div class="buttons">
+                  <button class="button is-danger is-fullwidth">
+                    <span class="icon">
+                      <i class="fas fa-users"></i>
+                    </span>
+                    <span>Manage Users</span>
+                  </button>
+                  <button class="button is-dark is-fullwidth">
+                    <span class="icon">
+                      <i class="fas fa-tools"></i>
+                    </span>
+                    <span>Project Settings</span>
+                  </button>
+                  <button class="button is-light is-fullwidth">
+                    <span class="icon">
+                      <i class="fas fa-shield-alt"></i>
+                    </span>
+                    <span>Permissions</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="box mt-5">
+        <h2 class="title is-5">Recent Activity</h2>
+        <div class="content">
+          <div class="notification is-light">
+            <p><strong>No recent meetings</strong> - Create your first meeting to get started!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="columns mt-4">
+        <div class="column">
+          <div class="box has-text-centered">
+            <p class="heading">Total Meetings</p>
+            <p class="title">0</p>
+          </div>
+        </div>
+        <div class="column">
+          <div class="box has-text-centered">
+            <p class="heading">Active Actions</p>
+            <p class="title">0</p>
+          </div>
+        </div>
+        <div class="column">
+          <div class="box has-text-centered">
+            <p class="heading">Team Members</p>
+            <p class="title">1</p>
+          </div>
+        </div>
+        <div class="column">
+          <div class="box has-text-centered">
+            <p class="heading">This Month</p>
+            <p class="title">0</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </section>
 {% endblock %}
