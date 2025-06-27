@@ -1,7 +1,9 @@
-(ns ok.hola-tact-meet.utils
+(ns ok.hola_tact_meet.utils
   (:require
    [clojure.walk :refer [keywordize-keys]]
    [clojure.data.json :as json]
+   [clojure.string :as string]
+   [faker.generate :as gen]
    )
   (:gen-class))
 
@@ -16,24 +18,15 @@
         )
       )
     ))
-(ns ok.hola-tact-meet.utils
-  (:require [clojure.data.json :as json]
-            [clojure.walk :refer [keywordize-keys]]))
 
-(defn wrap-json-params
-  "Ring middleware to parse JSON request bodies and add them to :json-params"
-  [handler]
-  (fn [request]
-    (let [content-type (get-in request [:headers "content-type"])
-          request' (if (and content-type
-                           (.startsWith content-type "application/json")
-                           (:body request))
-                    (try
-                      (let [body-str (slurp (:body request))
-                            json-params (when (not-empty body-str)
-                                         (keywordize-keys (json/read-str body-str)))]
-                        (assoc request :json-params json-params))
-                      (catch Exception e
-                        request))
-                    request)]
-      (handler request'))))
+
+(defn capitalize-first [s]
+  (if (empty? s)
+    s
+    (str (clojure.string/upper-case (subs s 0 1)) (subs s 1))))
+
+
+(defn gen-email []
+  (str (gen/word) "@" (gen/word) ".com")
+)
+

@@ -15,10 +15,9 @@
    [selmer.parser :refer [render-file] :as selmer]
 ;;   [starfederation.datastar.clojure.api :as d*]
 ;;   [starfederation.datastar.clojure.adapter.ring :refer [->sse-response]]
-   [ok.hola-tact-meet.utils :as utils]
+   [ok.hola_tact_meet.utils :as utils]
 ;;   [clojure.data.json :as json]
 ;;   [clojure.walk :refer [keywordize-keys]]
-;;   [clojure.string :as string]
    [aero.core :refer [read-config]]
    [clojure.java.io]
    [clojure.pprint :refer [pprint]]
@@ -26,6 +25,7 @@
    [ok.session.utils :refer [encode-secret-key]]
    [ring.middleware.oauth2 :refer [wrap-oauth2]]
    [clojure.tools.logging :as log]
+   [faker.generate :as gen]
   )
   (:gen-class))
 
@@ -78,6 +78,23 @@
   (-> (response/response (str "Logged IN. " login-count " times."))
       (assoc :session session))))
 
+(defn fake-login [{session :session :as request}]
+(let [login-count   (:login-count session 0)
+      session (assoc session :userinfo {:name (utils/capitalize-first (gen/word))
+                                        :email (utils/gen-email)
+                                        :family-name (utils/capitalize-first (gen/word))
+                                        :given-name (utils/capitalize-first (gen/word))
+                                        :picture nil
+                                        :auth-provider "fake"
+                                        :logged-in true
+                                        })]
+  (log/info "Fake login attempt from" (:remote-addr request))
+  ;;(pprint session)
+  ;; (pprint request)
+  (-> (response/redirect "/app")
+      (assoc :session session))))
+
+
 (def base-app
   (ring/ring-handler
     (ring/router
@@ -88,6 +105,7 @@
       ["/app" {:get app-main}]
       ["/test-session" {:get test-session}]
       ["/google-login" {:post google-login}]
+      ["/login/fake" {:get fake-login}]
       ])
     (constantly {:status 404, :body "Not Found."})))
 
