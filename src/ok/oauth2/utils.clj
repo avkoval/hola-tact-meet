@@ -1,4 +1,4 @@
-(ns ok.oauth2.core)
+(ns ok.oauth2.utils)
 
 (def OAUTH2-PARAMS ["client-id" "client-secret" "authorize-uri" "access-token-uri" "scopes" "launch-uri" 
                     "redirect-uri" "landing-uri"])

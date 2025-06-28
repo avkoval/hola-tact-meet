@@ -176,7 +176,7 @@ Copyright © 2025 Oleksii Koval
 
 Distributed under the MIT License
 
-** COMMENT Current work plan & progress [50%]
+** COMMENT Current work plan & progress [37%]
 
 *** DONE Set appropriate License
     CLOSED: [2025-06-15 Sun 21:30]
@@ -213,17 +213,40 @@ Distributed under the MIT License
  - [X] Make sure code reload is working fine
  - [X] Use bulma.css from CDN
 
-*** DONE Fake login
-    CLOSED: [2025-06-27 Fri 09:05]
+*** WORKING Fake login
     :LOGBOOK:
+    CLOCK: [2025-06-28 Sat 12:34]--[2025-06-28 Sat 13:29] =>  0:55
+    - State "WORKING"    from "DONE"       [2025-06-28 Sat 12:35]
     - State "DONE"       from "TODO"       [2025-06-27 Fri 09:05]
     - State "TODO"       from              [2025-06-23 Mon 03:55]
     :END:
 
-*** TODO First App screen [45%]
+ - [X] redirect from ~home~ to /app when user is logged in
+ - [X] logout (remove all data from session)
+ - [ ] make 'fake login' page show previous users to choose
+   - [ ] add user when actually making login
+   - [ ] make separate page for fake login functionality
+
+*** TODO Admin settings & preferences
     :LOGBOOK:
     - State "TODO"       from              [2025-06-18 Wed 10:45]
     :END:
+**** TODO List users (separate page) (for admin)
+     :LOGBOOK:
+     - State "TODO"       from              [2025-06-18 Wed 10:25]
+     :END:
+***** TODO Change access level to manager (as admin)
+      :LOGBOOK:
+      - State "TODO"       from              [2025-06-18 Wed 10:25]
+      :END:
+*** TODO First App screen [38%]
+    :LOGBOOK:
+    - State "TODO"       from              [2025-06-18 Wed 10:45]
+    :END:
+**** TODO redirect if user already logged in
+     :LOGBOOK:
+     - State "TODO"       from              [2025-06-28 Sat 12:35]
+     :END:
 **** DONE config
      CLOSED: [2025-06-22 Sun 16:05]
      :LOGBOOK:
@@ -306,18 +329,6 @@ https://github.com/weavejester/ring-oauth2
 
     https://andersmurphy.com/2025/04/15/why-you-should-use-brotli-sse.html
 
-*** TODO Admin settings & preferences
-    :LOGBOOK:
-    - State "TODO"       from              [2025-06-18 Wed 10:45]
-    :END:
-**** TODO List users (separate page) (for admin)
-     :LOGBOOK:
-     - State "TODO"       from              [2025-06-18 Wed 10:25]
-     :END:
-***** TODO Change access level to manager (as admin)
-      :LOGBOOK:
-      - State "TODO"       from              [2025-06-18 Wed 10:25]
-      :END:
 *** TODO Enable Datomic
     :LOGBOOK:
     - State "TODO"       from              [2025-06-18 Wed 10:20]

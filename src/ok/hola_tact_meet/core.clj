@@ -16,40 +16,41 @@
 ;;   [starfederation.datastar.clojure.api :as d*]
 ;;   [starfederation.datastar.clojure.adapter.ring :refer [->sse-response]]
    [ok.hola_tact_meet.utils :as utils]
+   [ok.hola_tact_meet.db :as db]
+   ;; [ok.hola_tact_meet.db :as db]
 ;;   [clojure.data.json :as json]
 ;;   [clojure.walk :refer [keywordize-keys]]
    [aero.core :refer [read-config]]
    [clojure.java.io]
    [clojure.pprint :refer [pprint]]
-   [ok.oauth2.core :refer [get-oauth-config]]
+   [ok.oauth2.utils :refer [get-oauth-config]]
    [ok.session.utils :refer [encode-secret-key]]
    [ring.middleware.oauth2 :refer [wrap-oauth2]]
    [clojure.tools.logging :as log]
    [faker.generate :as gen]
+   [datomic.client.api :as d]
   )
   (:gen-class))
 
 (defn app-config []
   (read-config (clojure.java.io/resource "config.edn")))
 
-(defn home [request]
+(defn home [{session :session :as request}]
   (let [oauth2-config (get-oauth-config (app-config))
         remote-addr (:remote-addr request)
         dev_mode (= "127.0.0.1" remote-addr)
         ]
-
+    
     (log/info "Home page accessed from" remote-addr)
-    ;; (println "test reload")
-    ;; (pprint (config))
-    ;;(pprint request)
-    ;; (println (get-in request [:session ::state]))
-    {:status 200
-     :headers {"Content-Type" "text/html"}
-     :body (render-file "templates/home.html" {:google_client_id (get-in oauth2-config [:google :client-id])
-                                               :google_launch_uri (get-in oauth2-config [:google :launch-uri])
-                                               :google_login_uri "/google-login"
-                                               :host (get-in request [:headers "host"])
-                                               :dev_mode dev_mode})}))
+    (if (get-in session [:userinfo :logged-in])
+      (response/redirect "/app")
+      {:status 200
+       :headers {"Content-Type" "text/html"}
+       :body (render-file "templates/home.html" {:google_client_id (get-in oauth2-config [:google :client-id])
+                                                 :google_launch_uri (get-in oauth2-config [:google :launch-uri])
+                                                 :google_login_uri "/google-login"
+                                                 :host (get-in request [:headers "host"])
+                                                 :dev_mode dev_mode})})))
 
 (defn app-main [{session :session :as request}]
   (let [oauth2-config (get-oauth-config (app-config))]
@@ -78,37 +79,48 @@
   (-> (response/response (str "Logged IN. " login-count " times."))
       (assoc :session session))))
 
-(defn fake-login [{session :session :as request}]
-(let [login-count   (:login-count session 0)
-      session (assoc session :userinfo {:name (utils/capitalize-first (gen/word))
-                                        :email (utils/gen-email)
-                                        :family-name (utils/capitalize-first (gen/word))
-                                        :given-name (utils/capitalize-first (gen/word))
-                                        :picture nil
-                                        :auth-provider "fake"
-                                        :logged-in true
-                                        :access-level "admin"
-                                        })]
-  (log/info "Fake login attempt from" (:remote-addr request))
-  ;;(pprint session)
-  ;; (pprint request)
-  (-> (response/redirect "/app")
-      (assoc :session session))))
+(defn login [{session :session :as request} userinfo]
+  (let [db (d/db db/conn)
+        existing-user-result (d/q '[:find ?e
+                                   :in $ ?email
+                                   :where [?e :user/email ?email]]
+                                 db (:email userinfo))
+        existing-user (ffirst existing-user-result)
+        user-data {:user/name (:name userinfo)
+                   :user/email (:email userinfo)
+                   :user/family-name (:family-name userinfo)
+                   :user/given-name (:given-name userinfo)
+                   :user/picture (:picture userinfo)
+                   :user/auth-provider (:auth-provider userinfo)
+                   :user/access-level (or (:access-level userinfo) "user")}
+        tx-data (if existing-user
+                  [(assoc user-data :db/id existing-user)]
+                  [user-data])
+        result (d/transact db/conn {:tx-data tx-data})
+        user-id (or existing-user (get-in result [:tempids (first (keys (:tempids result)))]))
+        updated-session (assoc session :userinfo (assoc userinfo 
+                                                        :logged-in true
+                                                        :user-id user-id))]
+    (log/info "User login:" (:email userinfo) "ID:" user-id)
+    (-> (response/redirect "/app")
+        (assoc :session updated-session))))
 
 
-(def base-app
-  (ring/ring-handler
-    (ring/router
-     [
-      ["/" {:get home}]
-      ["/favicon.ico" {:get (fn [_] (response/file-response "resources/public/favicon.ico"))}]
-      ["/assets/*" (ring/create-resource-handler)]
-      ["/app" {:get app-main}]
-      ["/test-session" {:get test-session}]
-      ["/google-login" {:post google-login}]
-      ["/login/fake" {:get fake-login}]
-      ])
-    (constantly {:status 404, :body "Not Found."})))
+(defn fake-login [request]
+  (let [fake-userinfo {:name (utils/capitalize-first (gen/word))
+                       :email (utils/gen-email)
+                       :family-name (utils/capitalize-first (gen/word))
+                       :given-name (utils/capitalize-first (gen/word))
+                       :picture ""
+                       :auth-provider "fake"
+                       :access-level "admin"}]
+    (log/info "Fake login attempt from" (:remote-addr request))
+    (login request fake-userinfo)))
+
+
+(defn logout [_]
+  (-> (response/redirect "/")
+      (assoc :session {})))
 
 (defn wrap-request-logging [handler]
   (fn [request]
@@ -122,6 +134,12 @@
                        duration))
       response)))
 
+(defn wrap-require-auth [handler]
+  (fn [request]
+    (if (get-in request [:session :userinfo :logged-in])
+      (handler request)
+      (response/redirect "/"))))
+
 (defn wrap-force-https [handler]
   (fn [request]
     (let [proto (get-in request [:headers "x-forwarded-proto"])
@@ -133,6 +151,22 @@
 (defn my-wrap-oauth2 [base-handler]
   (let [config (get-oauth-config (app-config))]
     (wrap-oauth2 base-handler config)))
+
+
+(def base-app
+  (ring/ring-handler
+    (ring/router
+     [
+      ["/" {:get home}]
+      ["/favicon.ico" {:get (fn [_] (response/file-response "resources/public/favicon.ico"))}]
+      ["/assets/*" (ring/create-resource-handler)]
+      ["/app" {:get (wrap-require-auth app-main)}]
+      ["/test-session" {:get test-session}]
+      ["/google-login" {:post google-login}]
+      ["/login/fake" {:get fake-login}]
+      ["/logout" {:get logout}]
+      ])
+    (constantly {:status 404, :body "Not Found."})))
 
 
 (def secret-key (encode-secret-key "your-secret-key123")) ;; Ensure it is 16 characters
