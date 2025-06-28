@@ -51,7 +51,7 @@
                                                :host (get-in request [:headers "host"])
                                                :dev_mode dev_mode})}))
 
-(defn app-main [request]
+(defn app-main [{session :session :as request}]
   (let [oauth2-config (get-oauth-config (app-config))]
     (log/info "Main app page accessed")
     ;; (println "test reload")
@@ -59,7 +59,7 @@
     ;; (pprint oauth2-config)
     {:status 200
      :headers {"Content-Type" "text/html"}
-     :body (render-file "templates/main.html" {})}))
+     :body (render-file "templates/main.html" {:userinfo (:userinfo session)})}))
 
 
 (defn test-session [{session :session}]
