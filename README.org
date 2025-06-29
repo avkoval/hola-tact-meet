@@ -87,6 +87,10 @@ See also [[https://orgpad.info/o/AZXSvxkUdIo7kZUmIwy7SP][Orgpad: Structural Meet
 
 Download from https://github.com/avkoval/hola-tact-meet
 
+** Configuration
+
+1. Check and configure all settings in resources/config.edn - at least ~secret-key~ is required to be specified (16 bytes)
+
 ** Usage
 :PROPERTIES:
 :CUSTOM_ID: usage

@@ -132,24 +132,38 @@
 
 
 (defn fake-generate-random-data [request]
-  (->sse-response request
+  ; (println (render-file "templates/fake-user-form.html" (fake-user-data)))
+  (->sse-response request 
                   {:on-open (fn [sse] (d*/merge-fragment! sse (render-file "templates/fake-user-form.html" (fake-user-data))))}))
 
 (defn logout [_]
   (-> (response/redirect "/")
       (assoc :session {})))
 
+(defn sse-endpoint? [request]
+  "Check if this is an SSE endpoint"
+  (or (clojure.string/includes? (:uri request) "/generate-random-data")
+      (= "text/event-stream" (get-in request [:headers "accept"]))))
+
 (defn wrap-request-logging [handler]
   (fn [request]
-    (let [start-time (System/currentTimeMillis)
-          response (handler request)
-          duration (- (System/currentTimeMillis) start-time)]
-      (log/info (format "%s %s %d (%dms)"
-                        (:request-method request)
-                        (:uri request)
-                        (:status response)
-                        duration))
-      response)))
+    (if (sse-endpoint? request)
+      ;; For SSE, just log the request and pass through
+      (do
+        (log/info (format "%s %s (SSE)"
+                          (:request-method request)
+                          (:uri request)))
+        (handler request))
+      ;; For regular requests, do full logging
+      (let [start-time (System/currentTimeMillis)
+            response (handler request)
+            duration (- (System/currentTimeMillis) start-time)]
+        (log/info (format "%s %s %d (%dms)"
+                          (:request-method request)
+                          (:uri request)
+                          (:status response)
+                          duration))
+        response))))
 
 (defn wrap-require-auth [handler]
   (fn [request]
@@ -170,11 +184,14 @@
 
 (defn wrap-force-https [handler]
   (fn [request]
-    (let [proto (get-in request [:headers "x-forwarded-proto"])
-          request' (if (= proto "https")
-                     (assoc request :scheme :https)
-                     request)]
-      (handler request'))))
+    (if (sse-endpoint? request)
+      ;; Skip HTTPS processing for SSE to avoid interfering with streaming
+      (handler request)
+      (let [proto (get-in request [:headers "x-forwarded-proto"])
+            request' (if (= proto "https")
+                       (assoc request :scheme :https)
+                       request)]
+        (handler request')))))
 
 (defn my-wrap-oauth2 [base-handler]
   (let [config (get-oauth-config (app-config))]
@@ -194,7 +211,7 @@
      ["/login/fake" {:get (wrap-localhost-only fake-login-page)}]
      ["/login/fake/existing" {:post (wrap-localhost-only fake-login-existing)}]
      ["/login/fake/new" {:post (wrap-localhost-only fake-login-new)}]
-     ["/login/fake/generate-random-data" {:get (wrap-localhost-only fake-generate-random-data)}]
+     ["/login/fake/generate-random-data" {:get fake-generate-random-data}]
      ["/logout" {:get logout}]
      ])
    (constantly {:status 404, :body "Not Found."})))
@@ -209,10 +226,10 @@
         (wrap-session {:store (cookie-store {:key secret-key})
                        :cookie-attrs {:http-only true}
                        })
-        wrap-request-logging
+        ;wrap-request-logging
         wrap-cookies
-        wrap-forwarded-remote-addr
-        wrap-force-https
+        ;wrap-forwarded-remote-addr
+        ;wrap-force-https
         )))
 
 (def app (create-app))
