@@ -1,0 +1,115 @@
+{% extends "templates/base.html" %}
+
+{% block content %}
+  <!-- Navigation -->
+  <nav class="navbar is-primary" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+      <a class="navbar-item" href="/">
+        <strong>Hola-Tact-Meet</strong>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <section class="section">
+    <div class="container">
+
+      <div class="notification is-warning">
+        <h1 class="title is-4">Fake Login (Development Only)</h1>
+        <p>Choose an existing user or create a new fake account for testing.</p>
+      </div>
+
+      <div class="columns">
+        <!-- Left Column - Existing Users -->
+        <div class="column is-half">
+          <div class="card">
+            <header class="card-header">
+              <p class="card-header-title">
+                <span class="icon">
+                  <i class="fas fa-users"></i>
+                </span>
+                Existing Users
+              </p>
+            </header>
+            <div class="card-content">
+              {% if users %}
+                {% for user in users %}
+                  <div class="box">
+                    <div class="media">
+                      <div class="media-left">
+                        <figure class="image is-48x48">
+                          {% if user.picture %}
+                            <img class="is-rounded" src="{{ user.picture }}" alt="Avatar">
+                          {% else %}
+                            <div class="has-background-grey-light is-rounded" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                              <span class="icon">
+                                <i class="fas fa-user"></i>
+                              </span>
+                            </div>
+                          {% endif %}
+                        </figure>
+                      </div>
+                      <div class="media-content">
+                        <p class="title is-6">{{ user.name }} ({{ user.family-name }} {{ user.given-name }})</p>
+                        <p class="subtitle is-7">{{ user.email }}</p>
+                        <span class="tag {% if user.access-level = "admin" %}is-danger{% elif user.access-level = "staff" %}is-warning{% else %}is-info{% endif %}">
+                          {{ user.access-level }}
+                        </span>
+                      </div>
+                      <div class="media-right">
+                        <form method="post" action="/login/fake/existing">
+                          <input type="hidden" name="user-id" value="{{ user.id }}">
+                          <button class="button is-primary is-small" type="submit">
+                            <span class="icon is-small">
+                              <i class="fas fa-sign-in-alt"></i>
+                            </span>
+                            <span>Login</span>
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="notification is-light">
+                  <p>No existing users found. Create your first fake user on the right.</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column - Create New User -->
+        <div class="column is-half">
+          <div class="card">
+            <header class="card-header">
+              <p class="card-header-title">
+                <span class="icon">
+                  <i class="fas fa-user-plus"></i>
+                </span>
+                Create New Fake User
+              </p>
+            </header>
+            <div class="card-content">
+              {% include "templates/fake-user-form.html" %}
+            </div>
+          </div>
+
+          <!-- Quick Generate Button -->
+          <div class="card mt-4">
+            <div class="card-content">
+              <button class="button is-light is-fullwidth" data-on-click="@get('/login/fake/generate-random-data')">
+                <span class="icon">
+                  <i class="fas fa-random"></i>
+                </span>
+                <span>Generate Random Data</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+{% endblock %}

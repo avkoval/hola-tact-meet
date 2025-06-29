@@ -1,16 +1,20 @@
 (ns ok.hola_tact_meet.db
-(:require [datomic.client.api :as d])
-)
+  (:require [datomic.client.api :as d])
+  )
 
 (def client (d/client {:server-type :datomic-local
                        :system "dev"}))
 
-(defn ensure-database-exists! []
+(defn ensure-database-exists! 
   "Create the database if it doesn't exist"
+  []
+  
   (d/create-database client {:db-name "meetings"}))
 
-(defn get-connection []
+(defn get-connection 
   "Get connection to the database, creating it if necessary"
+  []
+  
   (ensure-database-exists!)
   (d/connect client {:db-name "meetings"}))
 
@@ -259,12 +263,16 @@
                         vote-schema))
 
 
-(defn install-schema! [conn]
+(defn install-schema! 
   "Install the schema into the database"
+  [conn]
+  
   (d/transact conn {:tx-data all-schema}))
 
-(defn initialize-db! []
+(defn initialize-db! 
   "Initialize database with schema"
+  []
+  
   (let [conn (get-connection)]
     (install-schema! conn)
     conn))
@@ -281,25 +289,81 @@
   (d/db (get-conn)))
 
 
+(defn find-user-by-email 
+  "Find existing user by email, returns user ID or nil"
+  [email]
+  
+  (let [db (get-db)
+        result (d/q '[:find ?e
+                      :in $ ?email
+                      :where [?e :user/email ?email]]
+                    db email)]
+    (ffirst result)))
+
+(defn create-user 
+  "Create new user, throws exception if user with same email already exists"
+  [userinfo]
+
+  (let [existing-user (find-user-by-email (:email userinfo))]
+    (when existing-user
+      (throw (ex-info "User with this email already exists" 
+                      {:email (:email userinfo) 
+                       :existing-user-id existing-user})))
+    (let [user-data {:user/name (:name userinfo)
+                     :user/email (:email userinfo)
+                     :user/family-name (:family-name userinfo)
+                     :user/given-name (:given-name userinfo)
+                     :user/picture (:picture userinfo)
+                     :user/auth-provider (:auth-provider userinfo)
+                     :user/access-level (or (:access-level userinfo) "user")}
+          result (d/transact (get-conn) {:tx-data [user-data]})
+          user-id (get-in result [:tempids (first (keys (:tempids result)))])]
+      user-id)))
+
+(defn get-all-users 
+  "Get all users with their basic information"
+  []
+  (let [db (get-db)]
+    (d/q '[:find ?e ?name ?email ?access-level ?picture ?family-name ?given-name
+           :keys id name email access-level picture family-name given-name
+           :where 
+           [?e :user/name ?name]
+           [?e :user/email ?email]
+           [?e :user/access-level ?access-level]
+           [?e :user/picture ?picture]
+           [?e :user/family-name ?family-name]
+           [?e :user/given-name ?given-name]]
+         db)))
+
+(defn get-user-by-id 
+  "Get user data by their database ID"
+  [user-id]
+
+  (let [db (get-db)]
+    (d/pull db '[:user/name :user/email :user/family-name 
+                 :user/given-name :user/picture :user/auth-provider 
+                 :user/access-level] 
+            user-id)))
+
 (comment
 
-;; Initialize database and schema
-(initialize-db!)
+  ;; Initialize database and schema
+  (initialize-db!)
 
-;; Query examples
-(def all-users-q '[:find ?user-name
-                   :where [_ :user/name ?user-name]])
+  ;; Query examples
+  (def all-users-q '[:find ?user-name
+                     :where [_ :user/name ?user-name]])
 
-(d/q all-users-q (get-db))
+  (d/q all-users-q (get-db))
 
-(def query '[:find ?e ?name ?email
-             :where 
-             [?e :user/name ?name]
-             [?e :user/email ?email]])
+  (def query '[:find ?e ?name ?email
+               :where 
+               [?e :user/name ?name]
+               [?e :user/email ?email]])
 
-(def users (d/q query (get-db)))
-(d/q query (get-db))
-(doseq [user users]
-  (println user))
+  (def users (d/q query (get-db)))
+  (d/q query (get-db))
+  (doseq [user users]
+    (println user))
 
-)
+  )

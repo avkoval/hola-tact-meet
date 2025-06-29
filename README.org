@@ -215,17 +215,24 @@ Distributed under the MIT License
 
 *** WORKING Fake login
     :LOGBOOK:
+    CLOCK: [2025-06-29 Sun 14:19]
+    CLOCK: [2025-06-29 Sun 11:22]--[2025-06-29 Sun 11:49] =>  0:27
     CLOCK: [2025-06-28 Sat 12:34]--[2025-06-28 Sat 13:29] =>  0:55
     - State "WORKING"    from "DONE"       [2025-06-28 Sat 12:35]
     - State "DONE"       from "TODO"       [2025-06-27 Fri 09:05]
     - State "TODO"       from              [2025-06-23 Mon 03:55]
     :END:
 
+I need fake login to quickly login several users for testing purposes on localhost.
+
  - [X] redirect from ~home~ to /app when user is logged in
  - [X] logout (remove all data from session)
- - [ ] make 'fake login' page show previous users to choose
+ - [-] make 'fake login' page show previous users to choose
+   - [X] fix fake login->login
+   - [X] use datastar to fill random values instead of js
    - [ ] add user when actually making login
    - [ ] make separate page for fake login functionality
+ - [ ] add gravatar
 
 *** TODO Admin settings & preferences
     :LOGBOOK:

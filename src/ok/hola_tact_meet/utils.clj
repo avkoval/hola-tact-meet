@@ -30,3 +30,12 @@
   (str (gen/word) "@" (gen/word) ".com")
 )
 
+
+(defn sanitize-query
+  "TODO: escape shell arguments too, remove duplicate tags"
+  [q]
+  (-> q
+      (string/replace #"^\s*and\s" "")
+      (string/trim)
+      )
+  )
