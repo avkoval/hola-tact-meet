@@ -80,7 +80,7 @@
       (assoc :session session))))
 
 (defn login [{session :session :as request} userinfo]
-  (let [db (d/db db/conn)
+  (let [db (d/db (db/get-conn))
         existing-user-result (d/q '[:find ?e
                                    :in $ ?email
                                    :where [?e :user/email ?email]]
@@ -96,7 +96,7 @@
         tx-data (if existing-user
                   [(assoc user-data :db/id existing-user)]
                   [user-data])
-        result (d/transact db/conn {:tx-data tx-data})
+        result (d/transact (db/get-conn) {:tx-data tx-data})
         user-id (or existing-user (get-in result [:tempids (first (keys (:tempids result)))]))
         updated-session (assoc session :userinfo (assoc userinfo 
                                                         :logged-in true

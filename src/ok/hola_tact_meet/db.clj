@@ -5,8 +5,14 @@
 (def client (d/client {:server-type :datomic-local
                        :system "dev"}))
 
-(def conn (d/connect client {:db-name "meetings"}))
-(def db (d/db conn)) 
+(defn ensure-database-exists! []
+  "Create the database if it doesn't exist"
+  (d/create-database client {:db-name "meetings"}))
+
+(defn get-connection []
+  "Get connection to the database, creating it if necessary"
+  (ensure-database-exists!)
+  (d/connect client {:db-name "meetings"}))
 
 (def user-schema [{:db/ident       :user/name
                    :db/valueType   :db.type/string
@@ -253,24 +259,46 @@
                         vote-schema))
 
 
+(defn install-schema! [conn]
+  "Install the schema into the database"
+  (d/transact conn {:tx-data all-schema}))
+
+(defn initialize-db! []
+  "Initialize database with schema"
+  (let [conn (get-connection)]
+    (install-schema! conn)
+    conn))
+
+;; Use lazy initialization
+(defonce conn-atom (atom nil))
+
+(defn get-conn []
+  (when (nil? @conn-atom)
+    (reset! conn-atom (initialize-db!)))
+  @conn-atom)
+
+(defn get-db []
+  (d/db (get-conn)))
+
 
 (comment
 
-(d/create-database client {:db-name "meetings"})
-(d/transact conn {:tx-data all-schema})
+;; Initialize database and schema
+(initialize-db!)
 
-(def all-users-q '[:find ?user/name
+;; Query examples
+(def all-users-q '[:find ?user-name
                    :where [_ :user/name ?user-name]])
 
-(d/q all-users-q db)
+(d/q all-users-q (get-db))
 
 (def query '[:find ?e ?name ?email
              :where 
              [?e :user/name ?name]
              [?e :user/email ?email]])
 
-(def users (d/q query db))
-(d/q query db)
+(def users (d/q query (get-db)))
+(d/q query (get-db))
 (doseq [user users]
   (println user))
 

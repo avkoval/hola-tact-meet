@@ -39,15 +39,15 @@
            data-logo_alignment="left">
       </div>
 
-    </div>
+      {% if dev_mode %}
+      <div style="margin-top: 20px;">
+        <a class="button" style="width: 350px" href="/login/fake">
+          <span>Fake login (development mode)</span>
+        </a>
+      </div>
+      {% endif %}
 
-    {% if dev_mode %}
-    <div class="column">
-      <a class="button" style="width: 350px" href="/login/fake">
-        <span>Fake login (development mode)</span>
-      </a>
     </div>
-    {% endif %}
 
     {% comment %}
     <div class="column">
