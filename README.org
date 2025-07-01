@@ -47,6 +47,17 @@ See also [[https://orgpad.info/o/AZXSvxkUdIo7kZUmIwy7SP][Orgpad: Structural Meet
 
    - Admin
      - ⚙ project settings link
+     - Permissions
+     - Manage users
+
+ - Manage users - separate screen
+
+   This screen will have breadcrums "Main -> Manage users"
+
+   - List all users in a table with paginator
+   - Make user inactive/active button
+   - "Manage teams" button for each user
+   - Information on actions (assigned/resolved)
 
  - Meeting
 

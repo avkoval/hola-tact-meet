@@ -13,7 +13,7 @@
    [ring.middleware.cookies :refer [wrap-cookies]]
    [selmer.parser :refer [render-file] :as selmer]
    [starfederation.datastar.clojure.api :as d*]
-   [starfederation.datastar.clojure.adapter.ring :refer [->sse-response]]
+   [starfederation.datastar.clojure.adapter.ring :refer [->sse-response on-open]]
    [ok.hola_tact_meet.utils :as utils]
    [ok.hola_tact_meet.db :as db]
    [aero.core :refer [read-config]]
@@ -30,13 +30,24 @@
 (defn app-config []
   (read-config (clojure.java.io/resource "config.edn")))
 
+(defn localhost?
+  "Check if the given address is a localhost address.
+   Handles IPv4, IPv6, and hostname variants."
+  [addr]
+  (when addr
+    (or (= addr "127.0.0.1")
+        (= addr "::1")
+        (= addr "0:0:0:0:0:0:0:1")
+        (= addr "[0:0:0:0:0:0:0:1]")
+        (= addr "localhost"))))
+
 (defn home [{session :session :as request}]
   (let [oauth2-config (get-oauth-config (app-config))
         remote-addr (:remote-addr request)
-        dev_mode (= "127.0.0.1" remote-addr)
+        dev_mode (localhost? remote-addr)
         ]
     
-    (log/info "Home page accessed from" remote-addr)
+    (log/info "Home page accessed from" remote-addr "dev_mode: " dev_mode)
     (if (get-in session [:userinfo :logged-in])
       (response/redirect "/app")
       {:status 200
@@ -52,6 +63,12 @@
   {:status 200
    :headers {"Content-Type" "text/html"}
    :body (render-file "templates/main.html" {:userinfo (:userinfo session)})})
+
+(defn admin-manage-users [_request]
+  (log/info "admin-manage-users accessed")
+  {:status 200
+   :headers {"Content-Type" "text/html"}
+   :body (render-file "templates/users.html" {})})
 
 
 (defn test-session [{session :session}]
@@ -121,19 +138,26 @@
 
 
 (defn fake-user-data []
-  {:name (gen/word)
-   :email (utils/gen-email)
-   :family-name (gen/word)
-   :given-name (gen/word)
-   :picture ""
-   :auth-provider "fake"
-   :access-level (rand-nth ["admin" "user" "staff"])}
+  {:userinfo 
+   {:name (gen/word)
+    :email (utils/gen-email)
+    :family-name (gen/word)
+    :given-name (gen/word)
+    :picture ""
+    :auth-provider "fake"
+    :access-level (rand-nth ["admin" "user" "staff"])}}
   )
 
 
 (defn fake-generate-random-data [request]
   (->sse-response request
-    {:on-open (fn [sse] (d*/merge-fragment! sse (render-file "templates/fake-user-form.html" (fake-user-data))))}))
+                  {on-open
+                   (fn [sse]
+                     (d*/with-open-sse sse
+                       (d*/merge-fragment! sse
+                        (render-file "templates/fake-user-form.html" (fake-user-data)))
+                       ))})
+  )
 
 (defn logout [_]
   (-> (response/redirect "/")
@@ -169,9 +193,7 @@
 (defn wrap-localhost-only [handler]
   (fn [request]
     (let [remote-addr (:remote-addr request)]
-      (if (or (= remote-addr "127.0.0.1")
-              (= remote-addr "::1")
-              (= remote-addr "localhost"))
+      (if (localhost? remote-addr)
         (handler request)
         {:status 403
          :headers {"Content-Type" "text/plain"}
@@ -207,6 +229,7 @@
      ["/login/fake/existing" {:post (wrap-localhost-only fake-login-existing)}]
      ["/login/fake/new" {:post (wrap-localhost-only fake-login-new)}]
      ["/login/fake/generate-random-data" {:get fake-generate-random-data}]
+     ["/admin/manage-users" {:get admin-manage-users}]
      ["/logout" {:get logout}]
      ])
    (constantly {:status 404, :body "Not Found."})))
