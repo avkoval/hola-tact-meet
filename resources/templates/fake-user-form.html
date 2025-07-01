@@ -2,28 +2,28 @@
   <div class="field">
     <label class="label">Full Name</label>
     <div class="control">
-      <input class="input" type="text" name="name" placeholder="John Doe" required>
+      <input class="input" type="text" name="name" {% if userinfo %}value="{{ userinfo.name }}"{% endif %} placeholder="John Doe" required>
     </div>
   </div>
 
   <div class="field">
     <label class="label">Email</label>
     <div class="control">
-      <input class="input" type="email" name="email" placeholder="john.doe@example.com" required>
+      <input class="input" type="email" name="email" {% if userinfo %}value="{{ userinfo.email }}"{% endif %} placeholder="john.doe@example.com" required>
     </div>
   </div>
 
   <div class="field">
     <label class="label">First Name</label>
     <div class="control">
-      <input class="input" type="text" name="given-name" placeholder="John" required>
+      <input class="input" type="text" name="given-name" {% if userinfo %}value="{{ userinfo.given-name }}"{% endif %} placeholder="John" required>
     </div>
   </div>
 
   <div class="field">
     <label class="label">Last Name</label>
     <div class="control">
-      <input class="input" type="text" name="family-name" placeholder="Doe" required>
+      <input class="input" type="text" name="family-name" {% if userinfo %}value="{{ userinfo.family-name }}"{% endif %} placeholder="Doe" required>
     </div>
   </div>
 
@@ -33,9 +33,9 @@
       <div class="select is-fullwidth">
         <select name="access-level" required>
           <option value="">Select access level</option>
-          <option value="user">User</option>
-          <option value="staff">Staff</option>
-          <option value="admin">Admin</option>
+          <option value="user" {% ifequal userinfo.access-level "user" %} selected{% endifequal %}>User</option>
+          <option value="staff" {% ifequal userinfo.access-level "staff" %} selected{% endifequal %}>Staff</option>
+          <option value="admin" {% ifequal userinfo.access-level "admin" %} selected{% endifequal %}>Admin</option>
         </select>
       </div>
     </div>

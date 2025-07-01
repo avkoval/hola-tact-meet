@@ -13,7 +13,7 @@
    [ring.middleware.cookies :refer [wrap-cookies]]
    [selmer.parser :refer [render-file] :as selmer]
    [starfederation.datastar.clojure.api :as d*]
-   [starfederation.datastar.clojure.adapter.ring :refer [->sse-response]]
+   [starfederation.datastar.clojure.adapter.ring :refer [->sse-response on-open]]
    [ok.hola_tact_meet.utils :as utils]
    [ok.hola_tact_meet.db :as db]
    [aero.core :refer [read-config]]
@@ -121,19 +121,26 @@
 
 
 (defn fake-user-data []
-  {:name (gen/word)
-   :email (utils/gen-email)
-   :family-name (gen/word)
-   :given-name (gen/word)
-   :picture ""
-   :auth-provider "fake"
-   :access-level (rand-nth ["admin" "user" "staff"])}
+  {:userinfo 
+   {:name (gen/word)
+    :email (utils/gen-email)
+    :family-name (gen/word)
+    :given-name (gen/word)
+    :picture ""
+    :auth-provider "fake"
+    :access-level (rand-nth ["admin" "user" "staff"])}}
   )
 
 
 (defn fake-generate-random-data [request]
   (->sse-response request
-    {:on-open (fn [sse] (d*/merge-fragment! sse (render-file "templates/fake-user-form.html" (fake-user-data))))}))
+                  {on-open
+                   (fn [sse]
+                     (d*/with-open-sse sse
+                       (d*/merge-fragment! sse
+                        (render-file "templates/fake-user-form.html" (fake-user-data)))
+                       ))})
+  )
 
 (defn logout [_]
   (-> (response/redirect "/")
