@@ -39,3 +39,8 @@
       (string/trim)
       )
   )
+
+(defn sse-endpoint?
+  "Check if this is an SSE endpoint"
+  [request]
+  (= "text/event-stream" (get-in request [:headers "accept"])))

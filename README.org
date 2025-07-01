@@ -219,7 +219,7 @@ Distributed under the MIT License
 
 *** WORKING Fake login
     :LOGBOOK:
-    CLOCK: [2025-06-29 Sun 14:19]
+    CLOCK: [2025-06-29 Sun 14:19]--[2025-06-29 Sun 14:39] =>  0:20
     CLOCK: [2025-06-29 Sun 11:22]--[2025-06-29 Sun 11:49] =>  0:27
     CLOCK: [2025-06-28 Sat 12:34]--[2025-06-28 Sat 13:29] =>  0:55
     - State "WORKING"    from "DONE"       [2025-06-28 Sat 12:35]

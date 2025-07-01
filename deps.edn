@@ -14,10 +14,10 @@
         helpshift/faker {:mvn/version "0.3.0"}
         ;; datastar
         datastar/sdk {:git/url "https://github.com/starfederation/datastar/"
-              :git/sha "03164b47af392a8e25275e14c46ce2a9a1935a37"
+              :git/sha "c41f2a15fbdb0014d243eb436d3cdb047ffc5c2e"
               :deps/root "sdk/clojure/sdk"}
         datastar/ring {:git/url "https://github.com/starfederation/datastar/"
-               :git/sha "03164b47af392a8e25275e14c46ce2a9a1935a37"
+               :git/sha "c41f2a15fbdb0014d243eb436d3cdb047ffc5c2e"
                :deps/root "sdk/clojure/adapter-ring"}
         ;; Notes on logging: https://gist.github.com/jacobobryant/76b7a08a07d5ef2cc076b048d078f1f3
         org.slf4j/slf4j-simple     {:mvn/version "2.0.0-alpha5"}

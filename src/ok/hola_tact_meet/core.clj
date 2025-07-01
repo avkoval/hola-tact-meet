@@ -132,22 +132,17 @@
 
 
 (defn fake-generate-random-data [request]
-  ; (println (render-file "templates/fake-user-form.html" (fake-user-data)))
-  (->sse-response request 
-                  {:on-open (fn [sse] (d*/merge-fragment! sse (render-file "templates/fake-user-form.html" (fake-user-data))))}))
+  (->sse-response request
+    {:on-open (fn [sse] (d*/merge-fragment! sse (render-file "templates/fake-user-form.html" (fake-user-data))))}))
 
 (defn logout [_]
   (-> (response/redirect "/")
       (assoc :session {})))
 
-(defn sse-endpoint? [request]
-  "Check if this is an SSE endpoint"
-  (or (clojure.string/includes? (:uri request) "/generate-random-data")
-      (= "text/event-stream" (get-in request [:headers "accept"]))))
 
 (defn wrap-request-logging [handler]
   (fn [request]
-    (if (sse-endpoint? request)
+    (if (utils/sse-endpoint? request)
       ;; For SSE, just log the request and pass through
       (do
         (log/info (format "%s %s (SSE)"
@@ -184,7 +179,7 @@
 
 (defn wrap-force-https [handler]
   (fn [request]
-    (if (sse-endpoint? request)
+    (if (utils/sse-endpoint? request)
       ;; Skip HTTPS processing for SSE to avoid interfering with streaming
       (handler request)
       (let [proto (get-in request [:headers "x-forwarded-proto"])
@@ -226,10 +221,10 @@
         (wrap-session {:store (cookie-store {:key secret-key})
                        :cookie-attrs {:http-only true}
                        })
-        ;wrap-request-logging
+        wrap-request-logging
         wrap-cookies
-        ;wrap-forwarded-remote-addr
-        ;wrap-force-https
+        wrap-forwarded-remote-addr
+        wrap-force-https
         )))
 
 (def app (create-app))
@@ -241,9 +236,9 @@
   (reset! server
           (jetty/run-jetty
            (wrap-reload #'app)
-           {:port 8080 :join? false})))
+           {:port 8081 :join? false})))
 
-(def nrepl-port 7888)
+(def nrepl-port 7889)
 
 (defn start-nrepl []
   (log/info "Starting nrepl-server on port:" nrepl-port)
