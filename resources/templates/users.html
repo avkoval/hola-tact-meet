@@ -44,7 +44,7 @@
   <!-- Main Content -->
   <section class="section">
     <div class="container">
-
+      
       <!-- Breadcrumbs -->
       <nav class="breadcrumb" aria-label="breadcrumbs">
         <ul>
@@ -96,7 +96,7 @@
                 <th>Actions Assigned</th>
                 <th>Actions Resolved</th>
                 <th>Last Login</th>
-                <th>Actions</th>
+                <th style="width: 260px;">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -125,8 +125,8 @@
                 </td>
                 <td>{{ user.email }}</td>
                 <td>
-                  <span class="tag {% if user.access-level= 'admin' %}is-danger{% elif user.access-level= 'staff' %}is-warning{% else %}is-info{% endif %}">
-                    {{ user.access-level|title }}
+                  <span class="tag {% if user.access-level = "admin" %}is-danger{% elif user.access-level = "staff" %}is-warning{% else %}is-info{% endif %}">
+                    {{ user.access-level }}
                   </span>
                 </td>
                 <td>
@@ -143,14 +143,14 @@
                 <td>
                   <span class="is-size-7 has-text-grey">
                     {% if user.last-login %}
-                      {{ user.last-login|date:"M d, Y" }}
+                      {{ user.last-login|date:"MMM d, yyyy HH:mm" }}
                     {% else %}
                       Never
                     {% endif %}
                   </span>
                 </td>
-                <td>
-                  <div class="buttons are-small">
+                <td style="width: 260px;">
+                  <div class="buttons are-small" style="white-space: nowrap;">
                     {% if user.is-active %}
                       <button class="button is-warning" onclick="toggleUserStatus({{ user.id }}, false)">
                         <span class="icon is-small">
@@ -166,14 +166,14 @@
                         <span>Activate</span>
                       </button>
                     {% endif %}
-
+                    
                     <button class="button is-info" onclick="manageUserTeams({{ user.id }})">
                       <span class="icon is-small">
                         <i class="fas fa-users-cog"></i>
                       </span>
-                      <span>Manage Teams</span>
+                      <span>Teams</span>
                     </button>
-
+                    
                     <div class="dropdown is-hoverable">
                       <div class="dropdown-trigger">
                         <button class="button is-light" aria-haspopup="true" aria-controls="dropdown-menu-{{ user.id }}">
@@ -229,16 +229,9 @@
 
         <!-- Pagination -->
         <nav class="pagination is-centered" role="navigation" aria-label="pagination">
-          <a class="pagination-previous" {% if not has-previous %}disabled{% endif %} href="?page={{ previous-page }}">Previous</a>
-          <a class="pagination-next" {% if not has-next %}disabled{% endif %} href="?page={{ next-page }}">Next page</a>
+          <a class="pagination-previous" {% if not has-previous %}disabled{% endif %}>Previous</a>
+          <a class="pagination-next" {% if not has-next %}disabled{% endif %}>Next page</a>
           <ul class="pagination-list">
-            {% if current-page > 3 %}
-              <li><a class="pagination-link" aria-label="Goto page 1" href="?page=1">1</a></li>
-              {% if current-page > 4 %}
-                <li><span class="pagination-ellipsis">&hellip;</span></li>
-              {% endif %}
-            {% endif %}
-
             {% for page_num in page-range %}
               {% if page_num == current-page %}
                 <li><a class="pagination-link is-current" aria-label="Page {{ page_num }}" aria-current="page">{{ page_num }}</a></li>
@@ -246,13 +239,6 @@
                 <li><a class="pagination-link" aria-label="Goto page {{ page_num }}" href="?page={{ page_num }}">{{ page_num }}</a></li>
               {% endif %}
             {% endfor %}
-
-            {% if current-page < total-pages %}
-              {% if current-page < total-pages %}
-                <li><span class="pagination-ellipsis">&hellip;</span></li>
-              {% endif %}
-              <li><a class="pagination-link" aria-label="Goto page {{ total-pages }}" href="?page={{ total-pages }}">{{ total-pages }}</a></li>
-            {% endif %}
           </ul>
         </nav>
       </div>
@@ -306,7 +292,7 @@
           <p><strong>User:</strong> <span id="modalUserName"></span></p>
           <p><strong>Email:</strong> <span id="modalUserEmail"></span></p>
         </div>
-
+        
         <div class="field">
           <label class="label">Current Teams</label>
           <div id="currentTeams" class="tags">
@@ -341,44 +327,45 @@
   </div>
 
   <script>
-    function toggleUserStatus(userId, activate) {
-      const action = activate ? 'activate' : 'deactivate';
-      if (confirm(`Are you sure you want to ${action} this user?`)) {
-        // TODO: Implement API call
-        console.log(`${action} user ${userId}`);
-        location.reload();
-      }
+  function toggleUserStatus(userId, activate) {
+    const action = activate ? 'activate' : 'deactivate';
+    if (confirm(`Are you sure you want to ${action} this user?`)) {
+      // TODO: Implement API call
+      console.log(`${action} user ${userId}`);
+      location.reload();
     }
+  }
 
-    function manageUserTeams(userId) {
-      // TODO: Load user data and teams
-      document.getElementById('modalUserName').textContent = 'John Doe';
-      document.getElementById('modalUserEmail').textContent = 'john.doe@example.com';
-      document.getElementById('manageTeamsModal').classList.add('is-active');
+  function manageUserTeams(userId) {
+    // TODO: Load user data and teams
+    document.getElementById('modalUserName').textContent = 'John Doe';
+    document.getElementById('modalUserEmail').textContent = 'john.doe@example.com';
+    document.getElementById('manageTeamsModal').classList.add('is-active');
+  }
+
+  function closeManageTeamsModal() {
+    document.getElementById('manageTeamsModal').classList.remove('is-active');
+  }
+
+  function saveTeamChanges() {
+    // TODO: Implement team assignment API call
+    console.log('Saving team changes');
+    closeManageTeamsModal();
+  }
+
+  function deleteUser(userId) {
+    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      // TODO: Implement delete API call
+      console.log(`Delete user ${userId}`);
     }
+  }
 
-    function closeManageTeamsModal() {
-      document.getElementById('manageTeamsModal').classList.remove('is-active');
-    }
-
-    function saveTeamChanges() {
-      // TODO: Implement team assignment API call
-      console.log('Saving team changes');
+  // Close modal when pressing Escape key
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
       closeManageTeamsModal();
     }
-
-    function deleteUser(userId) {
-      if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-        // TODO: Implement delete API call
-        console.log(`Delete user ${userId}`);
-      }
-    }
-
-    // Close modal when pressing Escape key
-    document.addEventListener('keydown', function(event) {
-      if (event.key === 'Escape') {
-        closeManageTeamsModal();
-      }
-    });
+  });
   </script>
 {% endblock %}
+

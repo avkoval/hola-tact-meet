@@ -58,6 +58,11 @@
                    :db/cardinality :db.cardinality/many
                    :db/doc         "Teams this user belongs to."}
 
+                  {:db/ident       :user/last-login
+                   :db/valueType   :db.type/instant
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "When the user last logged in."}
+
                   ])
 
 (def team-schema [{:db/ident       :team/name
@@ -323,17 +328,23 @@
 (defn get-all-users 
   "Get all users with their basic information"
   []
-  (let [db (get-db)]
-    (d/q '[:find ?e ?name ?email ?access-level ?picture ?family-name ?given-name
-           :keys id name email access-level picture family-name given-name
-           :where 
-           [?e :user/name ?name]
-           [?e :user/email ?email]
-           [?e :user/access-level ?access-level]
-           [?e :user/picture ?picture]
-           [?e :user/family-name ?family-name]
-           [?e :user/given-name ?given-name]]
-         db)))
+  (let [db (get-db)
+        user-ids (d/q '[:find ?e
+                        :where [?e :user/name _]]
+                      db)]
+    (map (fn [[user-id]]
+           (let [user-data (d/pull db '[:db/id :user/name :user/email :user/access-level 
+                                        :user/picture :user/family-name :user/given-name 
+                                        :user/last-login] user-id)]
+             {:id (:db/id user-data)
+              :name (:user/name user-data)
+              :email (:user/email user-data)
+              :access-level (:user/access-level user-data)
+              :picture (:user/picture user-data)
+              :family-name (:user/family-name user-data)
+              :given-name (:user/given-name user-data)
+              :last-login (:user/last-login user-data)}))
+         user-ids)))
 
 (defn get-user-by-id 
   "Get user data by their database ID"
@@ -345,10 +356,24 @@
                  :user/access-level] 
             user-id)))
 
+(defn update-last-login!
+  "Update the last login timestamp for a user"
+  [user-id]
+  (d/transact (get-conn) {:tx-data [{:db/id user-id
+                                     :user/last-login (java.util.Date.)}]}))
+
 (comment
 
   ;; Initialize database and schema
   (initialize-db!)
+
+  ;; To add new schema fields to existing database:
+  ;; 1. Add the field definition to the appropriate schema (e.g., user-schema)
+  ;; 2. Transact the new schema to the existing database:
+  (d/transact (get-conn) {:tx-data [{:db/ident       :user/last-login
+                                     :db/valueType   :db.type/instant
+                                     :db/cardinality :db.cardinality/one
+                                     :db/doc         "When the user last logged in."}]})
 
   ;; Query examples
   (def all-users-q '[:find ?user-name

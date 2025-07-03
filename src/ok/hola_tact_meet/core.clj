@@ -64,11 +64,13 @@
    :headers {"Content-Type" "text/html"}
    :body (render-file "templates/main.html" {:userinfo (:userinfo session)})})
 
-(defn admin-manage-users [_request]
-  (log/info "admin-manage-users accessed")
-  {:status 200
-   :headers {"Content-Type" "text/html"}
-   :body (render-file "templates/users.html" {})})
+(defn admin-manage-users [{session :session}]
+  (let [users (db/get-all-users)
+        userinfo (:userinfo session)]
+    (log/info "admin-manage-users accessed")
+    {:status 200
+     :headers {"Content-Type" "text/html"}
+     :body (render-file "templates/users.html" {:users users :userinfo userinfo})}))
 
 
 (defn test-session [{session :session}]
@@ -92,6 +94,7 @@
   (let [updated-session (assoc session :userinfo (assoc userinfo 
                                                         :logged-in true
                                                         :user-id user-id))]
+    (db/update-last-login! user-id)
     (log/info "User logged in:" (:email userinfo) "ID:" user-id)
     (-> (response/redirect "/app")
         (assoc :session updated-session))))
