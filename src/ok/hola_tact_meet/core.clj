@@ -64,11 +64,13 @@
    :headers {"Content-Type" "text/html"}
    :body (render-file "templates/main.html" {:userinfo (:userinfo session)})})
 
-(defn admin-manage-users [_request]
-  (log/info "admin-manage-users accessed")
-  {:status 200
-   :headers {"Content-Type" "text/html"}
-   :body (render-file "templates/users.html" {})})
+(defn admin-manage-users [{session :session}]
+  (let [users (db/get-all-users)
+        userinfo (:userinfo session)]
+    (log/info "admin-manage-users accessed")
+    {:status 200
+     :headers {"Content-Type" "text/html"}
+     :body (render-file "templates/users.html" {:users users :userinfo userinfo})}))
 
 
 (defn test-session [{session :session}]
@@ -92,6 +94,7 @@
   (let [updated-session (assoc session :userinfo (assoc userinfo 
                                                         :logged-in true
                                                         :user-id user-id))]
+    (db/update-last-login! user-id)
     (log/info "User logged in:" (:email userinfo) "ID:" user-id)
     (-> (response/redirect "/app")
         (assoc :session updated-session))))
@@ -156,8 +159,16 @@
                      (d*/with-open-sse sse
                        (d*/merge-fragment! sse
                         (render-file "templates/fake-user-form.html" (fake-user-data)))
-                       ))})
-  )
+                       ))}))
+
+(defn admin-update-user-access-level [request]
+  (->sse-response request
+                  {on-open
+                   (fn [sse]
+                     (d*/with-open-sse sse
+                       (d*/merge-fragment! sse
+                                           (render-file "templates/notifications.html" {:notifications [{:level "info" :text "updated"}]}))
+                       ))}))
 
 (defn logout [_]
   (-> (response/redirect "/")
@@ -230,6 +241,7 @@
      ["/login/fake/new" {:post (wrap-localhost-only fake-login-new)}]
      ["/login/fake/generate-random-data" {:get fake-generate-random-data}]
      ["/admin/manage-users" {:get admin-manage-users}]
+     ["/admin/manage-users/update-user-access-level" {:get admin-update-user-access-level}]
      ["/logout" {:get logout}]
      ])
    (constantly {:status 404, :body "Not Found."})))

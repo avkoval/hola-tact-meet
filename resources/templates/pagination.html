@@ -1,0 +1,14 @@
+<!-- Pagination -->
+<nav class="pagination is-centered" role="navigation" aria-label="pagination">
+  <a class="pagination-previous" {% if not has-previous %}disabled{% endif %}>Previous</a>
+  <a class="pagination-next" {% if not has-next %}disabled{% endif %}>Next page</a>
+  <ul class="pagination-list">
+    {% for page_num in page-range %}
+      {% if page_num == current-page %}
+        <li><a class="pagination-link is-current" aria-label="Page {{ page_num }}" aria-current="page">{{ page_num }}</a></li>
+      {% else %}
+        <li><a class="pagination-link" aria-label="Goto page {{ page_num }}" href="?page={{ page_num }}">{{ page_num }}</a></li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</nav>

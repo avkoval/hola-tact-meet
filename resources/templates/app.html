@@ -1,0 +1,12 @@
+{% extends "templates/base.html" %}
+
+{% block content %}
+  {% include "templates/navbar.html" %}
+  <section class="section">
+    <div class="container">
+      {% include "templates/notifications.html" %}
+      {% include "templates/breadcrumbs.html" %}
+      {% block app_content %}{% endblock %}
+    </div>
+  </section>
+{% endblock %}
