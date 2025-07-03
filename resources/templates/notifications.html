@@ -1,0 +1,8 @@
+<div id="notifications">
+  {% for notification in notifications %}
+    <div class="notification is-{{ notification.level }}" data-signals-notification-{{ forloop.counter }}="true" data-show="$notification{{ forloop.counter }}">
+      <button class="delete" data-on-click="$notification{{ forloop.counter }}=false"></button>
+      {{ notification.text }}
+    </div>
+  {% endfor %}
+</div>

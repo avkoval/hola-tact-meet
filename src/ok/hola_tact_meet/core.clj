@@ -159,8 +159,16 @@
                      (d*/with-open-sse sse
                        (d*/merge-fragment! sse
                         (render-file "templates/fake-user-form.html" (fake-user-data)))
-                       ))})
-  )
+                       ))}))
+
+(defn admin-update-user-access-level [request]
+  (->sse-response request
+                  {on-open
+                   (fn [sse]
+                     (d*/with-open-sse sse
+                       (d*/merge-fragment! sse
+                                           (render-file "templates/notifications.html" {:notifications [{:level "info" :text "updated"}]}))
+                       ))}))
 
 (defn logout [_]
   (-> (response/redirect "/")
@@ -233,6 +241,7 @@
      ["/login/fake/new" {:post (wrap-localhost-only fake-login-new)}]
      ["/login/fake/generate-random-data" {:get fake-generate-random-data}]
      ["/admin/manage-users" {:get admin-manage-users}]
+     ["/admin/manage-users/update-user-access-level" {:get admin-update-user-access-level}]
      ["/logout" {:get logout}]
      ])
    (constantly {:status 404, :body "Not Found."})))

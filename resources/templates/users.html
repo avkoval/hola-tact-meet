@@ -1,58 +1,11 @@
-{% extends "templates/base.html" %}
+{% extends "templates/app.html" %}
 
-{% block content %}
-  <!-- Navigation -->
-  <nav class="navbar is-primary" role="navigation" aria-label="main navigation">
-    <div class="navbar-brand">
-      <a class="navbar-item" href="/">
-        <strong>Hola-Tact-Meet</strong>
-      </a>
-    </div>
-
-    <div class="navbar-menu">
-      <div class="navbar-start">
-        <a class="navbar-item" href="/app">
-          Dashboard
-        </a>
-        <a class="navbar-item" href="/meetings">
-          Meetings
-        </a>
-        <a class="navbar-item" href="/actions">
-          My Actions
-        </a>
-      </div>
-
-      <div class="navbar-end">
-        <div class="navbar-item has-dropdown is-hoverable">
-          <a class="navbar-link">
-            Profile ({{ userinfo.given-name }} {{ userinfo.family-name }})
-          </a>
-          <div class="navbar-dropdown">
-            <a class="navbar-item" href="/profile">
-              Settings
-            </a>
-            <hr class="navbar-divider">
-            <a class="navbar-item" href="/logout">
-              Logout
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </nav>
+{% block app_content %}
 
   <!-- Main Content -->
   <section class="section">
     <div class="container">
       
-      <!-- Breadcrumbs -->
-      <nav class="breadcrumb" aria-label="breadcrumbs">
-        <ul>
-          <li><a href="/app">Main</a></li>
-          <li class="is-active"><a href="#" aria-current="page">Manage Users</a></li>
-        </ul>
-      </nav>
-
       <!-- Page Header -->
       <div class="level">
         <div class="level-left">
@@ -125,17 +78,17 @@
                 </td>
                 <td>{{ user.email }}</td>
                 <td>
-                  <div class="control">
+                  <div class="control" data-on-click="@get('/admin/manage-users/update-user-access-level')">
                     <label class="radio">
-                      <input type="radio" name="access-level-{{ user.id }}" value="user" {% if user.access-level = "user" %}checked{% endif %} onchange="updateAccessLevel({{ user.id }}, 'user')">
+                      <input type="radio" name="access-level-{{ user.id }}" data-bind="access-level-{{ user.id }}" value="user" {% if user.access-level = "user" %}checked{% endif %}>
                       User
                     </label>
                     <label class="radio">
-                      <input type="radio" name="access-level-{{ user.id }}" value="staff" {% if user.access-level = "staff" %}checked{% endif %} onchange="updateAccessLevel({{ user.id }}, 'staff')">
+                      <input type="radio" name="access-level-{{ user.id }}" data-bind="access-level-{{ user.id }}" value="staff" {% if user.access-level = "staff" %}checked{% endif %}>
                       Staff
                     </label>
                     <label class="radio">
-                      <input type="radio" name="access-level-{{ user.id }}" value="admin" {% if user.access-level = "admin" %}checked{% endif %} onchange="updateAccessLevel({{ user.id }}, 'admin')">
+                      <input type="radio" name="access-level-{{ user.id }}" data-bind="access-level-{{ user.id }}" value="admin" {% if user.access-level = "admin" %}checked{% endif %}>
                       Admin
                     </label>
                   </div>
@@ -238,20 +191,7 @@
           </table>
         </div>
 
-        <!-- Pagination -->
-        <nav class="pagination is-centered" role="navigation" aria-label="pagination">
-          <a class="pagination-previous" {% if not has-previous %}disabled{% endif %}>Previous</a>
-          <a class="pagination-next" {% if not has-next %}disabled{% endif %}>Next page</a>
-          <ul class="pagination-list">
-            {% for page_num in page-range %}
-              {% if page_num == current-page %}
-                <li><a class="pagination-link is-current" aria-label="Page {{ page_num }}" aria-current="page">{{ page_num }}</a></li>
-              {% else %}
-                <li><a class="pagination-link" aria-label="Goto page {{ page_num }}" href="?page={{ page_num }}">{{ page_num }}</a></li>
-              {% endif %}
-            {% endfor %}
-          </ul>
-        </nav>
+        {#% include "templates/pagination.html" %#}
       </div>
 
       <!-- Summary Stats -->
@@ -336,47 +276,5 @@
       </footer>
     </div>
   </div>
-
-  <script>
-  function toggleUserStatus(userId, activate) {
-    const action = activate ? 'activate' : 'deactivate';
-    if (confirm(`Are you sure you want to ${action} this user?`)) {
-      // TODO: Implement API call
-      console.log(`${action} user ${userId}`);
-      location.reload();
-    }
-  }
-
-  function manageUserTeams(userId) {
-    // TODO: Load user data and teams
-    document.getElementById('modalUserName').textContent = 'John Doe';
-    document.getElementById('modalUserEmail').textContent = 'john.doe@example.com';
-    document.getElementById('manageTeamsModal').classList.add('is-active');
-  }
-
-  function closeManageTeamsModal() {
-    document.getElementById('manageTeamsModal').classList.remove('is-active');
-  }
-
-  function saveTeamChanges() {
-    // TODO: Implement team assignment API call
-    console.log('Saving team changes');
-    closeManageTeamsModal();
-  }
-
-  function deleteUser(userId) {
-    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      // TODO: Implement delete API call
-      console.log(`Delete user ${userId}`);
-    }
-  }
-
-  // Close modal when pressing Escape key
-  document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-      closeManageTeamsModal();
-    }
-  });
-  </script>
 {% endblock %}
 

@@ -1,0 +1,39 @@
+<!-- Navigation -->
+<nav class="navbar is-primary" role="navigation" aria-label="main navigation">
+  <div class="navbar-brand">
+    <a class="navbar-item" href="/">
+      <strong>Hola-Tact-Meet</strong>
+    </a>
+  </div>
+
+  <div class="navbar-menu">
+    <div class="navbar-start">
+      <a class="navbar-item" href="/app">
+        Dashboard
+      </a>
+      <a class="navbar-item" href="/meetings">
+        Meetings
+      </a>
+      <a class="navbar-item" href="/actions">
+        My Actions
+      </a>
+    </div>
+
+    <div class="navbar-end">
+      <div class="navbar-item has-dropdown is-hoverable">
+        <a class="navbar-link">
+          Profile ({{ userinfo.given-name }} {{ userinfo.family-name }})
+        </a>
+        <div class="navbar-dropdown">
+          <a class="navbar-item" href="/profile">
+            Settings
+          </a>
+          <hr class="navbar-divider">
+          <a class="navbar-item" href="/logout">
+            Logout
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
