@@ -125,9 +125,20 @@
                 </td>
                 <td>{{ user.email }}</td>
                 <td>
-                  <span class="tag {% if user.access-level = "admin" %}is-danger{% elif user.access-level = "staff" %}is-warning{% else %}is-info{% endif %}">
-                    {{ user.access-level }}
-                  </span>
+                  <div class="control">
+                    <label class="radio">
+                      <input type="radio" name="access-level-{{ user.id }}" value="user" {% if user.access-level = "user" %}checked{% endif %} onchange="updateAccessLevel({{ user.id }}, 'user')">
+                      User
+                    </label>
+                    <label class="radio">
+                      <input type="radio" name="access-level-{{ user.id }}" value="staff" {% if user.access-level = "staff" %}checked{% endif %} onchange="updateAccessLevel({{ user.id }}, 'staff')">
+                      Staff
+                    </label>
+                    <label class="radio">
+                      <input type="radio" name="access-level-{{ user.id }}" value="admin" {% if user.access-level = "admin" %}checked{% endif %} onchange="updateAccessLevel({{ user.id }}, 'admin')">
+                      Admin
+                    </label>
+                  </div>
                 </td>
                 <td>
                   <span class="tag {% if user.is-active %}is-success{% else %}is-light{% endif %}">
