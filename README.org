@@ -191,7 +191,7 @@ Copyright © 2025 Oleksii Koval
 
 Distributed under the MIT License
 
-** COMMENT Current work plan & progress [37%]
+** COMMENT Current work plan & progress [40%]
 
 *** DONE Set appropriate License
     CLOSED: [2025-06-15 Sun 21:30]
@@ -228,8 +228,10 @@ Distributed under the MIT License
  - [X] Make sure code reload is working fine
  - [X] Use bulma.css from CDN
 
-*** WORKING Fake login
+*** DONE Fake login
+    CLOSED: [2025-07-04 Fri 23:45]
     :LOGBOOK:
+    - State "DONE"       from "WORKING"    [2025-07-04 Fri 23:45]
     CLOCK: [2025-06-29 Sun 14:19]--[2025-06-29 Sun 14:39] =>  0:20
     CLOCK: [2025-06-29 Sun 11:22]--[2025-06-29 Sun 11:49] =>  0:27
     CLOCK: [2025-06-28 Sat 12:34]--[2025-06-28 Sat 13:29] =>  0:55
@@ -242,12 +244,16 @@ I need fake login to quickly login several users for testing purposes on localho
 
  - [X] redirect from ~home~ to /app when user is logged in
  - [X] logout (remove all data from session)
- - [-] make 'fake login' page show previous users to choose
+ - [X] make 'fake login' page show previous users to choose
    - [X] fix fake login->login
    - [X] use datastar to fill random values instead of js
-   - [ ] add user when actually making login
-   - [ ] make separate page for fake login functionality
- - [ ] add gravatar
+   - [X] add user when actually making login
+   - [X] make separate page for fake login functionality
+
+*** TODO Change theme
+    :LOGBOOK:
+    - State "TODO"       from              [2025-07-05 Sat 22:55]
+    :END:
 
 *** TODO Admin settings & preferences
     :LOGBOOK:
@@ -257,8 +263,10 @@ I need fake login to quickly login several users for testing purposes on localho
      :LOGBOOK:
      - State "TODO"       from              [2025-06-18 Wed 10:25]
      :END:
-***** TODO Change access level to manager (as admin)
+***** DONE Change access level to manager (as admin)
+      CLOSED: [2025-07-04 Fri 23:45]
       :LOGBOOK:
+      - State "DONE"       from "TODO"       [2025-07-04 Fri 23:45]
       - State "TODO"       from              [2025-06-18 Wed 10:25]
       :END:
 *** TODO First App screen [38%]
@@ -355,3 +363,8 @@ https://github.com/weavejester/ring-oauth2
     :LOGBOOK:
     - State "TODO"       from              [2025-06-18 Wed 10:20]
     :END:
+*** IDEA Future ideas
+    :LOGBOOK:
+    - State "IDEA"       from              [2025-07-04 Fri 23:45]
+    :END:
+ - [ ] add gravatar/auto generated icon

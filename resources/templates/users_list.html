@@ -40,8 +40,8 @@
         </div>
       </td>
       <td>
-        <span class="tag {% if user.is-active %}is-success{% else %}is-light{% endif %}">
-          {% if user.is-active %}Active{% else %}Inactive{% endif %}
+        <span class="tag {% if user.active %}is-success{% else %}is-light{% endif %}">
+          {% if user.active %}Active{% else %}Inactive{% endif %}
         </span>
       </td>
       <td>
@@ -61,15 +61,15 @@
       </td>
       <td style="width: 260px;">
         <div class="buttons are-small" style="white-space: nowrap;">
-          {% if user.is-active %}
-            <button class="button is-warning" onclick="toggleUserStatus({{ user.id }}, false)">
+          {% if user.active %}
+            <button class="button is-warning" >
               <span class="icon is-small">
                 <i class="fas fa-pause"></i>
               </span>
               <span>Deactivate</span>
             </button>
           {% else %}
-            <button class="button is-success" onclick="toggleUserStatus({{ user.id }}, true)">
+            <button class="button is-success" >
               <span class="icon is-small">
                 <i class="fas fa-play"></i>
               </span>
@@ -77,14 +77,14 @@
             </button>
           {% endif %}
           
-          <button class="button is-info" onclick="manageUserTeams({{ user.id }})">
+          <button class="button is-info" >
             <span class="icon is-small">
               <i class="fas fa-users-cog"></i>
             </span>
             <span>Teams</span>
           </button>
           
-          <div class="dropdown is-hoverable">
+          <div class="dropdown is-hoverable is-right">
             <div class="dropdown-trigger">
               <button class="button is-light" aria-haspopup="true" aria-controls="dropdown-menu-{{ user.id }}">
                 <span class="icon is-small">
@@ -106,8 +106,14 @@
                   </span>
                   View Actions
                 </a>
+                <a href="/users/{{ user.id }}/login-as" class="dropdown-item">
+                  <span class="icon">
+                    <i class="fas fa-xxx"></i>
+                  </span>
+                  Login as
+                </a>
                 <hr class="dropdown-divider">
-                <a href="#" class="dropdown-item has-text-danger" onclick="deleteUser({{ user.id }})">
+                <a href="#" class="dropdown-item has-text-danger">
                   <span class="icon">
                     <i class="fas fa-trash"></i>
                   </span>
