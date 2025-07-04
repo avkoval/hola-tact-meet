@@ -18,12 +18,13 @@
    [ok.hola_tact_meet.db :as db]
    [aero.core :refer [read-config]]
    [clojure.java.io]
-   ;; [clojure.pprint :refer [pprint]]
+   [clojure.pprint :refer [pprint]]
    [ok.oauth2.utils :refer [get-oauth-config]]
    [ok.session.utils :refer [encode-secret-key]]
    [ring.middleware.oauth2 :refer [wrap-oauth2]]
    [clojure.tools.logging :as log]
    [faker.generate :as gen]
+   [datomic.client.api :as d]
    )
   (:gen-class))
 
@@ -72,6 +73,22 @@
      :headers {"Content-Type" "text/html"}
      :body (render-file "templates/users.html" {:users users :userinfo userinfo})}))
 
+(defn admin-update-user-access-level [request]
+  (->sse-response 
+   request
+   {on-open
+    (fn [sse]
+      ;; (pprint request)
+      (let [user_id (get-in request [:query-params "user_id"])
+            params (utils/datastar-query request)
+            new_access_level (get params (keyword (str "accessLevel" user_id)))]
+        (println params)
+        (println new_access_level)
+        (when (and user_id new_access_level)
+          (d/transact (db/get-conn) {:tx-data [{:db/id (Long/parseLong user_id)
+                                                :user/access-level new_access_level}]}))
+        (d*/with-open-sse sse
+          (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))))}))
 
 (defn test-session [{session :session}]
   (let [count   (:count session 0)
@@ -161,14 +178,6 @@
                         (render-file "templates/fake-user-form.html" (fake-user-data)))
                        ))}))
 
-(defn admin-update-user-access-level [request]
-  (->sse-response request
-                  {on-open
-                   (fn [sse]
-                     (d*/with-open-sse sse
-                       (d*/merge-fragment! sse
-                                           (render-file "templates/notifications.html" {:notifications [{:level "info" :text "updated"}]}))
-                       ))}))
 
 (defn logout [_]
   (-> (response/redirect "/")

@@ -44,3 +44,10 @@
   "Check if this is an SSE endpoint"
   [request]
   (= "text/event-stream" (get-in request [:headers "accept"])))
+
+
+(defn datastar-query
+  "Parse JSON array of datastar GET params"
+  [request]
+  (keywordize-keys (json/read-str (get-in request [:query-params "datastar"])))
+)
