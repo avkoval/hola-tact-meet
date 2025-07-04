@@ -219,6 +219,15 @@
          :headers {"Content-Type" "text/plain"}
          :body "Access denied. This endpoint is only available from localhost."}))))
 
+(defn wrap-require-admin [handler]
+  (fn [request]
+    (let [access-level (get-in request [:session :userinfo :access-level])]
+      (if (= access-level "admin")
+        (handler request)
+        {:status 403
+         :headers {"Content-Type" "text/plain"}
+         :body "Access denied. Admin privileges required."}))))
+
 (defn wrap-force-https [handler]
   (fn [request]
     (if (utils/sse-endpoint? request)
@@ -249,8 +258,8 @@
      ["/login/fake/existing" {:post (wrap-localhost-only fake-login-existing)}]
      ["/login/fake/new" {:post (wrap-localhost-only fake-login-new)}]
      ["/login/fake/generate-random-data" {:get fake-generate-random-data}]
-     ["/admin/manage-users" {:get admin-manage-users}]
-     ["/admin/manage-users/update-user-access-level" {:get admin-update-user-access-level}]
+     ["/admin/manage-users" {:get (wrap-require-admin admin-manage-users)}]
+     ["/admin/manage-users/update-user-access-level" {:get (wrap-require-admin admin-update-user-access-level)}]
      ["/logout" {:get logout}]
      ])
    (constantly {:status 404, :body "Not Found."})))

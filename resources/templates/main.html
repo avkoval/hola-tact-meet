@@ -52,6 +52,7 @@
         </div>
 
         <!-- Manager Actions Column -->
+        {% ifunequal userinfo.access-level "user" %}
         <div class="column is-one-third">
           <div class="card">
             <header class="card-header">
@@ -88,8 +89,10 @@
             </div>
           </div>
         </div>
+        {% endifunequal %}
 
         <!-- Admin Actions Column -->
+        {% ifequal userinfo.access-level "admin" %}
         <div class="column is-one-third">
           <div class="card">
             <header class="card-header">
@@ -126,6 +129,7 @@
             </div>
           </div>
         </div>
+        {% endifequal %}
       </div>
 
       <!-- Recent Activity -->

@@ -1,0 +1,250 @@
+(ns ok.hola_tact_meet.schema)
+
+(def user-schema [{:db/ident       :user/name
+                   :db/valueType   :db.type/string
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "The name of the user."}
+
+                  {:db/ident       :user/email
+                   :db/valueType   :db.type/string
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "The email address of the user."}
+
+                  {:db/ident       :user/family-name
+                   :db/valueType   :db.type/string
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "The family name of the user."}
+
+                  {:db/ident       :user/given-name
+                   :db/valueType   :db.type/string
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "The given name of the user."}
+
+                  {:db/ident       :user/picture
+                   :db/valueType   :db.type/string
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "The URL of the user's picture."}
+
+                  {:db/ident       :user/auth-provider
+                   :db/valueType   :db.type/string
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "The authentication provider for the user."}
+
+                  {:db/ident       :user/access-level
+                   :db/valueType   :db.type/string
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "The access level of the user: user, admin, or staff."}
+
+                  {:db/ident       :user/teams
+                   :db/valueType   :db.type/ref
+                   :db/cardinality :db.cardinality/many
+                   :db/doc         "Teams this user belongs to."}
+
+                  {:db/ident       :user/last-login
+                   :db/valueType   :db.type/instant
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "When the user last logged in."}
+
+                  ])
+
+(def team-schema [{:db/ident       :team/name
+                   :db/valueType   :db.type/string
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "The name of the team."}
+
+                  {:db/ident       :team/description
+                   :db/valueType   :db.type/string
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "Description of the team."}
+
+                  {:db/ident       :team/created-at
+                   :db/valueType   :db.type/instant
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "When the team was created."}
+
+                  {:db/ident       :team/created-by
+                   :db/valueType   :db.type/ref
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "User who created the team."}
+
+                  {:db/ident       :team/managers
+                   :db/valueType   :db.type/ref
+                   :db/cardinality :db.cardinality/many
+                   :db/doc         "Users who can manage this team."}
+
+                  ])
+
+(def meeting-schema [{:db/ident       :meeting/title
+                      :db/valueType   :db.type/string
+                      :db/cardinality :db.cardinality/one
+                      :db/doc         "The title of the meeting."}
+
+                     {:db/ident       :meeting/description
+                      :db/valueType   :db.type/string
+                      :db/cardinality :db.cardinality/one
+                      :db/doc         "Description of the meeting."}
+
+                     {:db/ident       :meeting/team
+                      :db/valueType   :db.type/ref
+                      :db/cardinality :db.cardinality/one
+                      :db/doc         "The team this meeting belongs to."}
+
+                     {:db/ident       :meeting/created-by
+                      :db/valueType   :db.type/ref
+                      :db/cardinality :db.cardinality/one
+                      :db/doc         "User who created the meeting."}
+
+                     {:db/ident       :meeting/created-at
+                      :db/valueType   :db.type/instant
+                      :db/cardinality :db.cardinality/one
+                      :db/doc         "When the meeting was created."}
+
+                     {:db/ident       :meeting/scheduled-at
+                      :db/valueType   :db.type/instant
+                      :db/cardinality :db.cardinality/one
+                      :db/doc         "When the meeting is scheduled."}
+
+                     {:db/ident       :meeting/status
+                      :db/valueType   :db.type/string
+                      :db/cardinality :db.cardinality/one
+                      :db/doc         "Status: scheduled, in-progress, completed, cancelled."}
+
+                     {:db/ident       :meeting/join-url
+                      :db/valueType   :db.type/string
+                      :db/cardinality :db.cardinality/one
+                      :db/doc         "URL for joining the meeting (Google Meet, Zoom, etc)."}
+
+                     {:db/ident       :meeting/allow-topic-voting
+                      :db/valueType   :db.type/boolean
+                      :db/cardinality :db.cardinality/one
+                      :db/doc         "Whether to allow voting on topics."}
+
+                     {:db/ident       :meeting/sort-topics-by-votes
+                      :db/valueType   :db.type/boolean
+                      :db/cardinality :db.cardinality/one
+                      :db/doc         "Whether to sort topics by vote count."}
+
+                     {:db/ident       :meeting/is-visible
+                      :db/valueType   :db.type/boolean
+                      :db/cardinality :db.cardinality/one
+                      :db/doc         "Whether the meeting is visible to team members."}
+
+                     ])
+
+(def topic-schema [{:db/ident       :topic/title
+                    :db/valueType   :db.type/string
+                    :db/cardinality :db.cardinality/one
+                    :db/doc         "The title of the topic/tension."}
+
+                   {:db/ident       :topic/description
+                    :db/valueType   :db.type/string
+                    :db/cardinality :db.cardinality/one
+                    :db/doc         "Description of the topic."}
+
+                   {:db/ident       :topic/meeting
+                    :db/valueType   :db.type/ref
+                    :db/cardinality :db.cardinality/one
+                    :db/doc         "The meeting this topic belongs to."}
+
+                   {:db/ident       :topic/created-by
+                    :db/valueType   :db.type/ref
+                    :db/cardinality :db.cardinality/one
+                    :db/doc         "User who created the topic."}
+
+                   {:db/ident       :topic/created-at
+                    :db/valueType   :db.type/instant
+                    :db/cardinality :db.cardinality/one
+                    :db/doc         "When the topic was created."}
+
+                   {:db/ident       :topic/vote-count
+                    :db/valueType   :db.type/long
+                    :db/cardinality :db.cardinality/one
+                    :db/doc         "Number of votes for this topic."}
+
+                   {:db/ident       :topic/timer-minutes
+                    :db/valueType   :db.type/long
+                    :db/cardinality :db.cardinality/one
+                    :db/doc         "Timer duration in minutes for this topic."}
+
+                   {:db/ident       :topic/status
+                    :db/valueType   :db.type/string
+                    :db/cardinality :db.cardinality/one
+                    :db/doc         "Status: pending, discussing, accepted, declined."}
+
+                   {:db/ident       :topic/decision
+                    :db/valueType   :db.type/string
+                    :db/cardinality :db.cardinality/one
+                    :db/doc         "Final decision or outcome for the topic."}
+
+                   ])
+
+(def action-item-schema [{:db/ident       :action/title
+                          :db/valueType   :db.type/string
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "The title of the action item."}
+
+                         {:db/ident       :action/description
+                          :db/valueType   :db.type/string
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "Description of the action item."}
+
+                         {:db/ident       :action/assignee
+                          :db/valueType   :db.type/ref
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "User assigned to this action item."}
+
+                         {:db/ident       :action/topic
+                          :db/valueType   :db.type/ref
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "Topic this action item came from."}
+
+                         {:db/ident       :action/meeting
+                          :db/valueType   :db.type/ref
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "Meeting this action item was created in."}
+
+                         {:db/ident       :action/created-at
+                          :db/valueType   :db.type/instant
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "When the action item was created."}
+
+                         {:db/ident       :action/due-date
+                          :db/valueType   :db.type/instant
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "When the action item is due."}
+
+                         {:db/ident       :action/status
+                          :db/valueType   :db.type/string
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "Status: open, in-progress, completed, cancelled."}
+
+                         {:db/ident       :action/completed-at
+                          :db/valueType   :db.type/instant
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "When the action item was completed."}
+
+                         ])
+
+(def vote-schema [{:db/ident       :vote/topic
+                   :db/valueType   :db.type/ref
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "The topic being voted on."}
+
+                  {:db/ident       :vote/user
+                   :db/valueType   :db.type/ref
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "User who cast the vote."}
+
+                  {:db/ident       :vote/created-at
+                   :db/valueType   :db.type/instant
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "When the vote was cast."}
+
+                  ])
+
+(def all-schema (concat user-schema
+                        team-schema
+                        meeting-schema
+                        topic-schema
+                        action-item-schema
+                        vote-schema))
