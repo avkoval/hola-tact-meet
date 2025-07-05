@@ -1,11 +1,28 @@
-(ns ok.hola_tact_meet.utils
+(ns ok.hola-tact-meet.utils
   (:require
    [clojure.walk :refer [keywordize-keys]]
    [clojure.data.json :as json]
    [clojure.string :as string]
    [faker.generate :as gen]
+   [aero.core :refer [read-config]]
    )
   (:gen-class))
+
+(defn app-config []
+  (read-config (clojure.java.io/resource "config.edn")))
+
+(defn localhost?
+  "Check if the given address is a localhost address.
+   Handles IPv4, IPv6, and hostname variants."
+  [addr]
+  (when addr
+    (or (= addr "127.0.0.1")
+        (= addr "::1")
+        (= addr "0:0:0:0:0:0:0:1")
+        (= addr "[0:0:0:0:0:0:0:1]")
+        (= addr "localhost"))))
+
+
 
 (defn wrap-json-params
   "Add :json to request map when content-type is application/json"

@@ -1,4 +1,4 @@
-(ns ok.hola_tact_meet.schema)
+(ns ok.hola-tact-meet.schema)
 
 (def user-schema [{:db/ident       :user/name
                    :db/valueType   :db.type/string
@@ -44,6 +44,11 @@
                    :db/valueType   :db.type/instant
                    :db/cardinality :db.cardinality/one
                    :db/doc         "When the user last logged in."}
+
+                  {:db/ident       :user/active
+                   :db/valueType   :db.type/boolean
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "Whether the user is active."}
 
                   ])
 

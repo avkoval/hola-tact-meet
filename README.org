@@ -191,7 +191,7 @@ Copyright © 2025 Oleksii Koval
 
 Distributed under the MIT License
 
-** COMMENT Current work plan & progress [44%]
+** COMMENT Current work plan & progress [40%]
 
 *** DONE Set appropriate License
     CLOSED: [2025-06-15 Sun 21:30]
@@ -249,6 +249,11 @@ I need fake login to quickly login several users for testing purposes on localho
    - [X] use datastar to fill random values instead of js
    - [X] add user when actually making login
    - [X] make separate page for fake login functionality
+
+*** TODO Change theme
+    :LOGBOOK:
+    - State "TODO"       from              [2025-07-05 Sat 22:55]
+    :END:
 
 *** TODO Admin settings & preferences
     :LOGBOOK:

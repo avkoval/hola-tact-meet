@@ -1,4 +1,4 @@
-(ns ok.hola_tact_meet.db
+(ns ok.hola-tact-meet.db
   (:require [datomic.client.api :as d]
             [ok.hola_tact_meet.schema :as schema])
   )
@@ -73,7 +73,8 @@
                      :user/given-name (:given-name userinfo)
                      :user/picture (:picture userinfo)
                      :user/auth-provider (:auth-provider userinfo)
-                     :user/access-level (or (:access-level userinfo) "user")}
+                     :user/access-level (or (:access-level userinfo) "user")
+                     :user/active (or (:active userinfo) true)}
           result (d/transact (get-conn) {:tx-data [user-data]})
           user-id (get-in result [:tempids (first (keys (:tempids result)))])]
       user-id)))
@@ -88,7 +89,7 @@
     (map (fn [[user-id]]
            (let [user-data (d/pull db '[:db/id :user/name :user/email :user/access-level 
                                         :user/picture :user/family-name :user/given-name 
-                                        :user/last-login] user-id)]
+                                        :user/last-login :user/active] user-id)]
              {:id (:db/id user-data)
               :name (:user/name user-data)
               :email (:user/email user-data)
@@ -96,7 +97,8 @@
               :picture (:user/picture user-data)
               :family-name (:user/family-name user-data)
               :given-name (:user/given-name user-data)
-              :last-login (:user/last-login user-data)}))
+              :last-login (:user/last-login user-data)
+              :active (:user/active user-data)}))
          user-ids)))
 
 (defn get-user-by-id 
@@ -106,7 +108,7 @@
   (let [db (get-db)]
     (d/pull db '[:user/name :user/email :user/family-name 
                  :user/given-name :user/picture :user/auth-provider 
-                 :user/access-level] 
+                 :user/access-level :user/active] 
             user-id)))
 
 (defn update-last-login!
@@ -123,10 +125,28 @@
   ;; To add new schema fields to existing database:
   ;; 1. Add the field definition to the appropriate schema (e.g., user-schema)
   ;; 2. Transact the new schema to the existing database:
-  (d/transact (get-conn) {:tx-data [{:db/ident       :user/last-login
-                                     :db/valueType   :db.type/instant
+  ;; (d/transact (get-conn) {:tx-data [{:db/ident       :user/last-login
+  ;;                                    :db/valueType   :db.type/instant
+  ;;                                    :db/cardinality :db.cardinality/one
+  ;;                                    :db/doc         "When the user last logged in."}]})
+
+  ;; Example: Adding user/active field to existing database
+  ;; 1. First, add the schema for the new field:
+  (d/transact (get-conn) {:tx-data [{:db/ident       :user/active
+                                     :db/valueType   :db.type/boolean
                                      :db/cardinality :db.cardinality/one
-                                     :db/doc         "When the user last logged in."}]})
+                                     :db/doc         "Whether the user is active."}]})
+
+  ;; 2. Then, set all existing users to active by default:
+  (let [db (get-db)
+        all-user-ids (d/q '[:find ?e
+                            :where [?e :user/name _]]
+                          db)
+        tx-data (map (fn [[user-id]]
+                       {:db/id user-id
+                        :user/active true})
+                     all-user-ids)]
+    (d/transact (get-conn) {:tx-data tx-data}))
 
   ;; Query examples
   (def all-users-q '[:find ?user-name
@@ -139,9 +159,5 @@
                [?e :user/name ?name]
                [?e :user/email ?email]])
 
-  (def users (d/q query (get-db)))
-  (d/q query (get-db))
-  (doseq [user users]
-    (println user))
-
+  (get-all-users)
   )
