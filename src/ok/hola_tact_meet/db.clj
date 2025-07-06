@@ -117,6 +117,20 @@
   (d/transact (get-conn) {:tx-data [{:db/id user-id
                                      :user/last-login (java.util.Date.)}]}))
 
+(defn toggle-user-active!
+  "Toggle the active status of a user"
+  [user-id]
+  (let [db (get-db)
+        current-active-result (d/q '[:find ?active
+                                     :in $ ?user-id
+                                     :where [?user-id :user/active ?active]]
+                                   db user-id)
+        current-active (ffirst current-active-result)
+        new-active (not current-active)]
+    (d/transact (get-conn) {:tx-data [{:db/id user-id
+                                       :user/active new-active}]})
+    new-active))
+
 (comment
 
   ;; Initialize database and schema

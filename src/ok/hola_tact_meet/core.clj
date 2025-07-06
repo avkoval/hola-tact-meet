@@ -37,6 +37,7 @@
      ["/login/fake/existing" {:post (middleware/wrap-localhost-only views/fake-login-existing)}]
      ["/login/fake/new" {:post (middleware/wrap-localhost-only views/fake-login-new)}]
      ["/login/fake/generate-random-data" {:get views/fake-generate-random-data}]
+     ["/admin/manage-users/toggle" {:post (middleware/wrap-require-admin views/admin-toggle-user)}]
      ["/admin/manage-users" {:get (middleware/wrap-require-admin views/admin-manage-users)}]
      ["/admin/manage-users/update-user-access-level" {:get (middleware/wrap-require-admin views/admin-update-user-access-level)}]
      ["/change-css-theme" {:get views/change-css-theme}]

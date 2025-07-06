@@ -62,14 +62,14 @@
       <td style="width: 260px;">
         <div class="buttons are-small" style="white-space: nowrap;">
           {% if user.active %}
-            <button class="button is-warning" >
+            <button class="button is-warning" data-on-click="@post('/admin/manage-users/toggle?user_id={{ user.id }}')">
               <span class="icon is-small">
                 <i class="fas fa-pause"></i>
               </span>
               <span>Deactivate</span>
             </button>
           {% else %}
-            <button class="button is-success" >
+            <button class="button is-success" data-on-click="@post('/admin/manage-users/toggle?user_id={{ user.id }}')">
               <span class="icon is-small">
                 <i class="fas fa-play"></i>
               </span>

@@ -11,6 +11,7 @@
    [clojure.tools.logging :as log]
    [faker.generate :as gen]
    [datomic.client.api :as d]
+   ; [clojure.pprint :refer [pprint]]
    )
   (:gen-class))
 
@@ -65,6 +66,23 @@
           (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))))}))
 
 
+(defn admin-toggle-user [request]
+  (->sse-response 
+   request
+   {on-open
+    (fn [sse]
+      (let [user_id (get-in request [:query-params "user_id"])
+            ]
+        (println user_id)
+        (when user_id
+          (let [user-id-long (Long/parseLong user_id)
+                new-active-status (db/toggle-user-active! user-id-long)]
+            (log/info "User" user_id "active status toggled to" new-active-status)))
+        (d*/with-open-sse sse
+          (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)}))))
+      )}))
+
+
 (defn change-css-theme [{session :session :as request}]
   (->sse-response 
    request
@@ -76,6 +94,9 @@
             ;new_access_level (get params (keyword (str "accessLevel" user_id)))
             ]
         (println params)
+
+        ;; TODO I need to understand how to change session from here
+
         ;; (when (and user_id new_access_level)
         ;;   (d/transact (db/get-conn) {:tx-data [{:db/id (Long/parseLong user_id)
         ;;                                         :user/access-level new_access_level}]}))
