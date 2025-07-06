@@ -1,6 +1,6 @@
 (ns ok.hola-tact-meet.db
   (:require [datomic.client.api :as d]
-            [ok.hola_tact_meet.schema :as schema])
+            [ok.hola-tact-meet.schema :as schema])
   )
 
 (def client (d/client {:server-type :datomic-local
