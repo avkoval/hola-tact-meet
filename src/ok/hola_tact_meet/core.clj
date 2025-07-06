@@ -21,6 +21,9 @@
    )
   (:gen-class))
 
+;; Configure logging before any logging occurs
+(utils/configure-logging!)
+
 
 
 (def base-app
@@ -69,6 +72,7 @@
 
 (defn start! []
   (log/info "Starting server on port 8080")
+  (log/info (str "Log level: " (:log-level (utils/app-config))))
   (reset! server
           (jetty/run-jetty
            (wrap-reload #'app)

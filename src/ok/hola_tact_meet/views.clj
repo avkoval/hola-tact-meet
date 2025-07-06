@@ -6,12 +6,14 @@
    [starfederation.datastar.clojure.adapter.ring :refer [->sse-response on-open]]
    [ok.hola-tact-meet.utils :as utils]
    [ok.hola-tact-meet.db :as db]
+   [ok.hola-tact-meet.validation :as v]
    [clojure.java.io]
    [ok.oauth2.utils :refer [get-oauth-config]]
    [clojure.tools.logging :as log]
    [faker.generate :as gen]
    [datomic.client.api :as d]
    [clojure.pprint :refer [pprint]]
+   [malli.core :as m]
    )
   (:gen-class))
 
@@ -83,6 +85,24 @@
       )}))
 
 
+(defn- prepare-teams-with-membership
+  "Prepare teams data with user membership flags for template"
+  [user-id-long]
+  (let [user-data (when user-id-long (db/get-user-by-id user-id-long))
+        all-teams (db/get-all-teams)
+        staff-admin-users (db/get-staff-admin-users)
+        user-teams (or (:user/teams user-data) [])
+        user-team-ids (set (map :db/id user-teams))
+        teams-with-membership (mapv (fn [team]
+                                      (assoc team :user-is-member (contains? user-team-ids (:id team))))
+                                    all-teams)]
+    {:user user-data
+     :user-id user-id-long
+     :all-teams teams-with-membership
+     :staff-admin-users staff-admin-users
+     :user-teams user-teams
+     :user-team-ids user-team-ids}))
+
 (defn admin-user-teams [request]
   (->sse-response 
    request
@@ -90,21 +110,12 @@
     (fn [sse]
       (let [user_id (get-in request [:path-params :user])
             user-id-long (when user_id (Long/parseLong user_id))
-            user-data (when user-id-long (db/get-user-by-id user-id-long))
-            all-teams (db/get-all-teams)
-            staff-admin-users (db/get-staff-admin-users)
-            user-teams (or (:user/teams user-data) [])
-            user-team-ids (set (map :db/id user-teams))]
+            template-data (prepare-teams-with-membership user-id-long)]
         (log/debug "Loading teams for user:" user_id)
         (d*/with-open-sse sse
-          (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" 
-                                               {:user user-data
-                                                :user-id user-id-long
-                                                :all-teams all-teams
-                                                :staff-admin-users staff-admin-users
-                                                :user-teams user-teams
-                                                :user-team-ids user-team-ids}))))
+          (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data))))
       )}))
+
 
 
 (defn admin-user-teams-add [request]
@@ -114,24 +125,52 @@
     (fn [sse]
       (let [user_id (get-in request [:path-params :user])
             user-id-long (when user_id (Long/parseLong user_id))
-            user-data (when user-id-long (db/get-user-by-id user-id-long))
-            all-teams (db/get-all-teams)
-            staff-admin-users (db/get-staff-admin-users)
-            user-teams (or (:user/teams user-data) [])
-            user-team-ids (set (map :db/id user-teams))]
-        (log/debug "Loading teams for user:" user_id)
-        (pprint request)
-        (d*/with-open-sse sse
-          (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" 
-                                               {:user user-data
-                                                :user-id user-id-long
-                                                :all-teams all-teams
-                                                :staff-admin-users staff-admin-users
-                                                :user-teams user-teams
-                                                :user-team-ids user-team-ids}))))
-      )}))
-
-
+            form-params (:form-params request)
+            
+            ;; Parse form data
+            team-name (get form-params "name")
+            team-description (get form-params "description" "")
+            team-managers-str (get form-params "managers" [])
+            team-managers (if (vector? team-managers-str)
+                           (mapv #(Long/parseLong %) team-managers-str)
+                           (if (string? team-managers-str)
+                             [(Long/parseLong team-managers-str)]
+                             []))
+            
+            ;; Create team data structure
+            team-data {:name team-name
+                      :description team-description
+                      :managers team-managers}]
+        
+        (log/debug "Adding team for user:" user_id)
+        (log/debug "Form params:" form-params)
+        (log/debug "Team data:" team-data)
+        
+        ;; Validate and create team
+        (if (m/validate v/TeamData team-data)
+          (let [create-result (db/create-team-with-validation! team-data)]
+            (if (:success create-result)
+              (do
+                (log/info "Team created successfully:" (:team-id create-result))
+                (let [template-data (assoc (prepare-teams-with-membership user-id-long)
+                                           :success-message "Team created successfully!")]
+                  (d*/with-open-sse sse
+                    (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data)))))
+              (do
+                (log/warn "Failed to create team:" (:error create-result))
+                (let [template-data (assoc (prepare-teams-with-membership user-id-long)
+                                           :error-message (:error create-result))]
+                  (d*/with-open-sse sse
+                    (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data)))))))
+          (let [validation-errors (m/explain v/TeamData team-data)
+                template-data (assoc (prepare-teams-with-membership user-id-long)
+                                     :validation-errors validation-errors
+                                     :error-message "Invalid team data. Please check your input.")]
+            (log/warn "Invalid team data:" team-data)
+            (log/warn "Validation errors:" validation-errors)
+            (d*/with-open-sse sse
+              (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data))))
+          )))}))
 
 
 (defn change-css-theme [{session :session :as request}]

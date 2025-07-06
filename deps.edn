@@ -12,6 +12,7 @@
         ring-oauth2/ring-oauth2 {:mvn/version "0.3.0"}
         ring/ring-headers {:mvn/version "0.4.0"}
         helpshift/faker {:mvn/version "0.3.0"}
+        metosin/malli {:mvn/version "0.19.1"}
         ;; datastar
         datastar/sdk {:git/url "https://github.com/starfederation/datastar/"
               :git/sha "c41f2a15fbdb0014d243eb436d3cdb047ffc5c2e"
@@ -31,7 +32,8 @@
  :aliases
  {:dev {:main-opts ["-m" "ok.hola-tact-meet.core"
                       "--middleware" "[cidernrepl/cider-middleware]"
-                      ]}
+                      ]
+        :jvm-opts ["-Dorg.slf4j.simpleLogger.defaultLogLevel=info"]}
   :build {:deps {io.github.clojure/tools.build {:mvn/version "0.10.5"}}
           :ns-default build}
   :test {:extra-paths ["test"]

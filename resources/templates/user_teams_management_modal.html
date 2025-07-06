@@ -20,14 +20,14 @@
         <label class="label">Select Teams</label>
         <div id="teamsList">
           {% for team in all-teams %}
-            <div class="box mb-3" style="border-left: 4px solid {% if team.id in user-team-ids %}#48c78e{% else %}#dbdbdb{% endif %};">
+            <div class="box mb-3" style="border-left: 4px solid {% if team.user-is-member %}#48c78e{% else %}#dbdbdb{% endif %};">
               <div class="level is-mobile">
                 <div class="level-left">
                   <label class="checkbox level-item" style="cursor: pointer;">
                     <input type="checkbox"
                            name="user-teams"
                            value="{{ team.id }}"
-                           {% if team.id in user-team-ids %}checked{% endif %}
+                           {% if team.user-is-member %}checked{% endif %}
                            style="margin-right: 8px;">
                     <strong>{{ team.name }}</strong>
                   </label>
@@ -65,15 +65,15 @@
       <div class="field is-hidden" data-class-is-hidden="$addNewTeamHidden">
         <label class="label">Add new team here</label>
         <div class="control">
-          <input class="input" type="text" placeholder="Enter team name">
+          <input class="input" type="text" name="name" placeholder="Enter team name">
         </div>
         <div class="control mt-2">
-          <textarea class="textarea" placeholder="Team description (optional)" rows="2"></textarea>
+          <textarea class="textarea" name="description" placeholder="Team description (optional)" rows="2"></textarea>
         </div>
         <div class="control mt-2">
           <label class="label is-small">Team Managers</label>
           <div class="select is-multiple" style="width: 100%;">
-            <select multiple style="width: 100%; min-height: 80px;">
+            <select name="managers" multiple style="width: 100%; min-height: 80px;">
               {% for user in staff-admin-users %}
                 <option value="{{ user.id }}">{{ user.name }} ({{ user.access-level }})</option>
               {% endfor %}

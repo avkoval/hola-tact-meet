@@ -11,6 +11,31 @@
 (defn app-config []
   (read-config (clojure.java.io/resource "config.edn")))
 
+(defn configure-logging!
+  "Configure SLF4J Simple logging based on config.edn log level
+   Note: This may not work if SLF4J is already initialized.
+   For guaranteed effect, set JVM system properties at startup."
+  []
+  (let [config (app-config)
+        log-level (or (:log-level config) "INFO")
+        slf4j-level (case (clojure.string/upper-case log-level)
+                      "DEBUG" "debug"
+                      "INFO" "info" 
+                      "WARN" "warn"
+                      "ERROR" "error"
+                      "info")] ; default fallback
+    ;; Set SLF4J Simple system properties (may be too late if SLF4J already initialized)
+    (System/setProperty "org.slf4j.simpleLogger.defaultLogLevel" slf4j-level)
+    (System/setProperty "org.slf4j.simpleLogger.showDateTime" "true")
+    (System/setProperty "org.slf4j.simpleLogger.dateTimeFormat" "yyyy-MM-dd HH:mm:ss")
+    (System/setProperty "org.slf4j.simpleLogger.showThreadName" "true")
+    (System/setProperty "org.slf4j.simpleLogger.showLogName" "true")
+    (System/setProperty "org.slf4j.simpleLogger.showShortLogName" "true")
+    (System/setProperty "org.slf4j.simpleLogger.levelInBrackets" "true")
+    (println (str "Logging configured to level: " log-level " (SLF4J: " slf4j-level ")"))
+    (println "Note: If debug messages don't appear, SLF4J was already initialized.")
+    (println "Alternative: Start with JVM property: -Dorg.slf4j.simpleLogger.defaultLogLevel=debug")))
+
 (defn localhost?
   "Check if the given address is a localhost address.
    Handles IPv4, IPv6, and hostname variants."

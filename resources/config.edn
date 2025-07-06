@@ -10,4 +10,5 @@
  :oauth2/google-client-id          #or [#ref [:secrets :app1/google-client-id] [#env OAUTH2_GOOGLE_CLIENT_ID]]
  :oauth2/google-client-secret      #or [#ref [:secrets :app1/google-client-secret] [#env OAUTH2_GOOGLE_CLIENT_SECRET]]
  :secret-key #or [#ref [:secrets :app1/secret-key] #env SECRET_KEY ""]
+ :log-level #or [#env LOG_LEVEL "WARN"]
 }
