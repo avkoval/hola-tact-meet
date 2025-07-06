@@ -22,7 +22,7 @@
           </div>
         </div>
       </td>
-      <td>{{ user.email }} - {{ user.id }}</td>
+      <td>{{ user.email }}</td>
       <td data-signals-access-level-{{ user.id }}="'{{ user.access-level }}'">
         <div class="control" data-on-signal-change-access-level-{{ user.id }}="@get('/admin/manage-users/update-user-access-level?user_id={{ user.id }}')">
           <label class="radio">
@@ -51,6 +51,15 @@
         <span class="tag is-light">{{ user.actions-resolved|default:0 }}</span>
       </td>
       <td>
+        <div class="tags are-small"  style="cursor: pointer;" data-on-click="@get('/admin/manage-users/{{ user.id }}/teams')">
+          {% for team in user.teams %}
+            <span class="tag is-link is-light">{{ team }}</span>
+          {% empty %}
+            <span class="tag is-light is-link">No teams</span>
+          {% endfor %}
+        </div>
+      </td>
+      <td>
         <span class="is-size-7 has-text-grey">
           {% if user.last-login %}
             {{ user.last-login|date:"MMM d, yyyy HH:mm" }}
@@ -59,75 +68,74 @@
           {% endif %}
         </span>
       </td>
-      <td style="width: 260px;">
-        <div class="buttons are-small" style="white-space: nowrap;">
+      <td class="has-text-right">
+        <div class="buttons are-small is-right" style="white-space: nowrap;">
           {% if user.active %}
-            <button class="button is-warning" >
+            <button class="button is-warning" data-on-click="@post('/admin/manage-users/toggle?user_id={{ user.id }}')">
               <span class="icon is-small">
                 <i class="fas fa-pause"></i>
               </span>
               <span>Deactivate</span>
             </button>
           {% else %}
-            <button class="button is-success" >
+            <button class="button is-success" data-on-click="@post('/admin/manage-users/toggle?user_id={{ user.id }}')">
               <span class="icon is-small">
                 <i class="fas fa-play"></i>
               </span>
               <span>Activate</span>
             </button>
           {% endif %}
+
+          {% if user.active %}
+            <button class="button is-link">
+              <span class="icon is-small">
+                <i class="fas fa-user-secret"></i>
+              </span>
+              <span>Login as</span>
+            </button>
+          {% endif %}
+
           
-          <button class="button is-info" >
-            <span class="icon is-small">
-              <i class="fas fa-users-cog"></i>
-            </span>
-            <span>Teams</span>
-          </button>
-          
-          <div class="dropdown is-hoverable is-right">
-            <div class="dropdown-trigger">
-              <button class="button is-light" aria-haspopup="true" aria-controls="dropdown-menu-{{ user.id }}">
-                <span class="icon is-small">
-                  <i class="fas fa-ellipsis-v"></i>
-                </span>
-              </button>
-            </div>
-            <div class="dropdown-menu" id="dropdown-menu-{{ user.id }}" role="menu">
-              <div class="dropdown-content">
-                <a href="/users/{{ user.id }}/profile" class="dropdown-item">
-                  <span class="icon">
-                    <i class="fas fa-user-edit"></i>
+          {% comment %}
+            <div class="dropdown is-hoverable is-right {% if forloop.last %}is-up{% endif %}">
+              <div class="dropdown-trigger">
+                <button class="button is-light" aria-haspopup="true" aria-controls="dropdown-menu-{{ user.id }}">
+                  <span class="icon is-small">
+                    <i class="fas fa-ellipsis-v"></i>
                   </span>
-                  Edit Profile
-                </a>
-                <a href="/users/{{ user.id }}/actions" class="dropdown-item">
-                  <span class="icon">
-                    <i class="fas fa-tasks"></i>
-                  </span>
-                  View Actions
-                </a>
-                <a href="/users/{{ user.id }}/login-as" class="dropdown-item">
-                  <span class="icon">
-                    <i class="fas fa-xxx"></i>
-                  </span>
-                  Login as
-                </a>
-                <hr class="dropdown-divider">
-                <a href="#" class="dropdown-item has-text-danger">
-                  <span class="icon">
-                    <i class="fas fa-trash"></i>
-                  </span>
-                  Delete User
-                </a>
+                </button>
+              </div>
+              <div class="dropdown-menu" id="dropdown-menu-{{ user.id }}" role="menu" style="z-index: 1000;">
+                <div class="dropdown-content">
+                  <a href="/users/{{ user.id }}/actions" class="dropdown-item">
+                    <span class="icon">
+                      <i class="fas fa-tasks"></i>
+                    </span>
+                    View Actions
+                  </a>
+                  <a href="/users/{{ user.id }}/login-as" class="dropdown-item">
+                    <span class="icon">
+                      <i class="fas fa-user-secret"></i>
+                    </span>
+                    Login as
+                  </a>
+                  <hr class="dropdown-divider">
+                  <a href="#" class="dropdown-item has-text-danger">
+                    <span class="icon">
+                      <i class="fas fa-trash"></i>
+                    </span>
+                    Delete User
+                  </a>
+                </div>
               </div>
             </div>
-          </div>
+          {% endcomment %}
         </div>
       </td>
     </tr>
   {% empty %}
     <tr>
-      <td colspan="8" class="has-text-centered has-text-grey">
+      <td colspan="9" class="has-text-centered has-text-grey">
         <div class="content">
           <p>
             <span class="icon is-large">
@@ -140,3 +148,5 @@
     </tr>
   {% endfor %}
 </tbody>
+
+<div id="teamModal"></div>

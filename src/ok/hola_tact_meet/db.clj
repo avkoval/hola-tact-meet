@@ -1,7 +1,9 @@
 (ns ok.hola-tact-meet.db
   (:require [datomic.client.api :as d]
-            [ok.hola-tact-meet.schema :as schema])
-  )
+            [ok.hola-tact-meet.schema :as schema]
+            [malli.core]
+            [clojure.tools.logging :as log]
+            ))
 
 (def client (d/client {:server-type :datomic-local
                        :system "dev"}))
@@ -89,7 +91,8 @@
     (map (fn [[user-id]]
            (let [user-data (d/pull db '[:db/id :user/name :user/email :user/access-level 
                                         :user/picture :user/family-name :user/given-name 
-                                        :user/last-login :user/active] user-id)]
+                                        :user/last-login :user/active 
+                                        {:user/teams [:team/name]}] user-id)]
              {:id (:db/id user-data)
               :name (:user/name user-data)
               :email (:user/email user-data)
@@ -98,7 +101,8 @@
               :family-name (:user/family-name user-data)
               :given-name (:user/given-name user-data)
               :last-login (:user/last-login user-data)
-              :active (:user/active user-data)}))
+              :active (:user/active user-data)
+              :teams (map :team/name (:user/teams user-data))}))
          user-ids)))
 
 (defn get-user-by-id 
@@ -108,7 +112,8 @@
   (let [db (get-db)]
     (d/pull db '[:user/name :user/email :user/family-name 
                  :user/given-name :user/picture :user/auth-provider 
-                 :user/access-level :user/active] 
+                 :user/access-level :user/active
+                 {:user/teams [:db/id :team/name :team/description]}] 
             user-id)))
 
 (defn update-last-login!
@@ -116,6 +121,120 @@
   [user-id]
   (d/transact (get-conn) {:tx-data [{:db/id user-id
                                      :user/last-login (java.util.Date.)}]}))
+
+(defn toggle-user-active!
+  "Toggle the active status of a user"
+  [user-id]
+  (let [db (get-db)
+        current-active-result (d/q '[:find ?active
+                                     :in $ ?user-id
+                                     :where [?user-id :user/active ?active]]
+                                   db user-id)
+        current-active (ffirst current-active-result)
+        new-active (not current-active)]
+    (d/transact (get-conn) {:tx-data [{:db/id user-id
+                                       :user/active new-active}]})
+    new-active))
+
+(defn get-all-teams
+  "Get all teams from the database"
+  []
+  (let [db (get-db)
+        team-ids (d/q '[:find ?e
+                        :where [?e :team/name _]]
+                      db)]
+    (map (fn [[team-id]]
+           (let [team-data (d/pull db '[:db/id :team/name :team/description 
+                                        {:team/managers [:db/id :user/name :user/email]}] team-id)]
+             {:id (:db/id team-data)
+              :name (:team/name team-data)
+              :description (:team/description team-data)
+              :managers (:team/managers team-data)}))
+         team-ids)))
+
+(defn get-staff-admin-users
+  "Get all users with staff or admin access level"
+  []
+  (let [db (get-db)
+        user-ids (d/q '[:find ?e
+                        :where 
+                        [?e :user/access-level ?level]
+                        [(contains? #{"staff" "admin"} ?level)]]
+                      db)]
+    (map (fn [[user-id]]
+           (let [user-data (d/pull db '[:db/id :user/name :user/email :user/access-level] user-id)]
+             {:id (:db/id user-data)
+              :name (:user/name user-data)
+              :email (:user/email user-data)
+              :access-level (:user/access-level user-data)}))
+         user-ids)))
+
+(defn find-team-by-name
+  "Find existing team by name, returns team ID or nil"
+  [team-name]
+  (let [db (get-db)
+        result (d/q '[:find ?e
+                      :in $ ?name
+                      :where [?e :team/name ?name]]
+                    db team-name)]
+    (ffirst result)))
+
+(defn validate-user-ids
+  "Check if user IDs exist in database, returns vector of valid IDs"
+  [user-ids]
+  (when (seq user-ids)
+    (let [db (get-db)
+          existing-ids-result (d/q '[:find ?e
+                                     :in $ [?e ...]
+                                     :where [?e :user/name _]]
+                                   db user-ids)
+          existing-ids (mapv first existing-ids-result)]
+      existing-ids)))
+
+(defn create-team!
+  "Create a new team with validation for unique name
+   team-data should contain: {:name string :description string :managers [user-ids]}
+   Returns: {:success true :team-id id} or {:success false :error string}"
+  [team-data]
+  (let [{:keys [name description managers]} team-data]
+    (log/info "ok-2025-07-06-1751810064")
+    (log/info [name description managers])
+    (try
+      ;; Check if team name already exists
+      (if (find-team-by-name name)
+        {:success false :error (str "Team with name '" name "' already exists")}
+        
+        ;; Create the team
+        (let [;; Validate that manager IDs exist in database
+              valid-managers (validate-user-ids managers)
+              ;; Create transaction data
+              team-tx-data (cond-> {:team/name name
+                                   :team/description (or description "")
+                                   :team/created-at (java.util.Date.)}
+                             (seq valid-managers) (assoc :team/managers valid-managers)
+                             (first valid-managers) (assoc :team/created-by (first valid-managers)))
+              _ (log/debug "Team transaction data:" team-tx-data)
+              result (d/transact (get-conn) {:tx-data [team-tx-data]})
+              team-id (get-in result [:tempids (first (keys (:tempids result)))])]
+          (log/debug "Team created with ID:" team-id)
+          {:success true :team-id team-id}))
+      
+      (catch Exception e
+        (if (re-find #"unique" (.getMessage e))
+          {:success false :error (str "Team with name '" name "' already exists")}
+          {:success false :error (str "Failed to create team: " (.getMessage e))})))))
+
+(defn create-team-with-validation!
+  "Create team with Malli validation and uniqueness check
+   Returns: {:success true :team-id id} or {:success false :error string}"
+  [team-data]
+  (let [validation-schema [:map
+                          [:name [:string {:min 1}]]
+                          [:description {:optional true} [:string]]
+                          [:managers {:optional true} [:vector :int]]]]
+    (if (malli.core/validate validation-schema team-data)
+      (create-team! team-data)
+      {:success false :error "Invalid team data format"})))
 
 (comment
 
@@ -147,6 +266,27 @@
                         :user/active true})
                      all-user-ids)]
     (d/transact (get-conn) {:tx-data tx-data}))
+
+  ;; Example: Making team names unique (migration)
+  ;; 1. First, add the unique constraint to the schema:
+  (d/transact (get-conn) {:tx-data [{:db/ident       :team/name
+                                     :db/valueType   :db.type/string
+                                     :db/cardinality :db.cardinality/one
+                                     :db/unique      :db.unique/value
+                                     :db/doc         "The name of the team."}]})
+
+  ;; 2. Handle any existing duplicate team names (if needed):
+  ;; Note: This step is only needed if you have existing teams with duplicate names
+  ;; You may need to manually resolve duplicates before applying the unique constraint
+  ;; (let [db (get-db)
+  ;;       team-names (d/q '[:find ?name (count ?e)
+  ;;                         :where [?e :team/name ?name]
+  ;;                         :having [(> (count ?e) 1)]]
+  ;;                       db)]
+  ;;   (when (seq team-names)
+  ;;     (println "Warning: Found duplicate team names that need manual resolution:")
+  ;;     (doseq [[name count] team-names]
+  ;;       (println (str "  '" name "' appears " count " times")))))
 
   ;; Query examples
   (def all-users-q '[:find ?user-name

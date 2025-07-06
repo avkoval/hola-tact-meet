@@ -21,6 +21,9 @@
    )
   (:gen-class))
 
+;; Configure logging before any logging occurs
+(utils/configure-logging!)
+
 
 
 (def base-app
@@ -37,8 +40,11 @@
      ["/login/fake/existing" {:post (middleware/wrap-localhost-only views/fake-login-existing)}]
      ["/login/fake/new" {:post (middleware/wrap-localhost-only views/fake-login-new)}]
      ["/login/fake/generate-random-data" {:get views/fake-generate-random-data}]
+     ["/admin/manage-users/toggle" {:post (middleware/wrap-require-admin views/admin-toggle-user)}]
      ["/admin/manage-users" {:get (middleware/wrap-require-admin views/admin-manage-users)}]
      ["/admin/manage-users/update-user-access-level" {:get (middleware/wrap-require-admin views/admin-update-user-access-level)}]
+     ["/admin/manage-users/:user/teams" {:get (middleware/wrap-require-admin views/admin-user-teams)}]
+     ["/admin/manage-users/:user/teams/add" {:post (middleware/wrap-require-admin views/admin-user-teams-add)}]
      ["/change-css-theme" {:get views/change-css-theme}]
      ["/logout" {:get views/logout}]
      ])
@@ -66,6 +72,7 @@
 
 (defn start! []
   (log/info "Starting server on port 8080")
+  (log/info (str "Log level: " (:log-level (utils/app-config))))
   (reset! server
           (jetty/run-jetty
            (wrap-reload #'app)

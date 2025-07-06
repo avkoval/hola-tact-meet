@@ -6,11 +6,14 @@
    [starfederation.datastar.clojure.adapter.ring :refer [->sse-response on-open]]
    [ok.hola-tact-meet.utils :as utils]
    [ok.hola-tact-meet.db :as db]
+   [ok.hola-tact-meet.validation :as v]
    [clojure.java.io]
    [ok.oauth2.utils :refer [get-oauth-config]]
    [clojure.tools.logging :as log]
    [faker.generate :as gen]
    [datomic.client.api :as d]
+   [clojure.pprint :refer [pprint]]
+   [malli.core :as m]
    )
   (:gen-class))
 
@@ -56,13 +59,118 @@
       (let [user_id (get-in request [:query-params "user_id"])
             params (utils/datastar-query request)
             new_access_level (get params (keyword (str "accessLevel" user_id)))]
-        (println params)
-        (println new_access_level)
+        (log/debug "Params:" params)
+        (log/debug "New access level:" new_access_level)
         (when (and user_id new_access_level)
           (d/transact (db/get-conn) {:tx-data [{:db/id (Long/parseLong user_id)
                                                 :user/access-level new_access_level}]}))
         (d*/with-open-sse sse
           (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))))}))
+
+
+(defn admin-toggle-user [request]
+  (->sse-response 
+   request
+   {on-open
+    (fn [sse]
+      (let [user_id (get-in request [:query-params "user_id"])
+            ]
+        (log/debug "Toggle user ID:" user_id)
+        (when user_id
+          (let [user-id-long (Long/parseLong user_id)
+                new-active-status (db/toggle-user-active! user-id-long)]
+            (log/info "User" user_id "active status toggled to" new-active-status)))
+        (d*/with-open-sse sse
+          (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)}))))
+      )}))
+
+
+(defn- prepare-teams-with-membership
+  "Prepare teams data with user membership flags for template"
+  [user-id-long]
+  (let [user-data (when user-id-long (db/get-user-by-id user-id-long))
+        all-teams (db/get-all-teams)
+        staff-admin-users (db/get-staff-admin-users)
+        user-teams (or (:user/teams user-data) [])
+        user-team-ids (set (map :db/id user-teams))
+        teams-with-membership (mapv (fn [team]
+                                      (assoc team :user-is-member (contains? user-team-ids (:id team))))
+                                    all-teams)]
+    {:user user-data
+     :user-id user-id-long
+     :all-teams teams-with-membership
+     :staff-admin-users staff-admin-users
+     :user-teams user-teams
+     :user-team-ids user-team-ids}))
+
+(defn admin-user-teams [request]
+  (->sse-response 
+   request
+   {on-open
+    (fn [sse]
+      (let [user_id (get-in request [:path-params :user])
+            user-id-long (when user_id (Long/parseLong user_id))
+            template-data (prepare-teams-with-membership user-id-long)]
+        (log/debug "Loading teams for user:" user_id)
+        (d*/with-open-sse sse
+          (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data))))
+      )}))
+
+
+
+(defn admin-user-teams-add [request]
+  (->sse-response 
+   request
+   {on-open
+    (fn [sse]
+      (let [user_id (get-in request [:path-params :user])
+            user-id-long (when user_id (Long/parseLong user_id))
+            form-params (:form-params request)
+            
+            ;; Parse form data
+            team-name (get form-params "name")
+            team-description (get form-params "description" "")
+            team-managers-str (get form-params "managers" [])
+            team-managers (if (vector? team-managers-str)
+                           (mapv #(Long/parseLong %) team-managers-str)
+                           (if (string? team-managers-str)
+                             [(Long/parseLong team-managers-str)]
+                             []))
+            
+            ;; Create team data structure
+            team-data {:name team-name
+                      :description team-description
+                      :managers team-managers}]
+        
+        (log/debug "Adding team for user:" user_id)
+        (log/debug "Form params:" form-params)
+        (log/debug "Team data:" team-data)
+        
+        ;; Validate and create team
+        (if (m/validate v/TeamData team-data)
+          (let [create-result (db/create-team-with-validation! team-data)]
+            (if (:success create-result)
+              (do
+                (log/info "Team created successfully:" (:team-id create-result))
+                (let [template-data (assoc (prepare-teams-with-membership user-id-long)
+                                           :success-message "Team created successfully!")]
+                  (d*/with-open-sse sse
+                    (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data)))))
+              (do
+                (log/warn "Failed to create team:" (:error create-result))
+                (let [template-data (assoc (prepare-teams-with-membership user-id-long)
+                                           :error-message (:error create-result))]
+                  (d*/with-open-sse sse
+                    (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data)))))))
+          (let [validation-errors (m/explain v/TeamData team-data)
+                template-data (assoc (prepare-teams-with-membership user-id-long)
+                                     :validation-errors validation-errors
+                                     :error-message "Invalid team data. Please check your input.")]
+            (log/warn "Invalid team data:" team-data)
+            (log/warn "Validation errors:" validation-errors)
+            (d*/with-open-sse sse
+              (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data))))
+          )))}))
 
 
 (defn change-css-theme [{session :session :as request}]
@@ -75,7 +183,10 @@
             params (utils/datastar-query request)
             ;new_access_level (get params (keyword (str "accessLevel" user_id)))
             ]
-        (println params)
+        (log/debug "Theme params:" params)
+
+        ;; TODO I need to understand how to change session from here
+
         ;; (when (and user_id new_access_level)
         ;;   (d/transact (db/get-conn) {:tx-data [{:db/id (Long/parseLong user_id)
         ;;                                         :user/access-level new_access_level}]}))

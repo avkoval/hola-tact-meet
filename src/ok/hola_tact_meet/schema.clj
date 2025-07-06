@@ -55,6 +55,7 @@
 (def team-schema [{:db/ident       :team/name
                    :db/valueType   :db.type/string
                    :db/cardinality :db.cardinality/one
+                   :db/unique      :db.unique/value
                    :db/doc         "The name of the team."}
 
                   {:db/ident       :team/description
