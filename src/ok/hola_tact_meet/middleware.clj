@@ -1,7 +1,7 @@
 (ns ok.hola-tact-meet.middleware
   (:require
    [ring.util.response :as response]
-   [ok.hola_tact_meet.utils :as utils]
+   [ok.hola-tact-meet.utils :as utils]
    [clojure.java.io]
    [ok.oauth2.utils :refer [get-oauth-config]]
    [ring.middleware.oauth2 :refer [wrap-oauth2]]

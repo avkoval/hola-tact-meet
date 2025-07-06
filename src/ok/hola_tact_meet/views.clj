@@ -4,8 +4,8 @@
    [selmer.parser :refer [render-file] :as selmer]
    [starfederation.datastar.clojure.api :as d*]
    [starfederation.datastar.clojure.adapter.ring :refer [->sse-response on-open]]
-   [ok.hola_tact_meet.utils :as utils]
-   [ok.hola_tact_meet.db :as db]
+   [ok.hola-tact-meet.utils :as utils]
+   [ok.hola-tact-meet.db :as db]
    [clojure.java.io]
    [ok.oauth2.utils :refer [get-oauth-config]]
    [clojure.tools.logging :as log]
@@ -63,6 +63,28 @@
                                                 :user/access-level new_access_level}]}))
         (d*/with-open-sse sse
           (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))))}))
+
+
+(defn change-css-theme [{session :session :as request}]
+  (->sse-response 
+   request
+   {on-open
+    (fn [sse]
+      ;; (pprint request)
+      (let [; user_id (get-in request [:query-params "user_id"])
+            params (utils/datastar-query request)
+            ;new_access_level (get params (keyword (str "accessLevel" user_id)))
+            ]
+        (println params)
+        ;; (when (and user_id new_access_level)
+        ;;   (d/transact (db/get-conn) {:tx-data [{:db/id (Long/parseLong user_id)
+        ;;                                         :user/access-level new_access_level}]}))
+        ;; (d*/with-open-sse sse
+        ;;   (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))
+
+
+        ))}))
+
 
 (defn test-session [{session :session}]
   (let [count   (:count session 0)

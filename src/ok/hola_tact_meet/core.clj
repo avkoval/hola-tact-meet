@@ -12,9 +12,9 @@
    [ring.middleware.session.cookie :refer [cookie-store]]
    [ring.middleware.cookies :refer [wrap-cookies]]
    [selmer.parser :as selmer]
-   [ok.hola_tact_meet.middleware :as middleware]
-   [ok.hola_tact_meet.utils :as utils]
-   [ok.hola_tact_meet.views :as views]
+   [ok.hola-tact-meet.middleware :as middleware]
+   [ok.hola-tact-meet.utils :as utils]
+   [ok.hola-tact-meet.views :as views]
    [clojure.java.io]
    [ok.session.utils :refer [encode-secret-key]]
    [clojure.tools.logging :as log]
@@ -39,6 +39,7 @@
      ["/login/fake/generate-random-data" {:get views/fake-generate-random-data}]
      ["/admin/manage-users" {:get (middleware/wrap-require-admin views/admin-manage-users)}]
      ["/admin/manage-users/update-user-access-level" {:get (middleware/wrap-require-admin views/admin-update-user-access-level)}]
+     ["/change-css-theme" {:get views/change-css-theme}]
      ["/logout" {:get views/logout}]
      ])
    (constantly {:status 404, :body "Not Found."})))

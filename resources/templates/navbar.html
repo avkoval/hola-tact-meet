@@ -27,19 +27,19 @@
           </span>
         </a>
         <div class="navbar-dropdown is-right">
-          <a class="navbar-item" href="#" id="theme-light" data-on-click="$bulmaTheme='light'">
+          <a class="navbar-item" href="#" id="theme-light" data-on-click="$bulmaTheme='light' ; @get('/change-css-theme')">
             <span class="icon is-small">
               <i class="fas fa-sun"></i>
             </span>
             <span>Light</span>
           </a>
-          <a class="navbar-item" href="#" id="theme-dark"  data-on-click="$bulmaTheme='dark'">
+          <a class="navbar-item" href="#" id="theme-dark"  data-on-click="$bulmaTheme='dark' ; @get('/change-css-theme')">
             <span class="icon is-small">
               <i class="fas fa-moon"></i>
             </span>
             <span>Dark</span>
           </a>
-          <a class="navbar-item" href="#" id="theme-system" data-on-click="$bulmaTheme='system'">
+          <a class="navbar-item" href="#" id="theme-system" data-on-click="$bulmaTheme='system' ; @get('/change-css-theme')">
             <span class="icon is-small">
               <i class="fas fa-desktop"></i>
             </span>
