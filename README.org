@@ -368,3 +368,8 @@ https://github.com/weavejester/ring-oauth2
     - State "IDEA"       from              [2025-07-04 Fri 23:45]
     :END:
  - [ ] add gravatar/auto generated icon
+ - [ ] auto tests
+ - [ ] UI tests via https://github.com/ryrobes/rabbitize
+ - [ ] gitlab/github CI?
+
+

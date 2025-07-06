@@ -11,7 +11,7 @@
    [clojure.tools.logging :as log]
    [faker.generate :as gen]
    [datomic.client.api :as d]
-   ; [clojure.pprint :refer [pprint]]
+   [clojure.pprint :refer [pprint]]
    )
   (:gen-class))
 
@@ -57,8 +57,8 @@
       (let [user_id (get-in request [:query-params "user_id"])
             params (utils/datastar-query request)
             new_access_level (get params (keyword (str "accessLevel" user_id)))]
-        (println params)
-        (println new_access_level)
+        (log/debug "Params:" params)
+        (log/debug "New access level:" new_access_level)
         (when (and user_id new_access_level)
           (d/transact (db/get-conn) {:tx-data [{:db/id (Long/parseLong user_id)
                                                 :user/access-level new_access_level}]}))
@@ -73,7 +73,7 @@
     (fn [sse]
       (let [user_id (get-in request [:query-params "user_id"])
             ]
-        (println user_id)
+        (log/debug "Toggle user ID:" user_id)
         (when user_id
           (let [user-id-long (Long/parseLong user_id)
                 new-active-status (db/toggle-user-active! user-id-long)]
@@ -81,6 +81,57 @@
         (d*/with-open-sse sse
           (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)}))))
       )}))
+
+
+(defn admin-user-teams [request]
+  (->sse-response 
+   request
+   {on-open
+    (fn [sse]
+      (let [user_id (get-in request [:path-params :user])
+            user-id-long (when user_id (Long/parseLong user_id))
+            user-data (when user-id-long (db/get-user-by-id user-id-long))
+            all-teams (db/get-all-teams)
+            staff-admin-users (db/get-staff-admin-users)
+            user-teams (or (:user/teams user-data) [])
+            user-team-ids (set (map :db/id user-teams))]
+        (log/debug "Loading teams for user:" user_id)
+        (d*/with-open-sse sse
+          (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" 
+                                               {:user user-data
+                                                :user-id user-id-long
+                                                :all-teams all-teams
+                                                :staff-admin-users staff-admin-users
+                                                :user-teams user-teams
+                                                :user-team-ids user-team-ids}))))
+      )}))
+
+
+(defn admin-user-teams-add [request]
+  (->sse-response 
+   request
+   {on-open
+    (fn [sse]
+      (let [user_id (get-in request [:path-params :user])
+            user-id-long (when user_id (Long/parseLong user_id))
+            user-data (when user-id-long (db/get-user-by-id user-id-long))
+            all-teams (db/get-all-teams)
+            staff-admin-users (db/get-staff-admin-users)
+            user-teams (or (:user/teams user-data) [])
+            user-team-ids (set (map :db/id user-teams))]
+        (log/debug "Loading teams for user:" user_id)
+        (pprint request)
+        (d*/with-open-sse sse
+          (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" 
+                                               {:user user-data
+                                                :user-id user-id-long
+                                                :all-teams all-teams
+                                                :staff-admin-users staff-admin-users
+                                                :user-teams user-teams
+                                                :user-team-ids user-team-ids}))))
+      )}))
+
+
 
 
 (defn change-css-theme [{session :session :as request}]
@@ -93,7 +144,7 @@
             params (utils/datastar-query request)
             ;new_access_level (get params (keyword (str "accessLevel" user_id)))
             ]
-        (println params)
+        (log/debug "Theme params:" params)
 
         ;; TODO I need to understand how to change session from here
 

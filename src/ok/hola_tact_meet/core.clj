@@ -40,6 +40,8 @@
      ["/admin/manage-users/toggle" {:post (middleware/wrap-require-admin views/admin-toggle-user)}]
      ["/admin/manage-users" {:get (middleware/wrap-require-admin views/admin-manage-users)}]
      ["/admin/manage-users/update-user-access-level" {:get (middleware/wrap-require-admin views/admin-update-user-access-level)}]
+     ["/admin/manage-users/:user/teams" {:get (middleware/wrap-require-admin views/admin-user-teams)}]
+     ["/admin/manage-users/:user/teams/add" {:post (middleware/wrap-require-admin views/admin-user-teams-add)}]
      ["/change-css-theme" {:get views/change-css-theme}]
      ["/logout" {:get views/logout}]
      ])

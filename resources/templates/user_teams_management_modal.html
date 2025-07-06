@@ -1,0 +1,99 @@
+<div id="teamModal"
+     class="modal is-active"
+     data-signals-team-management-modal-open="true"
+     data-class-is-active="$teamManagementModalOpen"
+     data-on-keydown__window="if(evt.key == 'Escape') {$teamManagementModalOpen=false}; ''"
+> <!-- Team Management Modal -->
+  <div class="modal-background"></div>
+  <div class="modal-content">
+    <div class="box">
+      <div class="level">
+        <div class="level-left">
+          <h3 class="title is-4">Manage Teams for <span id="modalUserName">{{ user.user/name }}</span></h3>
+        </div>
+        <div class="level-right">
+          <button class="delete is-large" data-on-click="$teamManagementModalOpen=false"></button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="label">Select Teams</label>
+        <div id="teamsList">
+          {% for team in all-teams %}
+            <div class="box mb-3" style="border-left: 4px solid {% if team.id in user-team-ids %}#48c78e{% else %}#dbdbdb{% endif %};">
+              <div class="level is-mobile">
+                <div class="level-left">
+                  <label class="checkbox level-item" style="cursor: pointer;">
+                    <input type="checkbox"
+                           name="user-teams"
+                           value="{{ team.id }}"
+                           {% if team.id in user-team-ids %}checked{% endif %}
+                           style="margin-right: 8px;">
+                    <strong>{{ team.name }}</strong>
+                  </label>
+                </div>
+              </div>
+              
+              {% if team.description %}
+                <p class="is-size-7 has-text-grey mb-2">{{ team.description }}</p>
+              {% endif %}
+              
+              {% if team.managers %}
+                <div class="field">
+                  <label class="label is-small">Managers:</label>
+                  <div class="tags are-small">
+                    {% for manager in team.managers %}
+                      <span class="tag is-info is-light">{{ manager.user/name }}</span>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          {% empty %}
+            <div class="notification is-light">No teams available</div>
+          {% endfor %}
+        </div>
+      </div>
+
+
+      <hr>
+
+      <div class="has-text-right">
+        <a href="#" data-signals-add-new-team-hidden="true" data-on-click="$addNewTeamHidden=false" data-class-is-hidden="!$addNewTeamHidden">Add new team</a>
+      </div>
+      <form>
+      <div class="field is-hidden" data-class-is-hidden="$addNewTeamHidden">
+        <label class="label">Add new team here</label>
+        <div class="control">
+          <input class="input" type="text" placeholder="Enter team name">
+        </div>
+        <div class="control mt-2">
+          <textarea class="textarea" placeholder="Team description (optional)" rows="2"></textarea>
+        </div>
+        <div class="control mt-2">
+          <label class="label is-small">Team Managers</label>
+          <div class="select is-multiple" style="width: 100%;">
+            <select multiple style="width: 100%; min-height: 80px;">
+              {% for user in staff-admin-users %}
+                <option value="{{ user.id }}">{{ user.name }} ({{ user.access-level }})</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="control mt-2">
+          <button class="button is-primary" data-on-click="@post('/admin/manage-users/{{ user-id }}/teams/add', {contentType: 'form'})">Add Team</button>
+          <button class="button"  data-on-click="$addNewTeamHidden=true">Cancel</button>
+        </div>
+      </div>
+      </form>
+
+      <div class="field is-grouped mt-4">
+        <div class="control">
+          <button class="button" data-on-click="$teamManagementModalOpen=false">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="modal-close is-large" data-on-click="$teamManagementModalOpen=false"></button>
+
+</div>

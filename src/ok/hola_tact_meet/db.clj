@@ -89,7 +89,8 @@
     (map (fn [[user-id]]
            (let [user-data (d/pull db '[:db/id :user/name :user/email :user/access-level 
                                         :user/picture :user/family-name :user/given-name 
-                                        :user/last-login :user/active] user-id)]
+                                        :user/last-login :user/active 
+                                        {:user/teams [:team/name]}] user-id)]
              {:id (:db/id user-data)
               :name (:user/name user-data)
               :email (:user/email user-data)
@@ -98,7 +99,8 @@
               :family-name (:user/family-name user-data)
               :given-name (:user/given-name user-data)
               :last-login (:user/last-login user-data)
-              :active (:user/active user-data)}))
+              :active (:user/active user-data)
+              :teams (map :team/name (:user/teams user-data))}))
          user-ids)))
 
 (defn get-user-by-id 
@@ -108,7 +110,8 @@
   (let [db (get-db)]
     (d/pull db '[:user/name :user/email :user/family-name 
                  :user/given-name :user/picture :user/auth-provider 
-                 :user/access-level :user/active] 
+                 :user/access-level :user/active
+                 {:user/teams [:db/id :team/name :team/description]}] 
             user-id)))
 
 (defn update-last-login!
@@ -130,6 +133,39 @@
     (d/transact (get-conn) {:tx-data [{:db/id user-id
                                        :user/active new-active}]})
     new-active))
+
+(defn get-all-teams
+  "Get all teams from the database"
+  []
+  (let [db (get-db)
+        team-ids (d/q '[:find ?e
+                        :where [?e :team/name _]]
+                      db)]
+    (map (fn [[team-id]]
+           (let [team-data (d/pull db '[:db/id :team/name :team/description 
+                                        {:team/managers [:db/id :user/name :user/email]}] team-id)]
+             {:id (:db/id team-data)
+              :name (:team/name team-data)
+              :description (:team/description team-data)
+              :managers (:team/managers team-data)}))
+         team-ids)))
+
+(defn get-staff-admin-users
+  "Get all users with staff or admin access level"
+  []
+  (let [db (get-db)
+        user-ids (d/q '[:find ?e
+                        :where 
+                        [?e :user/access-level ?level]
+                        [(contains? #{"staff" "admin"} ?level)]]
+                      db)]
+    (map (fn [[user-id]]
+           (let [user-data (d/pull db '[:db/id :user/name :user/email :user/access-level] user-id)]
+             {:id (:db/id user-data)
+              :name (:user/name user-data)
+              :email (:user/email user-data)
+              :access-level (:user/access-level user-data)}))
+         user-ids)))
 
 (comment
 
