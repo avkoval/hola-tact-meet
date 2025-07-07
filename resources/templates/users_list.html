@@ -26,16 +26,13 @@
       <td data-signals-access-level-{{ user.id }}="'{{ user.access-level }}'">
         <div class="control" data-on-signal-change-access-level-{{ user.id }}="@get('/admin/manage-users/update-user-access-level?user_id={{ user.id }}')">
           <label class="radio">
-            <input type="radio" name="access-level-{{ user.id }}" data-bind-access-level-{{ user.id }} value="user">
-            <span class="tag {% if user.access-level = "user" %}is-success{% endif %}">User</span>
+            <input type="radio" name="access-level-{{ user.id }}" data-bind-access-level-{{ user.id }} value="user"> <span class="tag {% if user.access-level = "user" %}is-success{% endif %}">User</span>
           </label>
           <label class="radio">
-            <input type="radio" name="access-level-{{ user.id }}" data-bind-access-level-{{ user.id }} value="staff">
-            <span class="tag {% if user.access-level = "staff" %}is-info{% endif %}">Staff</span>
+            <input type="radio" name="access-level-{{ user.id }}" data-bind-access-level-{{ user.id }} value="staff"> <span class="tag {% if user.access-level = "staff" %}is-info{% endif %}">Staff</span>
           </label>
           <label class="radio">
-            <input type="radio" name="access-level-{{ user.id }}" data-bind-access-level-{{ user.id }} value="admin">
-            <span class="tag {% if user.access-level = "admin" %}is-danger{% endif %}">Admin</span>
+            <input type="radio" name="access-level-{{ user.id }}" data-bind-access-level-{{ user.id }} value="admin"> <span class="tag {% if user.access-level = "admin" %}is-danger{% endif %}">Admin</span>
           </label>
         </div>
       </td>

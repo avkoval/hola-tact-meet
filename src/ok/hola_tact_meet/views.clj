@@ -3,17 +3,19 @@
    [ring.util.response :as response]
    [selmer.parser :refer [render-file] :as selmer]
    [starfederation.datastar.clojure.api :as d*]
-   [starfederation.datastar.clojure.adapter.ring :refer [->sse-response on-open]]
+   [starfederation.datastar.clojure.adapter.ring :refer [->sse-response on-open on-close]]
    [ok.hola-tact-meet.utils :as utils]
    [ok.hola-tact-meet.db :as db]
    [ok.hola-tact-meet.validation :as v]
    [clojure.java.io]
    [ok.oauth2.utils :refer [get-oauth-config]]
    [clojure.tools.logging :as log]
+   [clojure.walk :refer [keywordize-keys]]
    [faker.generate :as gen]
    [datomic.client.api :as d]
    [clojure.pprint :refer [pprint]]
    [malli.core :as m]
+   [clojure.core.async :as async :refer [<! <!!]]
    )
   (:gen-class))
 
@@ -38,17 +40,188 @@
 
 (defn app-main [{session :session}]
   (log/info "Main app page accessed")
+  (let [userinfo (:userinfo session)
+        user-id (:user-id userinfo)
+        recent-meetings (if user-id (db/get-recent-meetings-for-user user-id) [])
+        active-meetings (if user-id (db/get-active-meetings-for-user user-id) [])]
+    (log/info userinfo)
+    {:status 200
+     :headers {"Content-Type" "text/html"}
+     :body (render-file "templates/main.html" {:userinfo userinfo
+                                               :recent-meetings recent-meetings
+                                               :active-meetings active-meetings})}))
+
+
+
+(defonce meeting-content-version (atom 1))
+(def clients (atom {}))
+
+(defn broadcast 
+  "Function to broadcast a message to all connected clients"
+  [msg]
+  (doseq [[_ ch] @clients]
+    (async/put! ch msg)))
+
+
+(defn render-meeting-body [{session :session :as request} render-full-body]
+  (let [userinfo (:userinfo session)
+        user-id (:user-id userinfo)
+        meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+        topics (when meeting-id (db/get-topics-for-meeting meeting-id))
+        ;; Add user's current vote for each topic
+        topics-with-votes (when user-id
+                            (mapv (fn [topic]
+                                    (assoc topic :user-vote 
+                                           (db/get-user-vote-for-topic user-id (:id topic))))
+                                  topics))
+        template (if render-full-body "templates/meeting.html" "templates/meeting-content.html")]
+    (render-file template {:userinfo userinfo
+                           :meeting-id meeting-id
+                           :meeting-content-version (deref meeting-content-version)
+                           :topics (or topics-with-votes topics [])})))
+
+(defn meeting-main [request]
+  (log/info "Main meeting screen")
   {:status 200
    :headers {"Content-Type" "text/html"}
-   :body (render-file "templates/main.html" {:userinfo (:userinfo session)})})
+   :body (render-meeting-body request true)})
+
+
+(defn meeting-main-refresh-content [request]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (log/info "meeting-main-refresh-content")
+      (d*/with-open-sse sse
+        (let [ch (async/chan)
+              client-id (java.util.UUID/randomUUID)]  ;; Create a unique identifier for the client
+          (swap! clients assoc client-id ch)  ;; Add the client channel to the clients map
+          (async/go
+            (loop []
+              (when-let [msg (<! ch)]
+                ;; Here you would normally handle messages from the client
+                (d*/patch-elements! sse (render-meeting-body request false))
+                ;; For this example, just log the incoming message
+                (log/info "Received from client:" client-id msg)
+                (recur))))
+          (log/info "outside go block")
+          ;; Return a cleanup function to remove the client on disconnect
+          ;; (fn []
+          ;;   (swap! clients dissoc client-id))
+          )
+        )      
+      )
+    on-close
+    (fn [sse]
+      (log/info "meeting-main-refresh-content closing channel")
+      )
+    }))
+
+(defn join-meeting
+  "Join meeting by checking permissions and saving join time"
+  [{session :session :as request}]
+  (log/info "Join meeting")
+  (let [userinfo (:userinfo session)
+        user-id (:user-id userinfo)
+        meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))]
+    (cond
+      (not user-id)
+      {:status 401
+       :body "User not found"}
+
+      (not (db/user-has-active-meeting? user-id meeting-id))
+      {:status 403
+       :body "You don't have access to this meeting"}
+
+      :else
+      (let [result (db/add-participant! user-id meeting-id)]
+        (if (:success result)
+          {:status 302
+           :headers {"Location" (str "/meeting/" meeting-id "/main")}}
+          {:status 500
+           :body (:error result)})))))
+
+(defn meeting-add-topic [request]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            user-id (get-in request [:session :userinfo :user-id])
+            new-topic (get-in request [:form-params "new-topic"])]
+        (log/info "Adding new topic:" new-topic "to meeting:" meeting-id "by user:" user-id)
+        
+        (d*/with-open-sse sse
+          (if (and new-topic user-id meeting-id 
+                   (not (clojure.string/blank? new-topic))
+                   (<= (count new-topic) 250))
+            ;; Add topic to database
+            (let [result (db/add-topic! meeting-id user-id (clojure.string/trim new-topic))]
+              (if (:success result)
+                (do
+                  (log/info "Topic added successfully with ID:" (:topic-id result))
+                  ;; Get updated topics list with votes
+                  (swap! meeting-content-version inc)
+                  (d*/patch-signals! sse (str "{meetingContentVersion: " @meeting-content-version "}"))
+                  (broadcast "topics-change")
+                  )
+                (do
+                  (log/error "Failed to add topic:" (:error result))
+                  (d*/patch-elements! sse "<div class='notification is-danger'>Failed to add topic</div>"))))
+            ;; Invalid input
+            (do
+              (log/warn "Invalid topic input - topic:" new-topic "user-id:" user-id "meeting-id:" meeting-id)
+              (d*/patch-elements! sse "<div class='notification is-warning'>Please enter a valid topic (max 250 characters)</div>"))))))}))
+
+
+
+(defn meeting-vote-topic [request]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            user-id (get-in request [:session :userinfo :user-id])
+            topic-id (Long/parseLong (get-in request [:form-params "topic_id"]))
+            vote-type (get-in request [:form-params "vote_type"])]
+        (log/info "User" user-id "voting" vote-type "on topic" topic-id)
+        
+        (if (and user-id topic-id vote-type
+                 (contains? #{"upvote" "downvote"} vote-type))
+          ;; Add/update vote in database
+          (let [result (db/add-vote! user-id topic-id vote-type)]
+            (if (:success result)
+              (do
+                (log/info "Vote added/updated successfully")
+                ;; Get updated topics list with votes
+                (let [topics (db/get-topics-for-meeting meeting-id)
+                      topics-with-votes (mapv (fn [topic]
+                                                (assoc topic :user-vote 
+                                                       (db/get-user-vote-for-topic user-id (:id topic))))
+                                              topics)]
+                  (d*/with-open-sse sse
+                    (d*/patch-elements! sse (render-file "templates/topics-list.html" 
+                                                         {:topics topics-with-votes
+                                                          :meeting-id meeting-id})))))
+              (do
+                (log/error "Failed to add vote:" (:error result))
+                (d*/with-open-sse sse
+                  (d*/patch-elements! sse "<div class='notification is-danger'>Failed to vote</div>")))))
+          ;; Invalid input
+          (do
+            (log/warn "Invalid vote input - user-id:" user-id "topic-id:" topic-id "vote-type:" vote-type)
+            (d*/with-open-sse sse
+              (d*/patch-elements! sse "<div class='notification is-warning'>Invalid vote</div>"))))))}))
 
 (defn admin-manage-users [{session :session}]
   (let [users (db/get-all-users)
+        statistics (db/get-user-statistics)
         userinfo (:userinfo session)]
     (log/info "admin-manage-users accessed")
     {:status 200
      :headers {"Content-Type" "text/html"}
-     :body (render-file "templates/users.html" {:users users :userinfo userinfo})}))
+     :body (render-file "templates/users.html" (merge {:users users :userinfo userinfo} statistics))}))
 
 (defn admin-update-user-access-level [request]
   (->sse-response
@@ -65,7 +238,7 @@
           (d/transact (db/get-conn) {:tx-data [{:db/id (Long/parseLong user_id)
                                                 :user/access-level new_access_level}]}))
         (d*/with-open-sse sse
-          (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))))}))
+          (d*/patch-elements! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))))}))
 
 
 (defn admin-toggle-user [request]
@@ -81,7 +254,7 @@
                 new-active-status (db/toggle-user-active! user-id-long)]
             (log/info "User" user_id "active status toggled to" new-active-status)))
         (d*/with-open-sse sse
-          (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)}))))
+          (d*/patch-elements! sse (render-file "templates/users_list.html" {:users (db/get-all-users)}))))
       )}))
 
 
@@ -91,7 +264,7 @@
    {on-open
     (fn [sse]
       (d*/with-open-sse sse
-          (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))
+          (d*/patch-elements! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))
       )}))
 
 (defn- prepare-teams-with-membership
@@ -122,7 +295,114 @@
             template-data (prepare-teams-with-membership user-id-long)]
         (log/debug "Loading teams for user:" user_id)
         (d*/with-open-sse sse
-          (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data))))
+          (d*/patch-elements! sse (render-file "templates/user_teams_management_modal.html" template-data))
+          ))
+      )}))
+
+
+(defn join-meeting-modal [{session :session :as request}]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (let [userinfo (:userinfo session)
+        user-id (:user-id userinfo)
+        active-meetings (if user-id (db/get-active-meetings-for-user user-id) [])]
+        (log/info active-meetings)
+        (log/debug "Join meeting for:" user-id)
+        (d*/with-open-sse sse
+          (d*/patch-elements! sse (render-file "templates/join_meeting_modal.html" {:active-meetings active-meetings}))
+          (d*/patch-signals! sse "{joinMeetingModalOpen: true}")
+          ))
+      )}))
+
+(defn staff-create-meeting-popup [request]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (let [user-id (get-in request [:session :userinfo :user-id])
+            user-data (db/get-user-by-id user-id)
+            user-teams (:user/teams user-data)]
+        (log/info (str "Create meeting popup requested by: " (:user/email user-data)))
+        (d*/with-open-sse sse
+          (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html" {:teams user-teams}))
+          (d*/patch-signals! sse "{createMeetingModalOpen: true}")
+          ))
+      )}))
+
+
+(defn staff-create-meeting-save [request]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (let [user-id (get-in request [:session :userinfo :user-id])
+            user-data (db/get-user-by-id user-id)
+            form-params (keywordize-keys (:form-params request))
+            user-teams (:user/teams user-data)]
+        (log/info (str "Create meeting save requested by: " (:user/email user-data)))
+        (pprint form-params)
+
+        ;; Validate meeting data
+        (let [meeting-data {:title (:title form-params)
+                            :description (:description form-params)
+                            :team (:team form-params)
+                            :scheduled-at (:scheduled-at form-params)
+                            :join-url (:join-url form-params)
+                            :allow-topic-voting (= (:allow-topic-voting form-params) "on")
+                            :sort-topics-by-votes (= (:sort-topics-by-votes form-params) "on")
+                            :is-visible (= (:is-visible form-params) "on")}]
+
+          (d*/with-open-sse sse
+            (if (m/validate v/MeetingData meeting-data)
+              ;; Check if user is member of selected team
+              (let [team-id (Long/parseLong (:team meeting-data))]
+                (if (db/user-is-team-member? user-id team-id)
+                  ;; Create meeting
+                  (let [create-result (db/add-meeting! meeting-data user-id)]
+                    (if (:success create-result)
+                      (do
+                        (log/info "Meeting created successfully:" (:meeting-id create-result))
+                        (d*/patch-elements! sse "<div id=\"createMeetingModal\"></div>")
+                        (d*/patch-elements!
+                         sse
+                         (render-file "templates/notifications.html"
+                                      {:notifications [{:level "info"
+                                                        :text "New meeting created successfully" }]})))
+                      (do
+                        (log/warn "Failed to create meeting:" (:error create-result))
+                        (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html"
+                                                             {:teams user-teams
+                                                              :error-message (:error create-result)})))))
+                  ;; User is not a member of the team
+                  (do
+                    (log/warn "User" user-id "is not a member of team" team-id)
+                    (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html"
+                                                         {:teams user-teams
+                                                          :error-message "You are not a member of the selected team"})))))
+              ;; Invalid meeting data
+              (do
+                (log/warn "Invalid meeting data:" meeting-data)
+                (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html"
+                                                     {:teams user-teams
+                                                      :error-message "Invalid meeting data. Please check all fields."}))))))
+        )
+      )}))
+
+
+(defn admin-project-settings [request]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (let [settings {:allowed-domains ["example.com" "company.org"]
+                      :google-oauth-enabled true
+                      :google-client-id "your-google-client-id"
+                      :google-client-secret "***hidden***"}]
+        (log/info "Loading project settings")
+        (d*/with-open-sse sse
+          (d*/patch-elements! sse (render-file "templates/project_settings_modal.html" settings))))
       )}))
 
 
@@ -150,7 +430,7 @@
 
         (d*/with-open-sse sse
           ;; Return updated modal
-          (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" (prepare-teams-with-membership user-id-long)))
+          (d*/patch-elements! sse (render-file "templates/user_teams_management_modal.html" (prepare-teams-with-membership user-id-long)))
           )
           )
 
@@ -187,6 +467,7 @@
         (log/debug "Team data:" team-data)
 
         ;; Validate and create team
+        ;;; XXX fix this code I don't like repetition here
         (if (m/validate v/TeamData team-data)
           (let [create-result (db/create-team-with-validation! team-data)]
             (if (:success create-result)
@@ -195,13 +476,13 @@
                 (let [template-data (assoc (prepare-teams-with-membership user-id-long)
                                            :success-message "Team created successfully!")]
                   (d*/with-open-sse sse
-                    (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data)))))
+                    (d*/patch-elements! sse (render-file "templates/user_teams_management_modal.html" template-data)))))
               (do
                 (log/warn "Failed to create team:" (:error create-result))
                 (let [template-data (assoc (prepare-teams-with-membership user-id-long)
                                            :error-message (:error create-result))]
                   (d*/with-open-sse sse
-                    (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data)))))))
+                    (d*/patch-elements! sse (render-file "templates/user_teams_management_modal.html" template-data)))))))
           (let [validation-errors (m/explain v/TeamData team-data)
                 template-data (assoc (prepare-teams-with-membership user-id-long)
                                      :validation-errors validation-errors
@@ -209,7 +490,7 @@
             (log/warn "Invalid team data:" team-data)
             (log/warn "Validation errors:" validation-errors)
             (d*/with-open-sse sse
-              (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data))))
+              (d*/patch-elements! sse (render-file "templates/user_teams_management_modal.html" template-data))))
           )
 
         ))}))
@@ -233,7 +514,7 @@
         ;;   (d/transact (db/get-conn) {:tx-data [{:db/id (Long/parseLong user_id)
         ;;                                         :user/access-level new_access_level}]}))
         ;; (d*/with-open-sse sse
-        ;;   (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))
+        ;;   (d*/patch-elements! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))
 
 
         ))}))
@@ -323,7 +604,7 @@
                   {on-open
                    (fn [sse]
                      (d*/with-open-sse sse
-                       (d*/merge-fragment! sse
+                       (d*/patch-elements! sse
                         (render-file "templates/fake-user-form.html" (fake-user-data)))
                        ))}))
 

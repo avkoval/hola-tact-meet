@@ -1,0 +1,192 @@
+<div id="projectSettingsModal" class="modal is-active"> <!-- Project Settings Modal -->
+  <div class="modal-background"></div>
+  <div class="modal-card">
+    <header class="modal-card-head">
+      <p class="modal-card-title">
+        <span class="icon">
+          <i class="fas fa-cog"></i>
+        </span>
+        Project Settings
+      </p>
+      <button class="delete" aria-label="close"></button>
+    </header>
+    <section class="modal-card-body">
+      <div class="tabs is-boxed">
+        <ul>
+          <li class="is-active">
+            <a href="#domains-tab" data-tab="domains">
+              <span class="icon is-small">
+                <i class="fas fa-globe"></i>
+              </span>
+              <span>Allowed Domains</span>
+            </a>
+          </li>
+          <li>
+            <a href="#oauth-tab" data-tab="oauth">
+              <span class="icon is-small">
+                <i class="fas fa-key"></i>
+              </span>
+              <span>OAuth Providers</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Domains Tab -->
+      <div id="domains-tab" class="tab-content is-active">
+        <div class="field">
+          <label class="label">Allowed Email Domains</label>
+          <div class="control">
+            <div class="field has-addons">
+              <div class="control is-expanded">
+                <input class="input" type="text" placeholder="Enter domain (e.g., company.com)" id="domainInput">
+              </div>
+              <div class="control">
+                <button class="button is-primary" type="button" onclick="addDomain()">
+                  <span class="icon">
+                    <i class="fas fa-plus"></i>
+                  </span>
+                  <span>Add</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          <p class="help">Users can only register with email addresses from these domains</p>
+        </div>
+
+        <div class="field">
+          <label class="label">Current Domains</label>
+          <div id="domainsList">
+            {% for domain in allowed-domains %}
+            <div class="tags has-addons domain-tag" data-domain="{{ domain }}">
+              <span class="tag">{{ domain }}</span>
+              <a class="tag is-delete" onclick="removeDomain('{{ domain }}')"></a>
+            </div>
+            {% empty %}
+            <p class="has-text-grey">No domains configured. All email addresses will be allowed.</p>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- OAuth Tab -->
+      <div id="oauth-tab" class="tab-content">
+        <div class="field">
+          <label class="label">OAuth2 Providers</label>
+          <p class="help">Configure authentication providers for user login</p>
+        </div>
+
+        <!-- Google OAuth -->
+        <div class="box">
+          <article class="media">
+            <figure class="media-left">
+              <p class="image is-64x64">
+                <i class="fab fa-google fa-3x has-text-danger"></i>
+              </p>
+            </figure>
+            <div class="media-content">
+              <div class="content">
+                <p>
+                  <strong>Google OAuth</strong>
+                  <br>
+                  <span class="tag {% if google-oauth-enabled %}is-success{% else %}is-light{% endif %}">
+                    {% if google-oauth-enabled %}Enabled{% else %}Disabled{% endif %}
+                  </span>
+                </p>
+                <div class="field">
+                  <label class="label is-small">Client ID</label>
+                  <div class="control">
+                    <input class="input is-small" type="text" placeholder="Google OAuth Client ID" 
+                           value="{{ google-client-id|default:'' }}" name="google-client-id">
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="label is-small">Client Secret</label>
+                  <div class="control">
+                    <input class="input is-small" type="password" placeholder="Google OAuth Client Secret" 
+                           value="{{ google-client-secret|default:'' }}" name="google-client-secret">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="media-right">
+              <button class="button is-small {% if google-oauth-enabled %}is-warning{% else %}is-primary{% endif %}">
+                {% if google-oauth-enabled %}Disable{% else %}Enable{% endif %}
+              </button>
+            </div>
+          </article>
+        </div>
+
+        <!-- Future OAuth providers can be added here -->
+        <div class="notification is-info is-light">
+          <div class="content">
+            <p><strong>Adding more providers?</strong></p>
+            <p>Additional OAuth providers (like GitHub, Microsoft, etc.) can be configured here in future updates.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <footer class="modal-card-foot">
+      <button class="button is-success">
+        <span class="icon">
+          <i class="fas fa-save"></i>
+        </span>
+        <span>Save Settings</span>
+      </button>
+      <button class="button">Cancel</button>
+    </footer>
+  </div>
+</div>
+
+<script>
+// Tab switching
+document.querySelectorAll('[data-tab]').forEach(tab => {
+  tab.addEventListener('click', function(e) {
+    e.preventDefault();
+    
+    // Remove active class from all tabs and content
+    document.querySelectorAll('.tabs li').forEach(li => li.classList.remove('is-active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('is-active'));
+    
+    // Add active class to clicked tab
+    this.parentElement.classList.add('is-active');
+    
+    // Show corresponding content
+    const tabId = this.getAttribute('data-tab') + '-tab';
+    document.getElementById(tabId).classList.add('is-active');
+  });
+});
+
+// Domain management functions
+function addDomain() {
+  const input = document.getElementById('domainInput');
+  const domain = input.value.trim();
+  
+  if (domain && !document.querySelector(`[data-domain="${domain}"]`)) {
+    const domainsList = document.getElementById('domainsList');
+    const domainTag = document.createElement('div');
+    domainTag.className = 'tags has-addons domain-tag';
+    domainTag.setAttribute('data-domain', domain);
+    domainTag.innerHTML = `
+      <span class="tag">${domain}</span>
+      <a class="tag is-delete" onclick="removeDomain('${domain}')"></a>
+    `;
+    domainsList.appendChild(domainTag);
+    input.value = '';
+  }
+}
+
+function removeDomain(domain) {
+  const domainTag = document.querySelector(`[data-domain="${domain}"]`);
+  if (domainTag) {
+    domainTag.remove();
+  }
+}
+
+// Allow Enter key to add domain
+document.getElementById('domainInput').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') {
+    addDomain();
+  }
+});
+</script>

@@ -44,10 +44,21 @@
      ["/admin/manage-users" {:get (middleware/wrap-require-admin views/admin-manage-users)}]
      ["/admin/manage-users-list" {:get (middleware/wrap-require-admin views/admin-refresh-users-list)}]
      ["/admin/manage-users/update-user-access-level" {:get (middleware/wrap-require-admin views/admin-update-user-access-level)}]
-     ["/admin/manage-users/:user/teams" {:get (middleware/wrap-require-admin views/admin-user-teams) :post (middleware/wrap-require-admin views/admin-user-teams-change)}]
+     ["/admin/manage-users/:user/teams" {:get (middleware/wrap-require-admin views/admin-user-teams)
+                                         :post (middleware/wrap-require-admin views/admin-user-teams-change)}]
+     ["/staff/create-meeting" {:get (middleware/wrap-require-staff views/staff-create-meeting-popup)
+                               :post (middleware/wrap-require-staff views/staff-create-meeting-save)
+                            }]
+     ["/admin/project-settings" {:get (middleware/wrap-require-admin views/admin-project-settings)}]
      ["/admin/manage-users/:user/teams/add" {:post (middleware/wrap-require-admin views/admin-user-teams-add)}]
      ["/change-css-theme" {:get views/change-css-theme}]
      ["/logout" {:get views/logout}]
+     ["/meeting/join" {:get (middleware/wrap-require-auth views/join-meeting-modal)}]
+     ["/meeting/:meeting-id/join" {:post (middleware/wrap-require-auth views/join-meeting)}]
+     ["/meeting/:meeting-id/main" {:get (middleware/wrap-require-auth views/meeting-main)}]
+     ["/meeting/:meeting-id/main/refresh" {:get (middleware/wrap-require-auth views/meeting-main-refresh-content)}]
+     ["/meeting/:meeting-id/add-topic" {:post (middleware/wrap-require-auth views/meeting-add-topic)}]
+     ["/meeting/:meeting-id/vote-topic" {:post (middleware/wrap-require-auth views/meeting-vote-topic)}]
      ])
    (constantly {:status 404, :body "Not Found."})))
 

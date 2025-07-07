@@ -1,0 +1,119 @@
+<div id="joinMeetingModal"
+     class="modal" 
+     data-signals-join-meeting-modal-open="true"
+     data-class-is-active="$joinMeetingModalOpen"
+     data-on-keydown__window="if(evt.key == 'Escape') {$joinMeetingModalOpen=false}; ''"
+> <!-- Join Meeting Modal -->
+  <div class="modal-background"></div>
+  <div class="modal-card">
+    <header class="modal-card-head">
+      <p class="modal-card-title">
+        <span class="icon">
+          <i class="fas fa-sign-in-alt"></i>
+        </span>
+        Join Meeting
+      </p>
+      <button class="delete" aria-label="close" data-on-click="$joinMeetingModalOpen=false"></button>
+    </header>
+    <section class="modal-card-body">
+      <div class="content">
+        
+        {% if active-meetings %}
+          <h3 class="title is-6 mb-4">Available Meetings</h3>
+          <div class="meeting-list mb-5">
+            {% for meeting in active-meetings %}
+            <div class="box">
+              <article class="media">
+                <div class="media-left">
+                  <span class="icon is-large">
+                    <i class="fas fa-calendar-check fa-2x has-text-success"></i>
+                  </span>
+                </div>
+                <div class="media-content">
+                  <div class="content">
+                    <p>
+                      <strong>{{ meeting.title }}</strong>
+                      <br>
+                      <small class="has-text-grey">
+                        <span class="icon is-small">
+                          <i class="fas fa-user"></i>
+                        </span>
+                        Created by {{ meeting.created-by-name }}
+                      </small>
+                      <br>
+                      <small class="has-text-info">
+                        <span class="icon is-small">
+                          <i class="fas fa-clock"></i>
+                        </span>
+                        Scheduled: {{ meeting.scheduled-at|date:"MMM d, yyyy 'at' HH:mm" }}
+                      </small>
+                    </p>
+                  </div>
+                </div>
+                <div class="media-right">
+                  <form method="post" action="/meeting/{{ meeting.id }}/join">
+                    <button type="submit" class="button is-primary is-small">
+                    <span class="icon">
+                      <i class="fas fa-external-link-alt"></i>
+                    </span>
+                    <span>Join</span>
+                  </form>
+                </div>
+              </article>
+            </div>
+            {% endfor %}
+          </div>
+
+          {% comment %}
+          <hr>
+          
+          <div class="notification is-info is-light">
+            <p class="has-text-weight-semibold mb-2">Join by Meeting ID</p>
+            <p>If you have a meeting ID from another team or external source, enter it below:</p>
+          </div>
+          {% endcomment %}
+          
+        {% else %}
+          <div class="notification is-light">
+            <p><strong>No active meetings available</strong></p>
+            <p>There are currently no scheduled meetings for your teams. Contact your team manager to schedule a meeting.</p>
+          </div>
+          
+          {% comment %}
+            <div class="notification is-info is-light">
+            <p class="has-text-weight-semibold mb-2">Join with Meeting ID</p>
+            <p>If you have a meeting ID from another source, enter it below:</p>
+            </div>
+          {% endcomment %}
+        {% endif %}
+
+        {% comment %}
+        <div class="field">
+          <label class="label">Meeting ID or URL</label>
+          <div class="control has-icons-left">
+            <input class="input" type="text" placeholder="Enter meeting ID (e.g., 12345) or full meeting URL" name="meeting-identifier" id="meetingIdentifier">
+            <span class="icon is-small is-left">
+              <i class="fas fa-link"></i>
+            </span>
+          </div>
+          <p class="help">You can enter either a meeting ID number or the full meeting URL</p>
+        </div>
+        {% endcomment %}
+
+      </div>
+    </section>
+    <footer class="modal-card-foot">
+      <div class="control mt-2">
+        {% comment %}
+        <button class="button is-primary">
+        <span class="icon">
+          <i class="fas fa-sign-in-alt"></i>
+        </span>
+        <span>Join by ID/URL</span>
+      </button>
+      {% endcomment %}
+      <button class="button" data-on-click="$joinMeetingModalOpen=false">Cancel</button>
+      </div>
+    </footer>
+  </div>
+</div>

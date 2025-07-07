@@ -236,6 +236,44 @@
       (create-team! team-data)
       {:success false :error "Invalid team data format"})))
 
+(defn user-is-team-member?
+  "Check if a user is a member of a specific team"
+  [user-id team-id]
+  (let [db (get-db)
+        result (d/q '[:find ?user-id
+                      :in $ ?user-id ?team-id
+                      :where [?user-id :user/teams ?team-id]]
+                    db user-id team-id)]
+    (seq result)))
+
+(defn add-meeting!
+  "Add a new meeting to the database"
+  [meeting-data user-id]
+  (try
+    (let [team-id (Long/parseLong (:team meeting-data))
+          scheduled-at (java.time.Instant/parse (str (:scheduled-at meeting-data) ":00Z"))
+          temp-id "new-meeting"
+          meeting-tx-data {:db/id temp-id
+                          :meeting/title (:title meeting-data)
+                          :meeting/description (or (:description meeting-data) "")
+                          :meeting/team team-id
+                          :meeting/created-by user-id
+                          :meeting/created-at (java.util.Date.)
+                          :meeting/scheduled-at (java.util.Date/from scheduled-at)
+                          :meeting/status "scheduled"
+                          :meeting/join-url (or (:join-url meeting-data) "")
+                          :meeting/allow-topic-voting (boolean (:allow-topic-voting meeting-data))
+                          :meeting/sort-topics-by-votes (boolean (:sort-topics-by-votes meeting-data))
+                          :meeting/is-visible (boolean (:is-visible meeting-data))}
+          result (d/transact (get-conn) {:tx-data [meeting-tx-data]})
+          meeting-id (get-in result [:tempids temp-id])]
+      (log/info meeting-tx-data result)
+      (log/info "Meeting created successfully with ID:" meeting-id)
+      {:success true :meeting-id meeting-id})
+    (catch Exception e
+      (log/error "Failed to create meeting:" (.getMessage e))
+      {:success false :error (str "Failed to create meeting: " (.getMessage e))})))
+
 (defn update-user-teams!
   "Update user's team memberships. Replaces all existing team memberships with new ones.
    user-id: database ID of the user
@@ -262,6 +300,227 @@
     (catch Exception e
       {:success false :error (str "Failed to update user teams: " (.getMessage e))})))
 
+(defn get-recent-meetings-for-user
+  "Get recent meetings for user's teams, limited to 3 most recent"
+  [user-id]
+  (let [db (get-db)
+        ;; First get user's teams
+        user-teams-result (d/q '[:find ?team
+                                :in $ ?user-id
+                                :where [?user-id :user/teams ?team]]
+                              db user-id)
+        user-team-ids (mapv first user-teams-result)]
+    (if (seq user-team-ids)
+      ;; Get meetings for user's teams, sorted by created-at desc, limit 3
+      (let [meetings-result (d/q '[:find ?meeting ?title ?created-at ?created-by-name
+                                  :in $ [?team-id ...]
+                                  :where
+                                  [?meeting :meeting/team ?team-id]
+                                  [?meeting :meeting/title ?title]
+                                  [?meeting :meeting/created-at ?created-at]
+                                  [?meeting :meeting/created-by ?created-by]
+                                  [?created-by :user/name ?created-by-name]]
+                                db user-team-ids)
+            ;; Sort by created-at desc and take first 3
+            sorted-meetings (->> meetings-result
+                               (sort-by #(nth % 2) #(compare %2 %1))
+                               (take 3))]
+        (mapv (fn [[meeting-id title created-at created-by-name]]
+                {:id meeting-id
+                 :title title
+                 :created-at created-at
+                 :created-by-name created-by-name})
+              sorted-meetings))
+      [])))
+
+(defn get-active-meetings-for-user
+  "Get all active meetings for user's teams (future/now + is_visible=true)"
+  [user-id]
+  (let [db (get-db)
+        now (java.util.Date.)
+        ;; First get user's teams
+        user-teams-result (d/q '[:find ?team
+                                :in $ ?user-id
+                                :where [?user-id :user/teams ?team]]
+                              db user-id)
+        user-team-ids (mapv first user-teams-result)]
+    (if (seq user-team-ids)
+      ;; Get active meetings for user's teams
+      (let [meetings-result (d/q '[:find ?meeting ?title ?scheduled-at ?created-by-name ?join-url
+                                  :in $ [?team-id ...] ?now
+                                  :where
+                                  [?meeting :meeting/team ?team-id]
+                                  [?meeting :meeting/title ?title]
+                                  [?meeting :meeting/scheduled-at ?scheduled-at]
+                                  [?meeting :meeting/is-visible true]
+                                  [?meeting :meeting/created-by ?created-by]
+                                  [?created-by :user/name ?created-by-name]
+                                  [?meeting :meeting/join-url ?join-url]
+                                  [(>= ?scheduled-at ?now)]]
+                                db user-team-ids now)
+            ;; Sort by scheduled-at asc (earliest first)
+            sorted-meetings (->> meetings-result
+                               (sort-by #(nth % 2)))]
+        (mapv (fn [[meeting-id title scheduled-at created-by-name join-url]]
+                {:id meeting-id
+                 :title title
+                 :scheduled-at scheduled-at
+                 :created-by-name created-by-name
+                 :join-url join-url})
+              sorted-meetings))
+      [])))
+
+(defn get-user-statistics
+  "Get user statistics for dashboard display"
+  []
+  (let [db (get-db)
+        total-users-result (d/q '[:find ?e
+                                  :where [?e :user/name _]]
+                                db)
+        active-users-result (d/q '[:find ?e
+                                   :where
+                                   [?e :user/name _]
+                                   [?e :user/active true]]
+                                 db)
+        admin-users-result (d/q '[:find ?e
+                                  :where
+                                  [?e :user/name _]
+                                  [?e :user/access-level "admin"]]
+                                db)
+        staff-users-result (d/q '[:find ?e
+                                  :where
+                                  [?e :user/name _]
+                                  [?e :user/access-level "staff"]]
+                                db)]
+    {:total-users (count total-users-result)
+     :active-users (count active-users-result)
+     :admin-count (count admin-users-result)
+     :staff-count (count staff-users-result)}))
+
+
+(defn user-has-active-meeting?
+  "Check if user has a specific meeting in their active meetings"
+  [user-id meeting-id]
+  (let [active-meetings (get-active-meetings-for-user user-id)
+        meeting-ids (set (map :id active-meetings))]
+    (contains? meeting-ids meeting-id)))
+
+(defn add-participant!
+  "Add a participant to a meeting"
+  [user-id meeting-id]
+  (try
+    (let [participant-data {:participant/user user-id
+                            :participant/meeting meeting-id
+                            :participant/joined-at (java.util.Date.)}
+          _ (d/transact (get-conn) {:tx-data [participant-data]})]
+      (log/info "Participant added successfully:" participant-data)
+      {:success true})
+    (catch Exception e
+      (log/error "Failed to add participant:" (.getMessage e))
+      )))
+
+(defn add-topic!
+  "Add a new topic to a meeting"
+  [meeting-id user-id topic-title]
+  (try
+    (when (and meeting-id user-id topic-title
+               (<= (count topic-title) 250))
+      (let [topic-data {:topic/title topic-title
+                        :topic/meeting meeting-id
+                        :topic/created-by user-id
+                        :topic/created-at (java.util.Date.)}
+            result (d/transact (get-conn) {:tx-data [topic-data]})
+            topic-id (get-in result [:tempids (first (keys (:tempids result)))])]
+        (log/info "Topic added successfully:" topic-data)
+        {:success true :topic-id topic-id}))
+    (catch Exception e
+      (log/error "Failed to add topic:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
+
+(defn get-topics-for-meeting
+  "Get all topics for a meeting with vote counts, sorted by vote score"
+  [meeting-id]
+  (let [db (get-db)
+        topics-result (d/q '[:find ?topic ?title ?created-at ?created-by-name
+                             :in $ ?meeting-id
+                             :where
+                             [?topic :topic/meeting ?meeting-id]
+                             [?topic :topic/title ?title]
+                             [?topic :topic/created-at ?created-at]
+                             [?topic :topic/created-by ?created-by]
+                             [?created-by :user/name ?created-by-name]]
+                           db meeting-id)]
+    (mapv (fn [[topic-id title created-at created-by-name]]
+            (let [;; Get vote counts for this topic
+                  upvotes-result (d/q '[:find (count ?vote)
+                                        :in $ ?topic-id
+                                        :where
+                                        [?vote :vote/topic ?topic-id]
+                                        [?vote :vote/type "upvote"]]
+                                      db topic-id)
+                  downvotes-result (d/q '[:find (count ?vote)
+                                          :in $ ?topic-id
+                                          :where
+                                          [?vote :vote/topic ?topic-id]
+                                          [?vote :vote/type "downvote"]]
+                                        db topic-id)
+                  upvotes (or (ffirst upvotes-result) 0)
+                  downvotes (or (ffirst downvotes-result) 0)
+                  vote-score (- upvotes downvotes)]
+              {:id topic-id
+               :title title
+               :created-at created-at
+               :created-by-name created-by-name
+               :upvotes upvotes
+               :downvotes downvotes
+               :vote-score vote-score}))
+          ;; Sort by vote score (highest first)
+          (sort-by :vote-score #(compare %2 %1) topics-result))))
+
+(defn add-vote!
+  "Add or update a vote for a topic by a user"
+  [user-id topic-id vote-type]
+  (try
+    (let [db (get-db)
+          ;; Check if user already voted on this topic
+          existing-vote-result (d/q '[:find ?vote
+                                     :in $ ?user-id ?topic-id
+                                     :where
+                                     [?vote :vote/user ?user-id]
+                                     [?vote :vote/topic ?topic-id]]
+                                   db user-id topic-id)
+          existing-vote-id (ffirst existing-vote-result)]
+      (if existing-vote-id
+        ;; Update existing vote
+        (let [result (d/transact (get-conn) {:tx-data [{:db/id existing-vote-id
+                                                        :vote/type vote-type}]})]
+          (log/info "Vote updated for user" user-id "on topic" topic-id "to" vote-type)
+          {:success true})
+        ;; Create new vote
+        (let [vote-data {:vote/user user-id
+                         :vote/topic topic-id
+                         :vote/type vote-type
+                         :vote/created-at (java.util.Date.)}
+              result (d/transact (get-conn) {:tx-data [vote-data]})]
+          (log/info "New vote added for user" user-id "on topic" topic-id "with type" vote-type)
+          {:success true})))
+    (catch Exception e
+      (log/error "Failed to add vote:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
+
+
+(defn get-user-vote-for-topic
+  "Get the current vote type for a user on a specific topic"
+  [user-id topic-id]
+  (let [db (get-db)
+        result (d/q '[:find ?vote-type
+                      :in $ ?user-id ?topic-id
+                      :where
+                      [?vote :vote/user ?user-id]
+                      [?vote :vote/topic ?topic-id]
+                      [?vote :vote/type ?vote-type]]
+                    db user-id topic-id)]
+    (ffirst result)))
 
 (comment
 
@@ -319,7 +578,17 @@
   (def all-users-q '[:find ?user-name
                      :where [_ :user/name ?user-name]])
 
+  (def all-teams-q '[:find ?team-name
+                     :where [_ :team/name ?team-name]])
+
+  (def all-meetings-q '[:find ?meeting-title
+                        :where [_ :meeting/title ?meeting-title]])
+
+
+
   (d/q all-users-q (get-db))
+  (d/q all-teams-q (get-db))
+  (d/q all-meetings-q (get-db))
 
   (def query '[:find ?e ?name ?email
                :where
@@ -327,4 +596,11 @@
                [?e :user/email ?email]])
 
   (get-all-users)
+
+  (d/transact (get-conn) {:tx-data schema/participant-schema})
+
+  ;; Test topic functions
+  (add-topic! 12345 67890 "Test topic")
+  (get-topics-for-meeting 12345)
+  (add-vote! 67890 98765 "upvote")
   )

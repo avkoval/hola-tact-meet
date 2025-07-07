@@ -1,3 +1,6 @@
+#+SETUPFILE: https://fniessen.github.io/org-html-themes/org/theme-readtheorg.setup
+#+options: num:nil toc:t ^:nil title:nil
+
 * hola-tact-meet
 
 ** Purpose
@@ -11,6 +14,7 @@ addressing ongoing project issues. My goal with this program is to incorporate s
 meetings, allowing us to experiment with Holacracy concepts and use them in current projects.
 
 See also [[https://orgpad.info/o/AZXSvxkUdIo7kZUmIwy7SP][Orgpad: Structural Meetings Idea]]
+
 
 ** Planned features
 
@@ -47,6 +51,9 @@ See also [[https://orgpad.info/o/AZXSvxkUdIo7kZUmIwy7SP][Orgpad: Structural Meet
 
    - Admin
      - ⚙ project settings link
+       - Allowed domains list
+       - Allowed oauth2 providers list
+
      - Permissions
      - Manage users
 
@@ -73,6 +80,26 @@ See also [[https://orgpad.info/o/AZXSvxkUdIo7kZUmIwy7SP][Orgpad: Structural Meet
 
    - Topics (tensions)
      - Add topic to discuss
+       - added by user
+       - topic title - string < 250 chars
+       - topic votes
+         - meeting participant can add vote to any topic of this meeting. we can store it as voted_by and then users list
+           - need a function to add vote by user_id to topic_id
+         - user can downvote any topic, but only one downvote per specific topic
+         - For the topic we should store 'discussion notes' field
+         - each topic results in zero or more actions.
+         - action:
+           - relation to meeting? or should we store actions within the meeting itself as cardinality: many? please decide the best
+           - description
+           - action can be assigned to (either):
+             - assign to user
+             - assign to team
+           - deadline (date, optional)
+           - action status:
+             - added (timestamp) 
+             - completed (timestamp)
+             - rejected (timestamp)
+
      - Voting for topic (if enabled)
      - Sorting topics by vote (if enabled)
      - Countdown timer (if enabled and set for topic)
@@ -191,7 +218,7 @@ Copyright © 2025 Oleksii Koval
 
 Distributed under the MIT License
 
-** COMMENT Current work plan & progress [40%]
+** Current work plan & progress [50%]
 
 *** DONE Set appropriate License
     CLOSED: [2025-06-15 Sun 21:30]
@@ -228,6 +255,12 @@ Distributed under the MIT License
  - [X] Make sure code reload is working fine
  - [X] Use bulma.css from CDN
 
+*** DONE Enable Datomic
+    CLOSED: [2025-07-08 Tue 07:20]
+    :LOGBOOK:
+    - State "DONE"       from "TODO"       [2025-07-08 Tue 07:20]
+    - State "TODO"       from              [2025-06-18 Wed 10:20]
+    :END:
 *** DONE Fake login
     CLOSED: [2025-07-04 Fri 23:45]
     :LOGBOOK:
@@ -250,17 +283,32 @@ I need fake login to quickly login several users for testing purposes on localho
    - [X] add user when actually making login
    - [X] make separate page for fake login functionality
 
-*** TODO Change theme
+*** DONE Create meeeting
+    CLOSED: [2025-07-17 Thu 08:10]
     :LOGBOOK:
-    - State "TODO"       from              [2025-07-05 Sat 22:55]
+    - State "DONE"       from "WORKING"    [2025-07-17 Thu 08:10]
+    - State "WORKING"    from              [2025-07-08 Tue 09:15]
     :END:
 
-*** TODO Admin settings & preferences
+ - [X] move to SSE
+ - [X] populate teams list
+ - [X] save data
+ - [X] for staff user - limit teams to member only
+   - [X] for admin user - no limits
+
+*** TODO Admin settings & preferences [50%]
     :LOGBOOK:
     - State "TODO"       from              [2025-06-18 Wed 10:45]
     :END:
-**** TODO List users (separate page) (for admin)
+**** TODO App settings
      :LOGBOOK:
+     - State "TODO"       from "TODO"       [2025-07-08 Tue 07:20]
+     - State "TODO"       from              [2025-07-08 Tue 07:20]
+     :END:
+**** DONE List users (separate page) (for admin)
+     CLOSED: [2025-07-08 Tue 07:20]
+     :LOGBOOK:
+     - State "DONE"       from "TODO"       [2025-07-08 Tue 07:20]
      - State "TODO"       from              [2025-06-18 Wed 10:25]
      :END:
 ***** DONE Change access level to manager (as admin)
@@ -269,6 +317,11 @@ I need fake login to quickly login several users for testing purposes on localho
       - State "DONE"       from "TODO"       [2025-07-04 Fri 23:45]
       - State "TODO"       from              [2025-06-18 Wed 10:25]
       :END:
+*** TODO Change theme
+    :LOGBOOK:
+    - State "TODO"       from              [2025-07-05 Sat 22:55]
+    :END:
+
 *** TODO First App screen [38%]
     :LOGBOOK:
     - State "TODO"       from              [2025-06-18 Wed 10:45]
@@ -352,6 +405,21 @@ https://github.com/weavejester/ring-oauth2
      :LOGBOOK:
      - State "TODO"       from              [2025-06-18 Wed 10:25]
      :END:
+*** DONE [#A] Join meeting
+    CLOSED: [2025-07-17 Thu 11:20]
+    :LOGBOOK:
+    - State "DONE"       from "TODO"       [2025-07-17 Thu 11:20]
+    - State "TODO"       from              [2025-07-17 Thu 08:10]
+    :END:
+
+    1) [X] Check that user can join this team meetings
+    2) [X] Create "participants" table for the meeting:
+       1) user id
+       2) meeting id
+       3) join time
+    3) [X] Create record in participants table
+    4) [X] Redirect to main meeting screen
+
 *** TODO Make sure to enable gzip or even better: brothli compression
     :LOGBOOK:
     - State "TODO"       from              [2025-06-15 Sun 20:55]
@@ -359,9 +427,13 @@ https://github.com/weavejester/ring-oauth2
 
     https://andersmurphy.com/2025/04/15/why-you-should-use-brotli-sse.html
 
-*** TODO Enable Datomic
+*** TODO Populate Actions Assigned/Resolved on users list
     :LOGBOOK:
-    - State "TODO"       from              [2025-06-18 Wed 10:20]
+    - State "TODO"       from              [2025-07-08 Tue 07:20]
+    :END:
+*** TODO Populate main page statistics & recent activity
+    :LOGBOOK:
+    - State "TODO"       from              [2025-07-08 Tue 07:25]
     :END:
 *** IDEA Future ideas
     :LOGBOOK:
@@ -371,5 +443,7 @@ https://github.com/weavejester/ring-oauth2
  - [ ] auto tests
  - [ ] UI tests via https://github.com/ryrobes/rabbitize
  - [ ] gitlab/github CI?
+ - [ ] manage/search users - commented out for now
+ - [ ] auto add team to selected list for user after creation via modal 
 
 

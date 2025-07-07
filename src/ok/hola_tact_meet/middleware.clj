@@ -53,6 +53,15 @@
          :headers {"Content-Type" "text/plain"}
          :body "Access denied. Admin privileges required."}))))
 
+(defn wrap-require-staff [handler]
+  (fn [request]
+    (let [access-level (get-in request [:session :userinfo :access-level])]
+      (if (or (= access-level "staff") (= access-level "admin"))
+        (handler request)
+        {:status 403
+         :headers {"Content-Type" "text/plain"}
+         :body "Access denied. Staff privileges required."}))))
+
 (defn wrap-force-https [handler]
   (fn [request]
     (if (utils/sse-endpoint? request)

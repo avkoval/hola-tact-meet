@@ -1,5 +1,7 @@
 {% extends "templates/app.html" %}
 
+{% block current-breadcrumb %}<li class="is-active"><a href="#" aria-current="page">Manage Users</a></li>{% endblock %}
+
 {% block app_content %}
 
   <!-- Main Content -->
@@ -18,22 +20,24 @@
             </h1>
           </div>
         </div>
-        <div class="level-right">
-          <div class="level-item">
-            <div class="field has-addons">
-              <div class="control">
-                <input class="input" type="text" placeholder="Search users...">
-              </div>
-              <div class="control">
-                <button class="button is-info">
-                  <span class="icon">
-                    <i class="fas fa-search"></i>
-                  </span>
-                </button>
+        {% comment %}
+          <div class="level-right">
+            <div class="level-item">
+              <div class="field has-addons">
+                <div class="control">
+                  <input class="input" type="text" placeholder="Search users...">
+                </div>
+                <div class="control">
+                  <button class="button is-info">
+                    <span class="icon">
+                      <i class="fas fa-search"></i>
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        {% endcomment %}
       </div>
 
       <!-- Users Table -->
@@ -44,7 +48,7 @@
               <tr>
                 <th>User</th>
                 <th>Email</th>
-                <th>Access Level</th>
+                <th style="width: 100px;">Access Level</th>
                 <th>Status</th>
                 <th>Actions Assigned</th>
                 <th>Actions Resolved</th>
