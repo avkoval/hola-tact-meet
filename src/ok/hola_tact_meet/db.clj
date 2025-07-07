@@ -8,31 +8,31 @@
 (def client (d/client {:server-type :datomic-local
                        :system "dev"}))
 
-(defn ensure-database-exists! 
+(defn ensure-database-exists!
   "Create the database if it doesn't exist"
   []
-  
+
   (d/create-database client {:db-name "meetings"}))
 
-(defn get-connection 
+(defn get-connection
   "Get connection to the database, creating it if necessary"
   []
-  
+
   (ensure-database-exists!)
   (d/connect client {:db-name "meetings"}))
 
 
 
-(defn install-schema! 
+(defn install-schema!
   "Install the schema into the database"
   [conn]
-  
+
   (d/transact conn {:tx-data schema/all-schema}))
 
-(defn initialize-db! 
+(defn initialize-db!
   "Initialize database with schema"
   []
-  
+
   (let [conn (get-connection)]
     (install-schema! conn)
     conn))
@@ -49,10 +49,10 @@
   (d/db (get-conn)))
 
 
-(defn find-user-by-email 
+(defn find-user-by-email
   "Find existing user by email, returns user ID or nil"
   [email]
-  
+
   (let [db (get-db)
         result (d/q '[:find ?e
                       :in $ ?email
@@ -60,14 +60,14 @@
                     db email)]
     (ffirst result)))
 
-(defn create-user 
+(defn create-user
   "Create new user, throws exception if user with same email already exists"
   [userinfo]
 
   (let [existing-user (find-user-by-email (:email userinfo))]
     (when existing-user
-      (throw (ex-info "User with this email already exists" 
-                      {:email (:email userinfo) 
+      (throw (ex-info "User with this email already exists"
+                      {:email (:email userinfo)
                        :existing-user-id existing-user})))
     (let [user-data {:user/name (:name userinfo)
                      :user/email (:email userinfo)
@@ -81,7 +81,7 @@
           user-id (get-in result [:tempids (first (keys (:tempids result)))])]
       user-id)))
 
-(defn get-all-users 
+(defn get-all-users
   "Get all users with their basic information"
   []
   (let [db (get-db)
@@ -89,9 +89,9 @@
                         :where [?e :user/name _]]
                       db)]
     (map (fn [[user-id]]
-           (let [user-data (d/pull db '[:db/id :user/name :user/email :user/access-level 
-                                        :user/picture :user/family-name :user/given-name 
-                                        :user/last-login :user/active 
+           (let [user-data (d/pull db '[:db/id :user/name :user/email :user/access-level
+                                        :user/picture :user/family-name :user/given-name
+                                        :user/last-login :user/active
                                         {:user/teams [:team/name]}] user-id)]
              {:id (:db/id user-data)
               :name (:user/name user-data)
@@ -105,15 +105,15 @@
               :teams (map :team/name (:user/teams user-data))}))
          user-ids)))
 
-(defn get-user-by-id 
+(defn get-user-by-id
   "Get user data by their database ID"
   [user-id]
 
   (let [db (get-db)]
-    (d/pull db '[:user/name :user/email :user/family-name 
-                 :user/given-name :user/picture :user/auth-provider 
+    (d/pull db '[:user/name :user/email :user/family-name
+                 :user/given-name :user/picture :user/auth-provider
                  :user/access-level :user/active
-                 {:user/teams [:db/id :team/name :team/description]}] 
+                 {:user/teams [:db/id :team/name :team/description]}]
             user-id)))
 
 (defn update-last-login!
@@ -144,7 +144,7 @@
                         :where [?e :team/name _]]
                       db)]
     (map (fn [[team-id]]
-           (let [team-data (d/pull db '[:db/id :team/name :team/description 
+           (let [team-data (d/pull db '[:db/id :team/name :team/description
                                         {:team/managers [:db/id :user/name :user/email]}] team-id)]
              {:id (:db/id team-data)
               :name (:team/name team-data)
@@ -157,7 +157,7 @@
   []
   (let [db (get-db)
         user-ids (d/q '[:find ?e
-                        :where 
+                        :where
                         [?e :user/access-level ?level]
                         [(contains? #{"staff" "admin"} ?level)]]
                       db)]
@@ -203,7 +203,7 @@
       ;; Check if team name already exists
       (if (find-team-by-name name)
         {:success false :error (str "Team with name '" name "' already exists")}
-        
+
         ;; Create the team
         (let [;; Validate that manager IDs exist in database
               valid-managers (validate-user-ids managers)
@@ -218,7 +218,7 @@
               team-id (get-in result [:tempids (first (keys (:tempids result)))])]
           (log/debug "Team created with ID:" team-id)
           {:success true :team-id team-id}))
-      
+
       (catch Exception e
         (if (re-find #"unique" (.getMessage e))
           {:success false :error (str "Team with name '" name "' already exists")}
@@ -235,6 +235,33 @@
     (if (malli.core/validate validation-schema team-data)
       (create-team! team-data)
       {:success false :error "Invalid team data format"})))
+
+(defn update-user-teams!
+  "Update user's team memberships. Replaces all existing team memberships with new ones.
+   user-id: database ID of the user
+   team-ids: vector of team database IDs (can be empty to remove all teams)
+   Returns: {:success true} or {:success false :error string}"
+  [user-id team-ids]
+  (try
+    (let [db (get-db)
+          current-teams-result (d/q '[:find ?team
+                                      :in $ ?user-id
+                                      :where [?user-id :user/teams ?team]]
+                                    db user-id)
+          current-teams (set (mapv first current-teams-result))
+          new-teams (set team-ids)
+          teams-to-retract (clojure.set/difference current-teams new-teams)
+          teams-to-add (clojure.set/difference new-teams current-teams)
+          retract-data (mapv (fn [team-id] [:db/retract user-id :user/teams team-id]) teams-to-retract)
+          add-data (mapv (fn [team-id] [:db/add user-id :user/teams team-id]) teams-to-add)
+          tx-data (concat retract-data add-data)]
+      (when (seq tx-data)
+        (log/info (str "Updating user " user-id " teams with tx-data:" tx-data))
+        (d/transact (get-conn) {:tx-data tx-data}))
+      {:success true})
+    (catch Exception e
+      {:success false :error (str "Failed to update user teams: " (.getMessage e))})))
+
 
 (comment
 
@@ -295,7 +322,7 @@
   (d/q all-users-q (get-db))
 
   (def query '[:find ?e ?name ?email
-               :where 
+               :where
                [?e :user/name ?name]
                [?e :user/email ?email]])
 

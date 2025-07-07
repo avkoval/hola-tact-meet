@@ -24,7 +24,7 @@
         remote-addr (:remote-addr request)
         dev_mode (utils/localhost? remote-addr)
         ]
-    
+
     (log/info "Home page accessed from" remote-addr "dev_mode: " dev_mode)
     (if (get-in session [:userinfo :logged-in])
       (response/redirect "/app")
@@ -51,7 +51,7 @@
      :body (render-file "templates/users.html" {:users users :userinfo userinfo})}))
 
 (defn admin-update-user-access-level [request]
-  (->sse-response 
+  (->sse-response
    request
    {on-open
     (fn [sse]
@@ -69,7 +69,7 @@
 
 
 (defn admin-toggle-user [request]
-  (->sse-response 
+  (->sse-response
    request
    {on-open
     (fn [sse]
@@ -84,6 +84,15 @@
           (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)}))))
       )}))
 
+
+(defn admin-refresh-users-list [request]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (d*/with-open-sse sse
+          (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))
+      )}))
 
 (defn- prepare-teams-with-membership
   "Prepare teams data with user membership flags for template"
@@ -104,7 +113,7 @@
      :user-team-ids user-team-ids}))
 
 (defn admin-user-teams [request]
-  (->sse-response 
+  (->sse-response
    request
    {on-open
     (fn [sse]
@@ -117,16 +126,47 @@
       )}))
 
 
-
-(defn admin-user-teams-add [request]
-  (->sse-response 
+(defn admin-user-teams-change [request]
+  (->sse-response
    request
    {on-open
     (fn [sse]
       (let [user_id (get-in request [:path-params :user])
             user-id-long (when user_id (Long/parseLong user_id))
             form-params (:form-params request)
-            
+            team-ids-str (get form-params "user-teams")
+            team-ids (when team-ids-str
+                      (if (string? team-ids-str)
+                        [(Long/parseLong team-ids-str)]
+                        (mapv #(Long/parseLong %) team-ids-str)))]
+        (log/info "User ID:" user_id)
+        (log/info "Form params:" form-params)
+        (log/info "Team IDs:" team-ids)
+
+        ;; Update user's team memberships (handle both selection and deselection)
+        (when user-id-long
+          (let [result (db/update-user-teams! user-id-long (or team-ids []))]
+            (log/info "Update result:" result)))
+
+        (d*/with-open-sse sse
+          ;; Return updated modal
+          (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" (prepare-teams-with-membership user-id-long)))
+          )
+          )
+
+      )}))
+
+
+
+(defn admin-user-teams-add [request]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (let [user_id (get-in request [:path-params :user])
+            user-id-long (when user_id (Long/parseLong user_id))
+            form-params (:form-params request)
+
             ;; Parse form data
             team-name (get form-params "name")
             team-description (get form-params "description" "")
@@ -136,16 +176,16 @@
                            (if (string? team-managers-str)
                              [(Long/parseLong team-managers-str)]
                              []))
-            
+
             ;; Create team data structure
             team-data {:name team-name
                       :description team-description
                       :managers team-managers}]
-        
+
         (log/debug "Adding team for user:" user_id)
         (log/debug "Form params:" form-params)
         (log/debug "Team data:" team-data)
-        
+
         ;; Validate and create team
         (if (m/validate v/TeamData team-data)
           (let [create-result (db/create-team-with-validation! team-data)]
@@ -170,11 +210,13 @@
             (log/warn "Validation errors:" validation-errors)
             (d*/with-open-sse sse
               (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data))))
-          )))}))
+          )
+
+        ))}))
 
 
 (defn change-css-theme [{session :session :as request}]
-  (->sse-response 
+  (->sse-response
    request
    {on-open
     (fn [sse]
@@ -211,11 +253,11 @@
         (assoc :session session))))
 
 
-(defn login-user-by-id 
+(defn login-user-by-id
   "Log in user by their database ID"
   [{session :session} user-id userinfo]
 
-  (let [updated-session (assoc session :userinfo (assoc userinfo 
+  (let [updated-session (assoc session :userinfo (assoc userinfo
                                                         :logged-in true
                                                         :user-id user-id))]
     (db/update-last-login! user-id)
@@ -223,7 +265,7 @@
     (-> (response/redirect "/app")
         (assoc :session updated-session))))
 
-(defn login 
+(defn login
   "Main login function that creates user and logs them in"
   [request userinfo]
   (let [user-id (db/create-user userinfo)]
@@ -265,7 +307,7 @@
 
 
 (defn fake-user-data []
-  {:userinfo 
+  {:userinfo
    {:name (gen/word)
     :email (utils/gen-email)
     :family-name (gen/word)
