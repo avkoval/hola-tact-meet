@@ -44,11 +44,12 @@
 
 (defn admin-manage-users [{session :session}]
   (let [users (db/get-all-users)
+        statistics (db/get-user-statistics)
         userinfo (:userinfo session)]
     (log/info "admin-manage-users accessed")
     {:status 200
      :headers {"Content-Type" "text/html"}
-     :body (render-file "templates/users.html" {:users users :userinfo userinfo})}))
+     :body (render-file "templates/users.html" (merge {:users users :userinfo userinfo} statistics))}))
 
 (defn admin-update-user-access-level [request]
   (->sse-response
@@ -123,6 +124,18 @@
         (log/debug "Loading teams for user:" user_id)
         (d*/with-open-sse sse
           (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data))))
+      )}))
+
+
+(defn staff-create-meeting [request]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (let [teams (db/get-all-teams)]
+        (log/info "render")
+        (d*/with-open-sse sse
+          (d*/merge-fragment! sse (render-file "templates/create_meeting_modal.html" {:teams teams}))))
       )}))
 
 

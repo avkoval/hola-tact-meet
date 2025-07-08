@@ -5,7 +5,7 @@
   <section class="section">
     <div class="container">
       {% include "templates/notifications.html" %}
-      {% include "templates/breadcrumbs.html" %}
+      {% block breadcrumbs %}{% include "templates/breadcrumbs.html" %}{% endblock %}
       {% block app_content %}{% endblock %}
     </div>
   </section>

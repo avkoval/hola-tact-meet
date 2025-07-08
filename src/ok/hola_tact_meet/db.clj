@@ -262,6 +262,33 @@
     (catch Exception e
       {:success false :error (str "Failed to update user teams: " (.getMessage e))})))
 
+(defn get-user-statistics
+  "Get user statistics for dashboard display"
+  []
+  (let [db (get-db)
+        total-users-result (d/q '[:find ?e
+                                  :where [?e :user/name _]]
+                                db)
+        active-users-result (d/q '[:find ?e
+                                   :where
+                                   [?e :user/name _]
+                                   [?e :user/active true]]
+                                 db)
+        admin-users-result (d/q '[:find ?e
+                                  :where
+                                  [?e :user/name _]
+                                  [?e :user/access-level "admin"]]
+                                db)
+        staff-users-result (d/q '[:find ?e
+                                  :where
+                                  [?e :user/name _]
+                                  [?e :user/access-level "staff"]]
+                                db)]
+    {:total-users (count total-users-result)
+     :active-users (count active-users-result)
+     :admin-count (count admin-users-result)
+     :staff-count (count staff-users-result)}))
+
 
 (comment
 

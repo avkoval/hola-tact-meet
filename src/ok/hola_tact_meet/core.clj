@@ -44,7 +44,11 @@
      ["/admin/manage-users" {:get (middleware/wrap-require-admin views/admin-manage-users)}]
      ["/admin/manage-users-list" {:get (middleware/wrap-require-admin views/admin-refresh-users-list)}]
      ["/admin/manage-users/update-user-access-level" {:get (middleware/wrap-require-admin views/admin-update-user-access-level)}]
-     ["/admin/manage-users/:user/teams" {:get (middleware/wrap-require-admin views/admin-user-teams) :post (middleware/wrap-require-admin views/admin-user-teams-change)}]
+     ["/admin/manage-users/:user/teams" {:get (middleware/wrap-require-admin views/admin-user-teams) 
+                                         :post (middleware/wrap-require-admin views/admin-user-teams-change)}]
+     ["/admin/meeting/add" {:get (middleware/wrap-require-staff views/staff-create-meeting) 
+                            ;:post (middleware/wrap-require-admin views/admin-user-teams-change)
+                            }]
      ["/admin/manage-users/:user/teams/add" {:post (middleware/wrap-require-admin views/admin-user-teams-add)}]
      ["/change-css-theme" {:get views/change-css-theme}]
      ["/logout" {:get views/logout}]

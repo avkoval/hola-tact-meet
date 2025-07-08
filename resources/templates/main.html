@@ -1,5 +1,7 @@
 {% extends "templates/app.html" %}
 
+{% block breadcrumbs %}{% endblock %}
+
 {% block app_content %}
 
   <!-- Main Content -->
@@ -66,7 +68,7 @@
             <div class="card-content">
               <div class="content">
                 <div class="buttons">
-                  <button class="button is-success is-fullwidth" onclick="openCreateMeetingModal()">
+                  <button class="button is-success is-fullwidth" data-on-click="@get('/admin/meeting/add')">
                     <span class="icon">
                       <i class="fas fa-calendar-plus"></i>
                     </span>
@@ -74,15 +76,21 @@
                   </button>
                   <button class="button is-warning is-fullwidth">
                     <span class="icon">
-                      <i class="fas fa-edit"></i>
+                      <i class="fas fa-calendar-alt"></i>
                     </span>
-                    <span>Edit Past Meetings</span>
+                    <span>Manage meetings</span>
                   </button>
-                  <button class="button is-light is-fullwidth">
+                  <button class="button is-warning is-fullwidth">
                     <span class="icon">
-                      <i class="fas fa-eye"></i>
+                      <i class="fas fa-users"></i>
                     </span>
-                    <span>Manage Visibility</span>
+                    <span>Edit Team Members</span>
+                  </button>
+                  <button class="button is-fullwidth">
+                    <span class="icon">
+                      <i class="fas fa-search"></i>
+                    </span>
+                    <span>Review actions</span>
                   </button>
                 </div>
               </div>
@@ -118,12 +126,14 @@
                     </span>
                     <span>Project Settings</span>
                   </button>
+                  {% comment %}
                   <button class="button is-light is-fullwidth">
                     <span class="icon">
                       <i class="fas fa-shield-alt"></i>
                     </span>
                     <span>Permissions</span>
                   </button>
+                  {% endcomment %}
                 </div>
               </div>
             </div>
@@ -173,119 +183,6 @@
     </div>
   </section>
 
-  <!-- Create Meeting Modal -->
-  <div id="createMeetingModal" class="modal">
-    <div class="modal-background" onclick="closeCreateMeetingModal()"></div>
-    <div class="modal-card">
-      <header class="modal-card-head">
-        <p class="modal-card-title">
-          <span class="icon">
-            <i class="fas fa-calendar-plus"></i>
-          </span>
-          Create New Meeting
-        </p>
-        <button class="delete" aria-label="close" onclick="closeCreateMeetingModal()"></button>
-      </header>
-      <section class="modal-card-body">
-        <form id="createMeetingForm" method="post" action="/meetings/create">
-          <div class="field">
-            <label class="label">Meeting Title</label>
-            <div class="control">
-              <input class="input" type="text" name="title" placeholder="Weekly Team Sync" required>
-            </div>
-          </div>
+  <div id="createMeetingModal" class="modal"></div>
 
-          <div class="field">
-            <label class="label">Description</label>
-            <div class="control">
-              <textarea class="textarea" name="description" placeholder="Brief description of the meeting purpose" rows="3"></textarea>
-            </div>
-          </div>
-
-          <div class="field">
-            <label class="label">Team</label>
-            <div class="control">
-              <div class="select is-fullwidth">
-                <select name="team" required>
-                  <option value="">Select a team</option>
-                  <option value="engineering">Engineering Team</option>
-                  <option value="product">Product Team</option>
-                  <option value="design">Design Team</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div class="field">
-            <label class="label">Scheduled Date & Time</label>
-            <div class="control">
-              <input class="input" type="datetime-local" name="scheduled-at" required>
-            </div>
-          </div>
-
-          <div class="field">
-            <label class="label">Meeting URL (Optional)</label>
-            <div class="control">
-              <input class="input" type="url" name="join-url" placeholder="https://meet.google.com/abc-defg-hij">
-            </div>
-            <p class="help">Google Meet, Zoom, or other video conference link</p>
-          </div>
-
-          <div class="field">
-            <label class="label">Meeting Settings</label>
-            <div class="control">
-              <label class="checkbox">
-                <input type="checkbox" name="allow-topic-voting" checked>
-                Allow topic voting
-              </label>
-            </div>
-            <div class="control mt-2">
-              <label class="checkbox">
-                <input type="checkbox" name="sort-topics-by-votes" checked>
-                Sort topics by vote count
-              </label>
-            </div>
-            <div class="control mt-2">
-              <label class="checkbox">
-                <input type="checkbox" name="is-visible" checked>
-                Visible to team members
-              </label>
-            </div>
-          </div>
-        </form>
-      </section>
-      <footer class="modal-card-foot">
-        <button class="button is-success" type="submit" form="createMeetingForm">
-          <span class="icon">
-            <i class="fas fa-calendar-plus"></i>
-          </span>
-          <span>Create Meeting</span>
-        </button>
-        <button class="button" onclick="closeCreateMeetingModal()">Cancel</button>
-      </footer>
-    </div>
-  </div>
-
-  <script>
-    function openCreateMeetingModal() {
-      document.getElementById('createMeetingModal').classList.add('is-active');
-      // Set default datetime to 1 hour from now
-      const now = new Date();
-      now.setHours(now.getHours() + 1);
-      now.setMinutes(0, 0, 0); // Round to the hour
-      document.querySelector('input[name="scheduled-at"]').value = now.toISOString().slice(0, 16);
-    }
-
-    function closeCreateMeetingModal() {
-      document.getElementById('createMeetingModal').classList.remove('is-active');
-      document.getElementById('createMeetingForm').reset();
-    }
-
-    // Close modal when pressing Escape key
-    document.addEventListener('keydown', function(event) {
-      if (event.key === 'Escape') {
-        closeCreateMeetingModal();
-      }
-    });
-  </script>
 {% endblock %}
