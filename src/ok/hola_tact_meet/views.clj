@@ -138,6 +138,20 @@
           (d*/merge-fragment! sse (render-file "templates/create_meeting_modal.html" {:teams teams}))))
       )}))
 
+(defn admin-project-settings [request]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (let [settings {:allowed-domains ["example.com" "company.org"]
+                      :google-oauth-enabled true
+                      :google-client-id "your-google-client-id"
+                      :google-client-secret "***hidden***"}]
+        (log/info "Loading project settings")
+        (d*/with-open-sse sse
+          (d*/merge-fragment! sse (render-file "templates/project_settings_modal.html" settings))))
+      )}))
+
 
 (defn admin-user-teams-change [request]
   (->sse-response

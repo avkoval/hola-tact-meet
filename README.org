@@ -47,6 +47,9 @@ See also [[https://orgpad.info/o/AZXSvxkUdIo7kZUmIwy7SP][Orgpad: Structural Meet
 
    - Admin
      - ⚙ project settings link
+       - Allowed domains list
+       - Allowed oauth2 providers list
+
      - Permissions
      - Manage users
 
@@ -256,6 +259,7 @@ I need fake login to quickly login several users for testing purposes on localho
    - [X] add user when actually making login
    - [X] make separate page for fake login functionality
 
+
 *** WORKING Create meeeting
     :LOGBOOK:
     - State "WORKING"    from              [2025-07-08 Tue 09:15]
@@ -264,6 +268,8 @@ I need fake login to quickly login several users for testing purposes on localho
  - [X] move to SSE
  - [ ] populate teams list
  - [ ] save data
+ - [ ] for staff user - limit teams to member only
+   - [ ] for admin user - no limits
 
 *** TODO Admin settings & preferences [50%]
     :LOGBOOK:
@@ -398,5 +404,6 @@ https://github.com/weavejester/ring-oauth2
  - [ ] UI tests via https://github.com/ryrobes/rabbitize
  - [ ] gitlab/github CI?
  - [ ] manage/search users - commented out for now
+ - [ ] auto add team to selected list for user after creation via modal 
 
 

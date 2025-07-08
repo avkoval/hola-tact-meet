@@ -49,6 +49,7 @@
      ["/admin/meeting/add" {:get (middleware/wrap-require-staff views/staff-create-meeting) 
                             ;:post (middleware/wrap-require-admin views/admin-user-teams-change)
                             }]
+     ["/admin/project-settings" {:get (middleware/wrap-require-admin views/admin-project-settings)}]
      ["/admin/manage-users/:user/teams/add" {:post (middleware/wrap-require-admin views/admin-user-teams-add)}]
      ["/change-css-theme" {:get views/change-css-theme}]
      ["/logout" {:get views/logout}]
