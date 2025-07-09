@@ -38,7 +38,7 @@
               <select name="team" required>
                 <option value="">Select a team</option>
                 {% for team in teams %}
-                <option value="{{ team.id }}">{{ team.name }}</option>
+                  <option value="{{ team.db/id }}">{{ team.team/name }}</option>
                 {% endfor %}
               </select>
             </div>

@@ -132,10 +132,12 @@
    request
    {on-open
     (fn [sse]
-      (let [teams (db/get-all-teams)]
-        (log/info "render")
+      (let [user-id (get-in request [:session :userinfo :user-id])
+            user-data (db/get-user-by-id user-id)
+            user-teams (:user/teams user-data)]
+        (log/info (str "Create meeting popup requested by: " (:user/email user-data)))
         (d*/with-open-sse sse
-          (d*/merge-fragment! sse (render-file "templates/create_meeting_modal.html" {:teams teams}))))
+          (d*/merge-fragment! sse (render-file "templates/create_meeting_modal.html" {:teams user-teams}))))
       )}))
 
 (defn admin-project-settings [request]
