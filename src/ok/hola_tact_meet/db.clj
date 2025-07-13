@@ -236,6 +236,44 @@
       (create-team! team-data)
       {:success false :error "Invalid team data format"})))
 
+(defn user-is-team-member?
+  "Check if a user is a member of a specific team"
+  [user-id team-id]
+  (let [db (get-db)
+        result (d/q '[:find ?user-id
+                      :in $ ?user-id ?team-id
+                      :where [?user-id :user/teams ?team-id]]
+                    db user-id team-id)]
+    (seq result)))
+
+(defn add-meeting!
+  "Add a new meeting to the database"
+  [meeting-data user-id]
+  (try
+    (let [team-id (Long/parseLong (:team meeting-data))
+          scheduled-at (java.time.Instant/parse (str (:scheduled-at meeting-data) ":00Z"))
+          temp-id "new-meeting"
+          meeting-tx-data {:db/id temp-id
+                          :meeting/title (:title meeting-data)
+                          :meeting/description (or (:description meeting-data) "")
+                          :meeting/team team-id
+                          :meeting/created-by user-id
+                          :meeting/created-at (java.util.Date.)
+                          :meeting/scheduled-at (java.util.Date/from scheduled-at)
+                          :meeting/status "scheduled"
+                          :meeting/join-url (or (:join-url meeting-data) "")
+                          :meeting/allow-topic-voting (boolean (:allow-topic-voting meeting-data))
+                          :meeting/sort-topics-by-votes (boolean (:sort-topics-by-votes meeting-data))
+                          :meeting/is-visible (boolean (:is-visible meeting-data))}
+          result (d/transact (get-conn) {:tx-data [meeting-tx-data]})
+          meeting-id (get-in result [:tempids temp-id])]
+      (log/info meeting-tx-data result)
+      (log/info "Meeting created successfully with ID:" meeting-id)
+      {:success true :meeting-id meeting-id})
+    (catch Exception e
+      (log/error "Failed to create meeting:" (.getMessage e))
+      {:success false :error (str "Failed to create meeting: " (.getMessage e))})))
+
 (defn update-user-teams!
   "Update user's team memberships. Replaces all existing team memberships with new ones.
    user-id: database ID of the user

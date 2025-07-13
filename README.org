@@ -1,3 +1,6 @@
+#+SETUPFILE: https://fniessen.github.io/org-html-themes/org/theme-readtheorg.setup
+#+options: num:nil toc:t ^:nil title:nil
+
 * hola-tact-meet
 
 ** Purpose
@@ -194,7 +197,7 @@ Copyright © 2025 Oleksii Koval
 
 Distributed under the MIT License
 
-** COMMENT Current work plan & progress [38%]
+** Current work plan & progress [38%]
 
 *** DONE Set appropriate License
     CLOSED: [2025-06-15 Sun 21:30]

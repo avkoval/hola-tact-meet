@@ -10,6 +10,7 @@
    [clojure.java.io]
    [ok.oauth2.utils :refer [get-oauth-config]]
    [clojure.tools.logging :as log]
+   [clojure.walk :refer [keywordize-keys]]
    [faker.generate :as gen]
    [datomic.client.api :as d]
    [clojure.pprint :refer [pprint]]
@@ -127,7 +128,7 @@
       )}))
 
 
-(defn staff-create-meeting [request]
+(defn staff-create-meeting-popup [request]
   (->sse-response
    request
    {on-open
@@ -139,6 +140,66 @@
         (d*/with-open-sse sse
           (d*/merge-fragment! sse (render-file "templates/create_meeting_modal.html" {:teams user-teams}))))
       )}))
+
+
+(defn staff-create-meeting-save [request]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (let [user-id (get-in request [:session :userinfo :user-id])
+            user-data (db/get-user-by-id user-id)
+            form-params (keywordize-keys (:form-params request))
+            user-teams (:user/teams user-data)]
+        (log/info (str "Create meeting save requested by: " (:user/email user-data)))
+        (pprint form-params)
+
+        ;; Validate meeting data
+        (let [meeting-data {:title (:title form-params)
+                            :description (:description form-params)
+                            :team (:team form-params)
+                            :scheduled-at (:scheduled-at form-params)
+                            :join-url (:join-url form-params)
+                            :allow-topic-voting (= (:allow-topic-voting form-params) "on")
+                            :sort-topics-by-votes (= (:sort-topics-by-votes form-params) "on")
+                            :is-visible (= (:is-visible form-params) "on")}]
+
+          (d*/with-open-sse sse
+            (if (m/validate v/MeetingData meeting-data)
+              ;; Check if user is member of selected team
+              (let [team-id (Long/parseLong (:team meeting-data))]
+                (if (db/user-is-team-member? user-id team-id)
+                  ;; Create meeting
+                  (let [create-result (db/add-meeting! meeting-data user-id)]
+                    (if (:success create-result)
+                      (do
+                        (log/info "Meeting created successfully:" (:meeting-id create-result))
+                        (d*/merge-fragment! sse "<div id=\"createMeetingModal\"></div>")
+                        (d*/merge-fragment!
+                         sse
+                         (render-file "templates/notifications.html"
+                                      {:notifications [{:level "info"
+                                                        :text "New meeting created successfully" }]})))
+                      (do
+                        (log/warn "Failed to create meeting:" (:error create-result))
+                        (d*/merge-fragment! sse (render-file "templates/create_meeting_modal.html"
+                                                             {:teams user-teams
+                                                              :error-message (:error create-result)})))))
+                  ;; User is not a member of the team
+                  (do
+                    (log/warn "User" user-id "is not a member of team" team-id)
+                    (d*/merge-fragment! sse (render-file "templates/create_meeting_modal.html"
+                                                         {:teams user-teams
+                                                          :error-message "You are not a member of the selected team"})))))
+              ;; Invalid meeting data
+              (do
+                (log/warn "Invalid meeting data:" meeting-data)
+                (d*/merge-fragment! sse (render-file "templates/create_meeting_modal.html"
+                                                     {:teams user-teams
+                                                      :error-message "Invalid meeting data. Please check all fields."}))))))
+        )
+      )}))
+
 
 (defn admin-project-settings [request]
   (->sse-response
@@ -216,6 +277,7 @@
         (log/debug "Team data:" team-data)
 
         ;; Validate and create team
+        ;;; XXX fix this code I don't like repetition here
         (if (m/validate v/TeamData team-data)
           (let [create-result (db/create-team-with-validation! team-data)]
             (if (:success create-result)
