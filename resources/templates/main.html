@@ -144,11 +144,34 @@
 
       <!-- Recent Activity -->
       <div class="box mt-5">
-        <h2 class="title is-5">Recent Activity</h2>
+        <h2 class="title is-5">Recent Meetings</h2>
         <div class="content">
-          <div class="notification is-light">
-            <p><strong>No recent meetings</strong> - Create your first meeting to get started!</p>
-          </div>
+          {% if recent-meetings %}
+            {% for meeting in recent-meetings %}
+            <div class="box is-light">
+              <article class="media">
+                <div class="media-left">
+                  <span class="icon is-large">
+                    <i class="fas fa-calendar-alt fa-2x"></i>
+                  </span>
+                </div>
+                <div class="media-content">
+                  <div class="content">
+                    <p>
+                      <strong>{{ meeting.title }}</strong>
+                      <br>
+                      <small>Created by {{ meeting.created-by-name }} on {{ meeting.created-at|date:"MMM d, yyyy" }}</small>
+                    </p>
+                  </div>
+                </div>
+              </article>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="notification is-light">
+              <p><strong>No recent meetings</strong> - Create your first meeting to get started!</p>
+            </div>
+          {% endif %}
         </div>
       </div>
 
@@ -185,5 +208,7 @@
 
   <div id="createMeetingModal" class="modal"></div>
   <div id="projectSettingsModal" class="modal"></div>
+  
+  {% include "templates/join_meeting_modal.html" %}
 
 {% endblock %}

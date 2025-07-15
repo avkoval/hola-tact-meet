@@ -15,10 +15,10 @@
         metosin/malli {:mvn/version "0.19.1"}
         ;; datastar
         datastar/sdk {:git/url "https://github.com/starfederation/datastar/"
-              :git/sha "c41f2a15fbdb0014d243eb436d3cdb047ffc5c2e"
+              :git/sha "d86d859e6829bff2d4c8896b154f05eeb9a5c73c"
               :deps/root "sdk/clojure/sdk"}
         datastar/ring {:git/url "https://github.com/starfederation/datastar/"
-               :git/sha "c41f2a15fbdb0014d243eb436d3cdb047ffc5c2e"
+               :git/sha "d86d859e6829bff2d4c8896b154f05eeb9a5c73c"
                :deps/root "sdk/clojure/adapter-ring"}
         ;; Notes on logging: https://gist.github.com/jacobobryant/76b7a08a07d5ef2cc076b048d078f1f3
         org.slf4j/slf4j-simple     {:mvn/version "2.0.0-alpha5"}

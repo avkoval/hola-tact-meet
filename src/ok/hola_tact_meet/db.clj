@@ -300,6 +300,76 @@
     (catch Exception e
       {:success false :error (str "Failed to update user teams: " (.getMessage e))})))
 
+(defn get-recent-meetings-for-user
+  "Get recent meetings for user's teams, limited to 3 most recent"
+  [user-id]
+  (let [db (get-db)
+        ;; First get user's teams
+        user-teams-result (d/q '[:find ?team
+                                :in $ ?user-id
+                                :where [?user-id :user/teams ?team]]
+                              db user-id)
+        user-team-ids (mapv first user-teams-result)]
+    (if (seq user-team-ids)
+      ;; Get meetings for user's teams, sorted by created-at desc, limit 3
+      (let [meetings-result (d/q '[:find ?meeting ?title ?created-at ?created-by-name
+                                  :in $ [?team-id ...]
+                                  :where
+                                  [?meeting :meeting/team ?team-id]
+                                  [?meeting :meeting/title ?title]
+                                  [?meeting :meeting/created-at ?created-at]
+                                  [?meeting :meeting/created-by ?created-by]
+                                  [?created-by :user/name ?created-by-name]]
+                                db user-team-ids)
+            ;; Sort by created-at desc and take first 3
+            sorted-meetings (->> meetings-result
+                               (sort-by #(nth % 2) #(compare %2 %1))
+                               (take 3))]
+        (mapv (fn [[meeting-id title created-at created-by-name]]
+                {:id meeting-id
+                 :title title
+                 :created-at created-at
+                 :created-by-name created-by-name})
+              sorted-meetings))
+      [])))
+
+(defn get-active-meetings-for-user
+  "Get all active meetings for user's teams (future/now + is_visible=true)"
+  [user-id]
+  (let [db (get-db)
+        now (java.util.Date.)
+        ;; First get user's teams
+        user-teams-result (d/q '[:find ?team
+                                :in $ ?user-id
+                                :where [?user-id :user/teams ?team]]
+                              db user-id)
+        user-team-ids (mapv first user-teams-result)]
+    (if (seq user-team-ids)
+      ;; Get active meetings for user's teams
+      (let [meetings-result (d/q '[:find ?meeting ?title ?scheduled-at ?created-by-name ?join-url
+                                  :in $ [?team-id ...] ?now
+                                  :where
+                                  [?meeting :meeting/team ?team-id]
+                                  [?meeting :meeting/title ?title]
+                                  [?meeting :meeting/scheduled-at ?scheduled-at]
+                                  [?meeting :meeting/is-visible true]
+                                  [?meeting :meeting/created-by ?created-by]
+                                  [?created-by :user/name ?created-by-name]
+                                  [?meeting :meeting/join-url ?join-url]
+                                  [(>= ?scheduled-at ?now)]]
+                                db user-team-ids now)
+            ;; Sort by scheduled-at asc (earliest first)
+            sorted-meetings (->> meetings-result
+                               (sort-by #(nth % 2)))]
+        (mapv (fn [[meeting-id title scheduled-at created-by-name join-url]]
+                {:id meeting-id
+                 :title title
+                 :scheduled-at scheduled-at
+                 :created-by-name created-by-name
+                 :join-url join-url})
+              sorted-meetings))
+      [])))
+
 (defn get-user-statistics
   "Get user statistics for dashboard display"
   []
@@ -384,7 +454,17 @@
   (def all-users-q '[:find ?user-name
                      :where [_ :user/name ?user-name]])
 
+  (def all-teams-q '[:find ?team-name
+                     :where [_ :team/name ?team-name]])
+
+  (def all-meetings-q '[:find ?meeting-title
+                        :where [_ :meeting/title ?meeting-title]])
+
+
+
   (d/q all-users-q (get-db))
+  (d/q all-teams-q (get-db))
+  (d/q all-meetings-q (get-db))
 
   (def query '[:find ?e ?name ?email
                :where

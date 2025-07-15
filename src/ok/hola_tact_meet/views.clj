@@ -39,9 +39,16 @@
 
 (defn app-main [{session :session}]
   (log/info "Main app page accessed")
-  {:status 200
-   :headers {"Content-Type" "text/html"}
-   :body (render-file "templates/main.html" {:userinfo (:userinfo session)})})
+  (let [userinfo (:userinfo session)
+        user-email (:email userinfo)
+        user-id (when user-email (db/find-user-by-email user-email))
+        recent-meetings (if user-id (db/get-recent-meetings-for-user user-id) [])
+        active-meetings (if user-id (db/get-active-meetings-for-user user-id) [])]
+    {:status 200
+     :headers {"Content-Type" "text/html"}
+     :body (render-file "templates/main.html" {:userinfo userinfo
+                                               :recent-meetings recent-meetings
+                                               :active-meetings active-meetings})}))
 
 (defn admin-manage-users [{session :session}]
   (let [users (db/get-all-users)
@@ -67,7 +74,7 @@
           (d/transact (db/get-conn) {:tx-data [{:db/id (Long/parseLong user_id)
                                                 :user/access-level new_access_level}]}))
         (d*/with-open-sse sse
-          (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))))}))
+          (d*/patch-elements! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))))}))
 
 
 (defn admin-toggle-user [request]
@@ -83,7 +90,7 @@
                 new-active-status (db/toggle-user-active! user-id-long)]
             (log/info "User" user_id "active status toggled to" new-active-status)))
         (d*/with-open-sse sse
-          (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)}))))
+          (d*/patch-elements! sse (render-file "templates/users_list.html" {:users (db/get-all-users)}))))
       )}))
 
 
@@ -93,7 +100,7 @@
    {on-open
     (fn [sse]
       (d*/with-open-sse sse
-          (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))
+          (d*/patch-elements! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))
       )}))
 
 (defn- prepare-teams-with-membership
@@ -124,7 +131,7 @@
             template-data (prepare-teams-with-membership user-id-long)]
         (log/debug "Loading teams for user:" user_id)
         (d*/with-open-sse sse
-          (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data))))
+          (d*/patch-elements! sse (render-file "templates/user_teams_management_modal.html" template-data))))
       )}))
 
 
@@ -138,7 +145,7 @@
             user-teams (:user/teams user-data)]
         (log/info (str "Create meeting popup requested by: " (:user/email user-data)))
         (d*/with-open-sse sse
-          (d*/merge-fragment! sse (render-file "templates/create_meeting_modal.html" {:teams user-teams}))))
+          (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html" {:teams user-teams}))))
       )}))
 
 
@@ -174,27 +181,27 @@
                     (if (:success create-result)
                       (do
                         (log/info "Meeting created successfully:" (:meeting-id create-result))
-                        (d*/merge-fragment! sse "<div id=\"createMeetingModal\"></div>")
-                        (d*/merge-fragment!
+                        (d*/patch-elements! sse "<div id=\"createMeetingModal\"></div>")
+                        (d*/patch-elements!
                          sse
                          (render-file "templates/notifications.html"
                                       {:notifications [{:level "info"
                                                         :text "New meeting created successfully" }]})))
                       (do
                         (log/warn "Failed to create meeting:" (:error create-result))
-                        (d*/merge-fragment! sse (render-file "templates/create_meeting_modal.html"
+                        (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html"
                                                              {:teams user-teams
                                                               :error-message (:error create-result)})))))
                   ;; User is not a member of the team
                   (do
                     (log/warn "User" user-id "is not a member of team" team-id)
-                    (d*/merge-fragment! sse (render-file "templates/create_meeting_modal.html"
+                    (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html"
                                                          {:teams user-teams
                                                           :error-message "You are not a member of the selected team"})))))
               ;; Invalid meeting data
               (do
                 (log/warn "Invalid meeting data:" meeting-data)
-                (d*/merge-fragment! sse (render-file "templates/create_meeting_modal.html"
+                (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html"
                                                      {:teams user-teams
                                                       :error-message "Invalid meeting data. Please check all fields."}))))))
         )
@@ -212,7 +219,7 @@
                       :google-client-secret "***hidden***"}]
         (log/info "Loading project settings")
         (d*/with-open-sse sse
-          (d*/merge-fragment! sse (render-file "templates/project_settings_modal.html" settings))))
+          (d*/patch-elements! sse (render-file "templates/project_settings_modal.html" settings))))
       )}))
 
 
@@ -240,7 +247,7 @@
 
         (d*/with-open-sse sse
           ;; Return updated modal
-          (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" (prepare-teams-with-membership user-id-long)))
+          (d*/patch-elements! sse (render-file "templates/user_teams_management_modal.html" (prepare-teams-with-membership user-id-long)))
           )
           )
 
@@ -286,13 +293,13 @@
                 (let [template-data (assoc (prepare-teams-with-membership user-id-long)
                                            :success-message "Team created successfully!")]
                   (d*/with-open-sse sse
-                    (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data)))))
+                    (d*/patch-elements! sse (render-file "templates/user_teams_management_modal.html" template-data)))))
               (do
                 (log/warn "Failed to create team:" (:error create-result))
                 (let [template-data (assoc (prepare-teams-with-membership user-id-long)
                                            :error-message (:error create-result))]
                   (d*/with-open-sse sse
-                    (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data)))))))
+                    (d*/patch-elements! sse (render-file "templates/user_teams_management_modal.html" template-data)))))))
           (let [validation-errors (m/explain v/TeamData team-data)
                 template-data (assoc (prepare-teams-with-membership user-id-long)
                                      :validation-errors validation-errors
@@ -300,7 +307,7 @@
             (log/warn "Invalid team data:" team-data)
             (log/warn "Validation errors:" validation-errors)
             (d*/with-open-sse sse
-              (d*/merge-fragment! sse (render-file "templates/user_teams_management_modal.html" template-data))))
+              (d*/patch-elements! sse (render-file "templates/user_teams_management_modal.html" template-data))))
           )
 
         ))}))
@@ -324,7 +331,7 @@
         ;;   (d/transact (db/get-conn) {:tx-data [{:db/id (Long/parseLong user_id)
         ;;                                         :user/access-level new_access_level}]}))
         ;; (d*/with-open-sse sse
-        ;;   (d*/merge-fragment! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))
+        ;;   (d*/patch-elements! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))
 
 
         ))}))
@@ -414,7 +421,7 @@
                   {on-open
                    (fn [sse]
                      (d*/with-open-sse sse
-                       (d*/merge-fragment! sse
+                       (d*/patch-elements! sse
                         (render-file "templates/fake-user-form.html" (fake-user-data)))
                        ))}))
 
