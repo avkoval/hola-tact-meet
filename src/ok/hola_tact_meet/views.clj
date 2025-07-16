@@ -131,9 +131,27 @@
             template-data (prepare-teams-with-membership user-id-long)]
         (log/debug "Loading teams for user:" user_id)
         (d*/with-open-sse sse
-          (d*/patch-elements! sse (render-file "templates/user_teams_management_modal.html" template-data))))
+          (d*/patch-elements! sse (render-file "templates/user_teams_management_modal.html" template-data))
+          ))
       )}))
 
+
+(defn join-meeting-modal [{session :session :as request}]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (let [userinfo (:userinfo session)
+        user-email (:email userinfo)
+        user-id (when user-email (db/find-user-by-email user-email))
+        active-meetings (if user-id (db/get-active-meetings-for-user user-id) [])]
+        (log/info active-meetings)
+        (log/debug "Join meeting for:" user-id)
+        (d*/with-open-sse sse
+          (d*/patch-elements! sse (render-file "templates/join_meeting_modal.html" {:active-meetings active-meetings}))
+          (d*/patch-signals! sse "{joinMeetingModalOpen: true}")
+          ))
+      )}))
 
 (defn staff-create-meeting-popup [request]
   (->sse-response

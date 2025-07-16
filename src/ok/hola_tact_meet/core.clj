@@ -53,6 +53,7 @@
      ["/admin/manage-users/:user/teams/add" {:post (middleware/wrap-require-admin views/admin-user-teams-add)}]
      ["/change-css-theme" {:get views/change-css-theme}]
      ["/logout" {:get views/logout}]
+     ["/meeting/join" {:get (middleware/wrap-require-auth views/join-meeting-modal)}]
      ])
    (constantly {:status 404, :body "Not Found."})))
 
