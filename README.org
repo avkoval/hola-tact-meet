@@ -197,7 +197,7 @@ Copyright © 2025 Oleksii Koval
 
 Distributed under the MIT License
 
-** Current work plan & progress [38%]
+** Current work plan & progress [50%]
 
 *** DONE Set appropriate License
     CLOSED: [2025-06-15 Sun 21:30]
@@ -262,17 +262,18 @@ I need fake login to quickly login several users for testing purposes on localho
    - [X] add user when actually making login
    - [X] make separate page for fake login functionality
 
-
-*** WORKING Create meeeting
+*** DONE Create meeeting
+    CLOSED: [2025-07-17 Thu 08:10]
     :LOGBOOK:
+    - State "DONE"       from "WORKING"    [2025-07-17 Thu 08:10]
     - State "WORKING"    from              [2025-07-08 Tue 09:15]
     :END:
 
  - [X] move to SSE
- - [ ] populate teams list
- - [ ] save data
- - [ ] for staff user - limit teams to member only
-   - [ ] for admin user - no limits
+ - [X] populate teams list
+ - [X] save data
+ - [X] for staff user - limit teams to member only
+   - [X] for admin user - no limits
 
 *** TODO Admin settings & preferences [50%]
     :LOGBOOK:
@@ -383,6 +384,21 @@ https://github.com/weavejester/ring-oauth2
      :LOGBOOK:
      - State "TODO"       from              [2025-06-18 Wed 10:25]
      :END:
+*** DONE [#A] Join meeting
+    CLOSED: [2025-07-17 Thu 11:20]
+    :LOGBOOK:
+    - State "DONE"       from "TODO"       [2025-07-17 Thu 11:20]
+    - State "TODO"       from              [2025-07-17 Thu 08:10]
+    :END:
+
+    1) [X] Check that user can join this team meetings
+    2) [X] Create "participants" table for the meeting:
+       1) user id
+       2) meeting id
+       3) join time
+    3) [X] Create record in participants table
+    4) [X] Redirect to main meeting screen
+
 *** TODO Make sure to enable gzip or even better: brothli compression
     :LOGBOOK:
     - State "TODO"       from              [2025-06-15 Sun 20:55]

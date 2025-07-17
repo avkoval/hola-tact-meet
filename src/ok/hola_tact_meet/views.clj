@@ -50,6 +50,32 @@
                                                :recent-meetings recent-meetings
                                                :active-meetings active-meetings})}))
 
+(defn join-meeting
+  "Join meeting by checking permissions and saving join time"
+  [{session :session :as request}]
+  (log/info "Join meeting")
+  (let [userinfo (:userinfo session)
+        user-email (:email userinfo)
+        user-id (when user-email (db/find-user-by-email user-email))
+        meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))]
+    (cond
+      (not user-id)
+      {:status 401
+       :body "User not found"}
+
+      (not (db/user-has-active-meeting? user-id meeting-id))
+      {:status 403
+       :body "You don't have access to this meeting"}
+
+      :else
+      (let [result (db/add-participant! user-id meeting-id)]
+        (if (:success result)
+          {:status 302
+           :headers {"Location" (str "/meeting/" meeting-id)}}
+          {:status 500
+           :body (:error result)})))))
+
+
 (defn admin-manage-users [{session :session}]
   (let [users (db/get-all-users)
         statistics (db/get-user-statistics)
@@ -163,7 +189,9 @@
             user-teams (:user/teams user-data)]
         (log/info (str "Create meeting popup requested by: " (:user/email user-data)))
         (d*/with-open-sse sse
-          (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html" {:teams user-teams}))))
+          (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html" {:teams user-teams}))
+          (d*/patch-signals! sse "{createMeetingModalOpen: true}")
+          ))
       )}))
 
 

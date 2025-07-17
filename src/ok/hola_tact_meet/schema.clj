@@ -248,9 +248,27 @@
 
                   ])
 
+(def participant-schema [{:db/ident       :participant/user
+                          :db/valueType   :db.type/ref
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "User who joined the meeting."}
+
+                         {:db/ident       :participant/meeting
+                          :db/valueType   :db.type/ref
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "Meeting the user joined."}
+
+                         {:db/ident       :participant/joined-at
+                          :db/valueType   :db.type/instant
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "When the user joined the meeting."}
+
+                         ])
+
 (def all-schema (concat user-schema
                         team-schema
                         meeting-schema
                         topic-schema
                         action-item-schema
-                        vote-schema))
+                        vote-schema
+                        participant-schema))

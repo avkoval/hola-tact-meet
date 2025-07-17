@@ -398,6 +398,28 @@
      :staff-count (count staff-users-result)}))
 
 
+(defn user-has-active-meeting?
+  "Check if user has a specific meeting in their active meetings"
+  [user-id meeting-id]
+  (let [active-meetings (get-active-meetings-for-user user-id)
+        meeting-ids (set (map :id active-meetings))]
+    (contains? meeting-ids meeting-id)))
+
+(defn add-participant!
+  "Add a participant to a meeting"
+  [user-id meeting-id]
+  (try
+    (let [participant-data {:participant/user user-id
+                            :participant/meeting meeting-id
+                            :participant/joined-at (java.util.Date.)}
+          _ (d/transact (get-conn) {:tx-data [participant-data]})]
+      (log/info "Participant added successfully:" participant-data)
+      {:success true})
+    (catch Exception e
+      (log/error "Failed to add participant:" (.getMessage e))
+      )))
+
+
 (comment
 
   ;; Initialize database and schema
@@ -472,4 +494,6 @@
                [?e :user/email ?email]])
 
   (get-all-users)
+
+  (d/transact (get-conn) {:tx-data schema/participant-schema})
   )
