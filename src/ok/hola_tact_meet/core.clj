@@ -55,6 +55,7 @@
      ["/logout" {:get views/logout}]
      ["/meeting/join" {:get (middleware/wrap-require-auth views/join-meeting-modal)}]
      ["/meeting/:meeting-id/join" {:post (middleware/wrap-require-auth views/join-meeting)}]
+     ["/meeting/:meeting-id/main" {:get (middleware/wrap-require-auth views/meeting-main)}]
      ])
    (constantly {:status 404, :body "Not Found."})))
 

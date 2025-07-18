@@ -50,6 +50,19 @@
                                                :recent-meetings recent-meetings
                                                :active-meetings active-meetings})}))
 
+
+
+(defn meeting-main [{session :session}]
+  (log/info "Main meeting screen")
+  (let [userinfo (:userinfo session)
+        user-email (:email userinfo)
+        user-id (when user-email (db/find-user-by-email user-email))
+        ]
+    {:status 200
+     :headers {"Content-Type" "text/html"}
+     :body (render-file "templates/meeting.html" {:userinfo userinfo
+                                                  })}))
+
 (defn join-meeting
   "Join meeting by checking permissions and saving join time"
   [{session :session :as request}]
@@ -71,7 +84,7 @@
       (let [result (db/add-participant! user-id meeting-id)]
         (if (:success result)
           {:status 302
-           :headers {"Location" (str "/meeting/" meeting-id)}}
+           :headers {"Location" (str "/meeting/" meeting-id "/main")}}
           {:status 500
            :body (:error result)})))))
 
