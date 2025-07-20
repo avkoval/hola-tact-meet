@@ -3,7 +3,7 @@
    [ring.util.response :as response]
    [selmer.parser :refer [render-file] :as selmer]
    [starfederation.datastar.clojure.api :as d*]
-   [starfederation.datastar.clojure.adapter.ring :refer [->sse-response on-open]]
+   [starfederation.datastar.clojure.adapter.ring :refer [->sse-response on-open on-close]]
    [ok.hola-tact-meet.utils :as utils]
    [ok.hola-tact-meet.db :as db]
    [ok.hola-tact-meet.validation :as v]
@@ -15,6 +15,7 @@
    [datomic.client.api :as d]
    [clojure.pprint :refer [pprint]]
    [malli.core :as m]
+   [clojure.core.async :as async :refer [<! <!!]]
    )
   (:gen-class))
 
@@ -40,10 +41,10 @@
 (defn app-main [{session :session}]
   (log/info "Main app page accessed")
   (let [userinfo (:userinfo session)
-        user-email (:email userinfo)
-        user-id (when user-email (db/find-user-by-email user-email))
+        user-id (:user-id userinfo)
         recent-meetings (if user-id (db/get-recent-meetings-for-user user-id) [])
         active-meetings (if user-id (db/get-active-meetings-for-user user-id) [])]
+    (log/info userinfo)
     {:status 200
      :headers {"Content-Type" "text/html"}
      :body (render-file "templates/main.html" {:userinfo userinfo
@@ -52,24 +53,77 @@
 
 
 
-(defn meeting-main [{session :session}]
-  (log/info "Main meeting screen")
+(defonce meeting-content-version (atom 1))
+(def clients (atom {}))
+
+(defn broadcast 
+  "Function to broadcast a message to all connected clients"
+  [msg]
+  (doseq [[_ ch] @clients]
+    (async/put! ch msg)))
+
+
+(defn render-meeting-body [{session :session :as request} render-full-body]
   (let [userinfo (:userinfo session)
-        user-email (:email userinfo)
-        user-id (when user-email (db/find-user-by-email user-email))
-        ]
-    {:status 200
-     :headers {"Content-Type" "text/html"}
-     :body (render-file "templates/meeting.html" {:userinfo userinfo
-                                                  })}))
+        user-id (:user-id userinfo)
+        meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+        topics (when meeting-id (db/get-topics-for-meeting meeting-id))
+        ;; Add user's current vote for each topic
+        topics-with-votes (when user-id
+                            (mapv (fn [topic]
+                                    (assoc topic :user-vote 
+                                           (db/get-user-vote-for-topic user-id (:id topic))))
+                                  topics))
+        template (if render-full-body "templates/meeting.html" "templates/meeting-content.html")]
+    (render-file template {:userinfo userinfo
+                           :meeting-id meeting-id
+                           :meeting-content-version (deref meeting-content-version)
+                           :topics (or topics-with-votes topics [])})))
+
+(defn meeting-main [request]
+  (log/info "Main meeting screen")
+  {:status 200
+   :headers {"Content-Type" "text/html"}
+   :body (render-meeting-body request true)})
+
+
+(defn meeting-main-refresh-content [request]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (log/info "meeting-main-refresh-content")
+      (d*/with-open-sse sse
+        (let [ch (async/chan)
+              client-id (java.util.UUID/randomUUID)]  ;; Create a unique identifier for the client
+          (swap! clients assoc client-id ch)  ;; Add the client channel to the clients map
+          (async/go
+            (loop []
+              (when-let [msg (<! ch)]
+                ;; Here you would normally handle messages from the client
+                (d*/patch-elements! sse (render-meeting-body request false))
+                ;; For this example, just log the incoming message
+                (log/info "Received from client:" client-id msg)
+                (recur))))
+          (log/info "outside go block")
+          ;; Return a cleanup function to remove the client on disconnect
+          ;; (fn []
+          ;;   (swap! clients dissoc client-id))
+          )
+        )      
+      )
+    on-close
+    (fn [sse]
+      (log/info "meeting-main-refresh-content closing channel")
+      )
+    }))
 
 (defn join-meeting
   "Join meeting by checking permissions and saving join time"
   [{session :session :as request}]
   (log/info "Join meeting")
   (let [userinfo (:userinfo session)
-        user-email (:email userinfo)
-        user-id (when user-email (db/find-user-by-email user-email))
+        user-id (:user-id userinfo)
         meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))]
     (cond
       (not user-id)
@@ -88,6 +142,77 @@
           {:status 500
            :body (:error result)})))))
 
+(defn meeting-add-topic [request]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            user-id (get-in request [:session :userinfo :user-id])
+            new-topic (get-in request [:form-params "new-topic"])]
+        (log/info "Adding new topic:" new-topic "to meeting:" meeting-id "by user:" user-id)
+        
+        (d*/with-open-sse sse
+          (if (and new-topic user-id meeting-id 
+                   (not (clojure.string/blank? new-topic))
+                   (<= (count new-topic) 250))
+            ;; Add topic to database
+            (let [result (db/add-topic! meeting-id user-id (clojure.string/trim new-topic))]
+              (if (:success result)
+                (do
+                  (log/info "Topic added successfully with ID:" (:topic-id result))
+                  ;; Get updated topics list with votes
+                  (swap! meeting-content-version inc)
+                  (d*/patch-signals! sse (str "{meetingContentVersion: " @meeting-content-version "}"))
+                  (broadcast "topics-change")
+                  )
+                (do
+                  (log/error "Failed to add topic:" (:error result))
+                  (d*/patch-elements! sse "<div class='notification is-danger'>Failed to add topic</div>"))))
+            ;; Invalid input
+            (do
+              (log/warn "Invalid topic input - topic:" new-topic "user-id:" user-id "meeting-id:" meeting-id)
+              (d*/patch-elements! sse "<div class='notification is-warning'>Please enter a valid topic (max 250 characters)</div>"))))))}))
+
+
+
+(defn meeting-vote-topic [request]
+  (->sse-response
+   request
+   {on-open
+    (fn [sse]
+      (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            user-id (get-in request [:session :userinfo :user-id])
+            topic-id (Long/parseLong (get-in request [:form-params "topic_id"]))
+            vote-type (get-in request [:form-params "vote_type"])]
+        (log/info "User" user-id "voting" vote-type "on topic" topic-id)
+        
+        (if (and user-id topic-id vote-type
+                 (contains? #{"upvote" "downvote"} vote-type))
+          ;; Add/update vote in database
+          (let [result (db/add-vote! user-id topic-id vote-type)]
+            (if (:success result)
+              (do
+                (log/info "Vote added/updated successfully")
+                ;; Get updated topics list with votes
+                (let [topics (db/get-topics-for-meeting meeting-id)
+                      topics-with-votes (mapv (fn [topic]
+                                                (assoc topic :user-vote 
+                                                       (db/get-user-vote-for-topic user-id (:id topic))))
+                                              topics)]
+                  (d*/with-open-sse sse
+                    (d*/patch-elements! sse (render-file "templates/topics-list.html" 
+                                                         {:topics topics-with-votes
+                                                          :meeting-id meeting-id})))))
+              (do
+                (log/error "Failed to add vote:" (:error result))
+                (d*/with-open-sse sse
+                  (d*/patch-elements! sse "<div class='notification is-danger'>Failed to vote</div>")))))
+          ;; Invalid input
+          (do
+            (log/warn "Invalid vote input - user-id:" user-id "topic-id:" topic-id "vote-type:" vote-type)
+            (d*/with-open-sse sse
+              (d*/patch-elements! sse "<div class='notification is-warning'>Invalid vote</div>"))))))}))
 
 (defn admin-manage-users [{session :session}]
   (let [users (db/get-all-users)
@@ -181,8 +306,7 @@
    {on-open
     (fn [sse]
       (let [userinfo (:userinfo session)
-        user-email (:email userinfo)
-        user-id (when user-email (db/find-user-by-email user-email))
+        user-id (:user-id userinfo)
         active-meetings (if user-id (db/get-active-meetings-for-user user-id) [])]
         (log/info active-meetings)
         (log/debug "Join meeting for:" user-id)

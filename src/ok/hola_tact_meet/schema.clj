@@ -140,12 +140,7 @@
 (def topic-schema [{:db/ident       :topic/title
                     :db/valueType   :db.type/string
                     :db/cardinality :db.cardinality/one
-                    :db/doc         "The title of the topic/tension."}
-
-                   {:db/ident       :topic/description
-                    :db/valueType   :db.type/string
-                    :db/cardinality :db.cardinality/one
-                    :db/doc         "Description of the topic."}
+                    :db/doc         "The title of the topic/tension (max 250 chars)."}
 
                    {:db/ident       :topic/meeting
                     :db/valueType   :db.type/ref
@@ -162,42 +157,17 @@
                     :db/cardinality :db.cardinality/one
                     :db/doc         "When the topic was created."}
 
-                   {:db/ident       :topic/vote-count
-                    :db/valueType   :db.type/long
-                    :db/cardinality :db.cardinality/one
-                    :db/doc         "Number of votes for this topic."}
-
-                   {:db/ident       :topic/timer-minutes
-                    :db/valueType   :db.type/long
-                    :db/cardinality :db.cardinality/one
-                    :db/doc         "Timer duration in minutes for this topic."}
-
-                   {:db/ident       :topic/status
+                   {:db/ident       :topic/discussion-notes
                     :db/valueType   :db.type/string
                     :db/cardinality :db.cardinality/one
-                    :db/doc         "Status: pending, discussing, accepted, declined."}
-
-                   {:db/ident       :topic/decision
-                    :db/valueType   :db.type/string
-                    :db/cardinality :db.cardinality/one
-                    :db/doc         "Final decision or outcome for the topic."}
+                    :db/doc         "Discussion notes for the topic."}
 
                    ])
 
-(def action-item-schema [{:db/ident       :action/title
-                          :db/valueType   :db.type/string
-                          :db/cardinality :db.cardinality/one
-                          :db/doc         "The title of the action item."}
-
-                         {:db/ident       :action/description
+(def action-item-schema [{:db/ident       :action/description
                           :db/valueType   :db.type/string
                           :db/cardinality :db.cardinality/one
                           :db/doc         "Description of the action item."}
-
-                         {:db/ident       :action/assignee
-                          :db/valueType   :db.type/ref
-                          :db/cardinality :db.cardinality/one
-                          :db/doc         "User assigned to this action item."}
 
                          {:db/ident       :action/topic
                           :db/valueType   :db.type/ref
@@ -209,25 +179,35 @@
                           :db/cardinality :db.cardinality/one
                           :db/doc         "Meeting this action item was created in."}
 
-                         {:db/ident       :action/created-at
+                         {:db/ident       :action/assigned-to-user
+                          :db/valueType   :db.type/ref
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "User assigned to this action item."}
+
+                         {:db/ident       :action/assigned-to-team
+                          :db/valueType   :db.type/ref
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "Team assigned to this action item."}
+
+                         {:db/ident       :action/deadline
                           :db/valueType   :db.type/instant
                           :db/cardinality :db.cardinality/one
-                          :db/doc         "When the action item was created."}
+                          :db/doc         "Optional deadline for the action item."}
 
-                         {:db/ident       :action/due-date
+                         {:db/ident       :action/added-at
                           :db/valueType   :db.type/instant
                           :db/cardinality :db.cardinality/one
-                          :db/doc         "When the action item is due."}
-
-                         {:db/ident       :action/status
-                          :db/valueType   :db.type/string
-                          :db/cardinality :db.cardinality/one
-                          :db/doc         "Status: open, in-progress, completed, cancelled."}
+                          :db/doc         "When the action item was added."}
 
                          {:db/ident       :action/completed-at
                           :db/valueType   :db.type/instant
                           :db/cardinality :db.cardinality/one
                           :db/doc         "When the action item was completed."}
+
+                         {:db/ident       :action/rejected-at
+                          :db/valueType   :db.type/instant
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "When the action item was rejected."}
 
                          ])
 
@@ -240,6 +220,11 @@
                    :db/valueType   :db.type/ref
                    :db/cardinality :db.cardinality/one
                    :db/doc         "User who cast the vote."}
+
+                  {:db/ident       :vote/type
+                   :db/valueType   :db.type/string
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "Type of vote: upvote or downvote."}
 
                   {:db/ident       :vote/created-at
                    :db/valueType   :db.type/instant
@@ -265,10 +250,19 @@
 
                          ])
 
+;; Ensure unique vote per user per topic
+(def vote-unique-schema [{:db/ident       :vote/user-topic
+                          :db/valueType   :db.type/tuple
+                          :db/tupleAttrs  [:vote/user :vote/topic]
+                          :db/cardinality :db.cardinality/one
+                          :db/unique      :db.unique/identity
+                          :db/doc         "Ensures one vote per user per topic."}])
+
 (def all-schema (concat user-schema
                         team-schema
                         meeting-schema
                         topic-schema
                         action-item-schema
                         vote-schema
+                        vote-unique-schema
                         participant-schema))

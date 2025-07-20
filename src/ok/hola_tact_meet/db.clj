@@ -419,6 +419,108 @@
       (log/error "Failed to add participant:" (.getMessage e))
       )))
 
+(defn add-topic!
+  "Add a new topic to a meeting"
+  [meeting-id user-id topic-title]
+  (try
+    (when (and meeting-id user-id topic-title
+               (<= (count topic-title) 250))
+      (let [topic-data {:topic/title topic-title
+                        :topic/meeting meeting-id
+                        :topic/created-by user-id
+                        :topic/created-at (java.util.Date.)}
+            result (d/transact (get-conn) {:tx-data [topic-data]})
+            topic-id (get-in result [:tempids (first (keys (:tempids result)))])]
+        (log/info "Topic added successfully:" topic-data)
+        {:success true :topic-id topic-id}))
+    (catch Exception e
+      (log/error "Failed to add topic:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
+
+(defn get-topics-for-meeting
+  "Get all topics for a meeting with vote counts, sorted by vote score"
+  [meeting-id]
+  (let [db (get-db)
+        topics-result (d/q '[:find ?topic ?title ?created-at ?created-by-name
+                             :in $ ?meeting-id
+                             :where
+                             [?topic :topic/meeting ?meeting-id]
+                             [?topic :topic/title ?title]
+                             [?topic :topic/created-at ?created-at]
+                             [?topic :topic/created-by ?created-by]
+                             [?created-by :user/name ?created-by-name]]
+                           db meeting-id)]
+    (mapv (fn [[topic-id title created-at created-by-name]]
+            (let [;; Get vote counts for this topic
+                  upvotes-result (d/q '[:find (count ?vote)
+                                        :in $ ?topic-id
+                                        :where
+                                        [?vote :vote/topic ?topic-id]
+                                        [?vote :vote/type "upvote"]]
+                                      db topic-id)
+                  downvotes-result (d/q '[:find (count ?vote)
+                                          :in $ ?topic-id
+                                          :where
+                                          [?vote :vote/topic ?topic-id]
+                                          [?vote :vote/type "downvote"]]
+                                        db topic-id)
+                  upvotes (or (ffirst upvotes-result) 0)
+                  downvotes (or (ffirst downvotes-result) 0)
+                  vote-score (- upvotes downvotes)]
+              {:id topic-id
+               :title title
+               :created-at created-at
+               :created-by-name created-by-name
+               :upvotes upvotes
+               :downvotes downvotes
+               :vote-score vote-score}))
+          ;; Sort by vote score (highest first)
+          (sort-by :vote-score #(compare %2 %1) topics-result))))
+
+(defn add-vote!
+  "Add or update a vote for a topic by a user"
+  [user-id topic-id vote-type]
+  (try
+    (let [db (get-db)
+          ;; Check if user already voted on this topic
+          existing-vote-result (d/q '[:find ?vote
+                                     :in $ ?user-id ?topic-id
+                                     :where
+                                     [?vote :vote/user ?user-id]
+                                     [?vote :vote/topic ?topic-id]]
+                                   db user-id topic-id)
+          existing-vote-id (ffirst existing-vote-result)]
+      (if existing-vote-id
+        ;; Update existing vote
+        (let [result (d/transact (get-conn) {:tx-data [{:db/id existing-vote-id
+                                                        :vote/type vote-type}]})]
+          (log/info "Vote updated for user" user-id "on topic" topic-id "to" vote-type)
+          {:success true})
+        ;; Create new vote
+        (let [vote-data {:vote/user user-id
+                         :vote/topic topic-id
+                         :vote/type vote-type
+                         :vote/created-at (java.util.Date.)}
+              result (d/transact (get-conn) {:tx-data [vote-data]})]
+          (log/info "New vote added for user" user-id "on topic" topic-id "with type" vote-type)
+          {:success true})))
+    (catch Exception e
+      (log/error "Failed to add vote:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
+
+
+(defn get-user-vote-for-topic
+  "Get the current vote type for a user on a specific topic"
+  [user-id topic-id]
+  (let [db (get-db)
+        result (d/q '[:find ?vote-type
+                      :in $ ?user-id ?topic-id
+                      :where
+                      [?vote :vote/user ?user-id]
+                      [?vote :vote/topic ?topic-id]
+                      [?vote :vote/type ?vote-type]]
+                    db user-id topic-id)]
+    (ffirst result)))
 
 (comment
 
@@ -496,4 +598,9 @@
   (get-all-users)
 
   (d/transact (get-conn) {:tx-data schema/participant-schema})
+
+  ;; Test topic functions
+  (add-topic! 12345 67890 "Test topic")
+  (get-topics-for-meeting 12345)
+  (add-vote! 67890 98765 "upvote")
   )

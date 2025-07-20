@@ -15,6 +15,7 @@ meetings, allowing us to experiment with Holacracy concepts and use them in curr
 
 See also [[https://orgpad.info/o/AZXSvxkUdIo7kZUmIwy7SP][Orgpad: Structural Meetings Idea]]
 
+
 ** Planned features
 
  - Identification & Authorization
@@ -79,6 +80,26 @@ See also [[https://orgpad.info/o/AZXSvxkUdIo7kZUmIwy7SP][Orgpad: Structural Meet
 
    - Topics (tensions)
      - Add topic to discuss
+       - added by user
+       - topic title - string < 250 chars
+       - topic votes
+         - meeting participant can add vote to any topic of this meeting. we can store it as voted_by and then users list
+           - need a function to add vote by user_id to topic_id
+         - user can downvote any topic, but only one downvote per specific topic
+         - For the topic we should store 'discussion notes' field
+         - each topic results in zero or more actions.
+         - action:
+           - relation to meeting? or should we store actions within the meeting itself as cardinality: many? please decide the best
+           - description
+           - action can be assigned to (either):
+             - assign to user
+             - assign to team
+           - deadline (date, optional)
+           - action status:
+             - added (timestamp) 
+             - completed (timestamp)
+             - rejected (timestamp)
+
      - Voting for topic (if enabled)
      - Sorting topics by vote (if enabled)
      - Countdown timer (if enabled and set for topic)

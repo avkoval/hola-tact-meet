@@ -93,3 +93,11 @@
   [request]
   (keywordize-keys (json/read-str (get-in request [:query-params "datastar"])))
 )
+
+(defn datastar-body-params
+  "Checks if datastar idenfiefied itself with request header. 
+  Parse & return body params of datastar JSON."
+  [{headers :headers body :body}]
+  (if (= "true" (get headers "datastar-request")) 
+    (json/read-str (slurp body) :key-fn keyword) 
+    {}))

@@ -56,6 +56,9 @@
      ["/meeting/join" {:get (middleware/wrap-require-auth views/join-meeting-modal)}]
      ["/meeting/:meeting-id/join" {:post (middleware/wrap-require-auth views/join-meeting)}]
      ["/meeting/:meeting-id/main" {:get (middleware/wrap-require-auth views/meeting-main)}]
+     ["/meeting/:meeting-id/main/refresh" {:get (middleware/wrap-require-auth views/meeting-main-refresh-content)}]
+     ["/meeting/:meeting-id/add-topic" {:post (middleware/wrap-require-auth views/meeting-add-topic)}]
+     ["/meeting/:meeting-id/vote-topic" {:post (middleware/wrap-require-auth views/meeting-vote-topic)}]
      ])
    (constantly {:status 404, :body "Not Found."})))
 
