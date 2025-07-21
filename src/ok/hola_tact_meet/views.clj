@@ -142,7 +142,9 @@
           ;; Add topic to database
           (let [result (db/add-topic! meeting-id user-id (clojure.string/trim new-topic))]
             (if (:success result)
-              (broadcast-meeting-page-update! (render-topics request))
+              (do
+                (broadcast-meeting-page-update! (render-file "templates/add-new-topic.html" {}))
+                (broadcast-meeting-page-update! (render-topics request)))
               (do
                 (log/error "Failed to add topic:" (:error result))
                 (d*/patch-elements! sse "<div class='notification is-danger'>Failed to add topic</div>"))))

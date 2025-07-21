@@ -96,7 +96,7 @@ See also [[https://orgpad.info/o/AZXSvxkUdIo7kZUmIwy7SP][Orgpad: Structural Meet
              - assign to team
            - deadline (date, optional)
            - action status:
-             - added (timestamp) 
+             - added (timestamp)
              - completed (timestamp)
              - rejected (timestamp)
 
@@ -218,7 +218,7 @@ Copyright © 2025 Oleksii Koval
 
 Distributed under the MIT License
 
-** Current work plan & progress [50%]
+** Current work plan & progress [46%]
 
 *** DONE Set appropriate License
     CLOSED: [2025-06-15 Sun 21:30]
@@ -295,6 +295,58 @@ I need fake login to quickly login several users for testing purposes on localho
  - [X] save data
  - [X] for staff user - limit teams to member only
    - [X] for admin user - no limits
+
+*** TODO Meeting screen (the biggest part) [0%] [0/7]
+    :PROPERTIES:
+    :COOKIE_DATA: recursive
+    :END:
+    :LOGBOOK:
+    - State "TODO"       from              [2025-07-21 Mon 22:10]
+    :END:
+
+**** TODO topics [25%]
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-21 Mon 22:10]
+     :END:
+
+ - [X] Add topic
+   - [X] clear input value after add!
+ - [ ] Vote for topic
+ - [ ] Delete topic (if it is not active or finished)
+ - [ ] Set current topic (only for staff)
+
+**** TODO timer
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-21 Mon 22:10]
+     :END:
+
+ - [ ] SSE timer like in examples
+
+**** TODO Current topic
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-21 Mon 22:20]
+     :END:
+
+***** TODO Discussion notes - allow to edit by anyone but lock when someone starts editing.... Good idea?
+      :LOGBOOK:
+      - State "TODO"       from              [2025-07-21 Mon 22:20]
+      :END:
+
+
+***** TODO Actions
+      :LOGBOOK:
+      - State "TODO"       from              [2025-07-21 Mon 22:20]
+      :END:
+
+****** TODO Add action
+       :LOGBOOK:
+       - State "TODO"       from              [2025-07-21 Mon 22:20]
+       :END:
+
+****** TODO Display actions list
+       :LOGBOOK:
+       - State "TODO"       from              [2025-07-21 Mon 22:20]
+       :END:
 
 *** TODO Admin settings & preferences [50%]
     :LOGBOOK:
@@ -444,6 +496,4 @@ https://github.com/weavejester/ring-oauth2
  - [ ] UI tests via https://github.com/ryrobes/rabbitize
  - [ ] gitlab/github CI?
  - [ ] manage/search users - commented out for now
- - [ ] auto add team to selected list for user after creation via modal 
-
-
+ - [ ] auto add team to selected list for user after creation via modal
