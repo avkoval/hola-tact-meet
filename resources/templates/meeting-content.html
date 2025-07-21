@@ -13,7 +13,7 @@
         <div class="panel-block">
           <div class="field has-addons" style="width: 100%;">
             <div class=>
-              <input class="input is-small" data-signals-new-topic="" name="new-topic" data-bind="$newTopic" type="text" placeholder="Add new topic">
+              {% include "templates/add-new-topic.html" %}
             </div>
             <div class="control">
               <button class="button is-small is-primary" data-on-click="@post('/meeting/{{ meeting-id }}/add-topic', {contentType: 'form'})">
