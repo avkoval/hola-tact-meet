@@ -1,7 +1,7 @@
 {:paths ["src" "resources"]
  :deps {org.clojure/clojure {:mvn/version "1.12.0"}
         ring/ring-core {:mvn/version "1.14.2"}
-        ring/ring-jetty-adapter {:mvn/version "1.14.2"}
+        http-kit/http-kit {:mvn/version "2.8.0"}
         nrepl/nrepl {:mvn/version "1.3.1"}
         metosin/reitit-ring {:mvn/version "0.9.1"}
         cider/cider-nrepl {:mvn/version "0.56.0"}
@@ -15,11 +15,14 @@
         metosin/malli {:mvn/version "0.19.1"}
         ;; datastar
         datastar/sdk {:git/url "https://github.com/starfederation/datastar/"
-              :git/sha "d86d859e6829bff2d4c8896b154f05eeb9a5c73c"
+              :git/sha "4cd5e85f546082592263123eca57f88bb050528d"
               :deps/root "sdk/clojure/sdk"}
-        datastar/ring {:git/url "https://github.com/starfederation/datastar/"
-               :git/sha "d86d859e6829bff2d4c8896b154f05eeb9a5c73c"
-               :deps/root "sdk/clojure/adapter-ring"}
+        datastar/http-kit {:git/url "https://github.com/starfederation/datastar/"
+                           :git/sha "4cd5e85f546082592263123eca57f88bb050528d"
+                           :deps/root "sdk/clojure/adapter-http-kit"}
+        datastar/malli-schemas {:git/url "https://github.com/starfederation/datastar/"
+                                :git/sha "4cd5e85f546082592263123eca57f88bb050528d"
+                                :deps/root "sdk/clojure/malli-schemas"}
         ;; Notes on logging: https://gist.github.com/jacobobryant/76b7a08a07d5ef2cc076b048d078f1f3
         org.slf4j/slf4j-simple     {:mvn/version "2.0.0-alpha5"}
         org.slf4j/log4j-over-slf4j {:mvn/version "1.7.36"}

@@ -53,13 +53,12 @@
   "Add :json to request map when content-type is application/json"
   [handler]
   (fn [request]
-    (let [body (slurp (:body request))]
-      (if (and (not (= "" body)) (= "application/json" (:content-type request)))
-        (handler (assoc request :json (keywordize-keys (json/read-str body))))
-        (handler request)
-        )
-      )
-    ))
+    (if-let [body (:body request)]
+      (let [body-str (slurp body)]
+        (if (and (not (= "" body-str)) (= "application/json" (:content-type request)))
+          (handler (assoc request :json (keywordize-keys (json/read-str body-str))))
+          (handler request)))
+      (handler request))))
 
 
 (defn capitalize-first [s]
