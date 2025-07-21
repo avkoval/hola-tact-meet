@@ -1,0 +1,201 @@
+<div id="meeting-content"
+     data-on-load="@get('/meeting/{{ meeting-id }}/main/refresh')"
+     class="columns is-gapless is-fullheight">
+  <!-- Topics List Sidebar -->
+  <div class="column is-one-quarter">
+    <div class="panel">
+      <p class="panel-heading">
+        Topics
+      </p>
+
+      <!-- Add Topic Form -->
+      <form>
+        <div class="panel-block">
+          <div class="field has-addons" style="width: 100%;">
+            <div class=>
+              <input class="input is-small" data-signals-new-topic="" name="new-topic" data-bind="$newTopic" type="text" placeholder="Add new topic">
+            </div>
+            <div class="control">
+              <button class="button is-small is-primary" data-on-click="@post('/meeting/{{ meeting-id }}/add-topic', {contentType: 'form'})">
+                <span class="icon">
+                  <i class="fas fa-plus"></i>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      {% include "templates/topics-list.html" %}
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="column">
+    <div class="container is-fluid p-4">
+
+      <!-- Meeting Controls -->
+      <div class="level mb-4">
+        <div class="level-left">
+          <div class="level-item">
+            <div class="field is-grouped">
+              <div class="control">
+                <div class="field has-addons">
+                  <div class="control">
+                    <input class="input" type="text" placeholder="Timer (mm:ss)" value="15:00">
+                  </div>
+                  <div class="control">
+                    <button class="button is-info">
+                      <span class="icon">
+                        <i class="fas fa-play"></i>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="level-right">
+          <div class="level-item">
+            <button class="button is-danger">
+              <span class="icon">
+                <i class="fas fa-times"></i>
+              </span>
+              <span>Finish Meeting</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Topic -->
+      <div class="card mb-4">
+        <header class="card-header">
+          <p class="card-header-title is-size-4">
+            Current Topic: Project Timeline Review
+          </p>
+        </header>
+        <div class="card-content">
+          <div class="field">
+            <label class="label">Discussion Notes</label>
+            <div class="control">
+              <textarea class="textarea" rows="8" placeholder="Enter discussion notes, decisions, and key points..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions Block -->
+      <div class="card">
+        <header class="card-header">
+          <p class="card-header-title">
+            Actions
+          </p>
+        </header>
+        <div class="card-content">
+          <div class="field">
+            <label class="label">Action Description</label>
+            <div class="control">
+              <input class="input" type="text" placeholder="Describe the action to be taken">
+            </div>
+          </div>
+
+          <div class="columns">
+            <div class="column">
+              <div class="field">
+                <label class="label">Assign To</label>
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select>
+                      <option>Select team member</option>
+                      <option>John Doe</option>
+                      <option>Jane Smith</option>
+                      <option>Mike Johnson</option>
+                      <option>Entire Team</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="column">
+              <div class="field">
+                <label class="label">Deadline (Optional)</label>
+                <div class="control">
+                  <input class="input" type="date">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="control">
+              <label class="checkbox">
+                <input type="checkbox">
+                Team Action (applies to all team members)
+              </label>
+            </div>
+          </div>
+
+          <div class="field is-grouped">
+            <div class="control">
+              <button class="button is-primary">
+                <span class="icon">
+                  <i class="fas fa-plus"></i>
+                </span>
+                <span>Add Action</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Existing Actions List -->
+          <div class="mt-4">
+            <h5 class="title is-5">Meeting Actions</h5>
+
+            <div class="box">
+              <div class="level">
+                <div class="level-left">
+                  <div class="level-item">
+                    <div>
+                      <p class="subtitle is-6 mb-1">Review project milestones</p>
+                      <p class="is-size-7 has-text-grey">
+                        Assigned to: John Doe • Due: 2024-01-15
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div class="level-right">
+                  <div class="level-item">
+                    <span class="tag is-warning">Individual</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="box">
+              <div class="level">
+                <div class="level-left">
+                  <div class="level-item">
+                    <div>
+                      <p class="subtitle is-6 mb-1">Prepare budget proposal</p>
+                      <p class="is-size-7 has-text-grey">
+                        Assigned to: Entire Team
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div class="level-right">
+                  <div class="level-item">
+                    <span class="tag is-info">Team</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

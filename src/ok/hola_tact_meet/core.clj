@@ -2,7 +2,7 @@
   (:require
    [nrepl.server :as nrepl-server]
    [cider.nrepl :refer (cider-nrepl-handler)]
-   [ring.adapter.jetty :as jetty]
+   [org.httpkit.server :as httpkit]
    [ring.util.response :as response]
    [ring.middleware.session :refer [wrap-session]]
    [reitit.ring :as ring]
@@ -56,7 +56,7 @@
      ["/meeting/join" {:get (middleware/wrap-require-auth views/join-meeting-modal)}]
      ["/meeting/:meeting-id/join" {:post (middleware/wrap-require-auth views/join-meeting)}]
      ["/meeting/:meeting-id/main" {:get (middleware/wrap-require-auth views/meeting-main)}]
-     ["/meeting/:meeting-id/main/refresh" {:get (middleware/wrap-require-auth views/meeting-main-refresh-content)}]
+     ["/meeting/:meeting-id/main/refresh" {:get (middleware/wrap-require-auth views/meeting-main-refresh-content-watcher)}]
      ["/meeting/:meeting-id/add-topic" {:post (middleware/wrap-require-auth views/meeting-add-topic)}]
      ["/meeting/:meeting-id/vote-topic" {:post (middleware/wrap-require-auth views/meeting-vote-topic)}]
      ])
@@ -86,9 +86,9 @@
   (log/info "Starting server on port 8080")
   (log/info (str "Log level: " (:log-level (utils/app-config))))
   (reset! server
-          (jetty/run-jetty
+          (httpkit/run-server
            (wrap-reload #'app)
-           {:port 8081 :join? false})))
+           {:port 8081})))
 
 (def nrepl-port 7889)
 

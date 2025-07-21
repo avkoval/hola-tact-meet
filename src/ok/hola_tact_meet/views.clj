@@ -3,7 +3,7 @@
    [ring.util.response :as response]
    [selmer.parser :refer [render-file] :as selmer]
    [starfederation.datastar.clojure.api :as d*]
-   [starfederation.datastar.clojure.adapter.ring :refer [->sse-response on-open on-close]]
+   [starfederation.datastar.clojure.adapter.http-kit :refer [->sse-response] :as hk-gen]
    [ok.hola-tact-meet.utils :as utils]
    [ok.hola-tact-meet.db :as db]
    [ok.hola-tact-meet.validation :as v]
@@ -15,7 +15,6 @@
    [datomic.client.api :as d]
    [clojure.pprint :refer [pprint]]
    [malli.core :as m]
-   [clojure.core.async :as async :refer [<! <!!]]
    )
   (:gen-class))
 
@@ -53,14 +52,6 @@
 
 
 
-(defonce meeting-content-version (atom 1))
-(def clients (atom {}))
-
-(defn broadcast 
-  "Function to broadcast a message to all connected clients"
-  [msg]
-  (doseq [[_ ch] @clients]
-    (async/put! ch msg)))
 
 
 (defn render-meeting-body [{session :session :as request} render-full-body]
@@ -77,7 +68,6 @@
         template (if render-full-body "templates/meeting.html" "templates/meeting-content.html")]
     (render-file template {:userinfo userinfo
                            :meeting-id meeting-id
-                           :meeting-content-version (deref meeting-content-version)
                            :topics (or topics-with-votes topics [])})))
 
 (defn meeting-main [request]
@@ -86,37 +76,28 @@
    :headers {"Content-Type" "text/html"}
    :body (render-meeting-body request true)})
 
+; Lets collect all meeting participants open SSE generators into
+; atom, to be able to broadcast updates
+(def !meeting-screen-sse-gens (atom #{}))
 
-(defn meeting-main-refresh-content [request]
-  (->sse-response
+(defn meeting-main-refresh-content-watcher 
+  "This SSE connection will stay open and will be used to broadcast updates"
+  [request] 
+  (->sse-response 
    request
-   {on-open
-    (fn [sse]
-      (log/info "meeting-main-refresh-content")
-      (d*/with-open-sse sse
-        (let [ch (async/chan)
-              client-id (java.util.UUID/randomUUID)]  ;; Create a unique identifier for the client
-          (swap! clients assoc client-id ch)  ;; Add the client channel to the clients map
-          (async/go
-            (loop []
-              (when-let [msg (<! ch)]
-                ;; Here you would normally handle messages from the client
-                (d*/patch-elements! sse (render-meeting-body request false))
-                ;; For this example, just log the incoming message
-                (log/info "Received from client:" client-id msg)
-                (recur))))
-          (log/info "outside go block")
-          ;; Return a cleanup function to remove the client on disconnect
-          ;; (fn []
-          ;;   (swap! clients dissoc client-id))
-          )
-        )      
-      )
-    on-close
-    (fn [sse]
-      (log/info "meeting-main-refresh-content closing channel")
-      )
-    }))
+   {hk-gen/on-open
+    (fn [sse-gen]
+      (log/info "meeting-main-refresh-content-watcher established hk-gen/on-open" sse-gen)
+      (swap! !meeting-screen-sse-gens conj sse-gen))
+
+    hk-gen/on-close
+    (fn [sse-gen status]
+      (log/info "meeting-main-refresh-content-watcher hk-gen/on-close:" status)
+      (swap! !meeting-screen-sse-gens disj sse-gen))}))
+
+(defn broadcast-meeting-page-update! [elements]
+  (doseq [c @!meeting-screen-sse-gens]
+    (d*/patch-elements! c elements)))
 
 (defn join-meeting
   "Join meeting by checking permissions and saving join time"
@@ -145,41 +126,37 @@
 (defn meeting-add-topic [request]
   (->sse-response
    request
-   {on-open
+   {hk-gen/on-open
     (fn [sse]
       (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
             user-id (get-in request [:session :userinfo :user-id])
             new-topic (get-in request [:form-params "new-topic"])]
         (log/info "Adding new topic:" new-topic "to meeting:" meeting-id "by user:" user-id)
         
-        (d*/with-open-sse sse
-          (if (and new-topic user-id meeting-id 
-                   (not (clojure.string/blank? new-topic))
-                   (<= (count new-topic) 250))
-            ;; Add topic to database
-            (let [result (db/add-topic! meeting-id user-id (clojure.string/trim new-topic))]
-              (if (:success result)
-                (do
-                  (log/info "Topic added successfully with ID:" (:topic-id result))
-                  ;; Get updated topics list with votes
-                  (swap! meeting-content-version inc)
-                  (d*/patch-signals! sse (str "{meetingContentVersion: " @meeting-content-version "}"))
-                  (broadcast "topics-change")
-                  )
-                (do
-                  (log/error "Failed to add topic:" (:error result))
-                  (d*/patch-elements! sse "<div class='notification is-danger'>Failed to add topic</div>"))))
-            ;; Invalid input
-            (do
-              (log/warn "Invalid topic input - topic:" new-topic "user-id:" user-id "meeting-id:" meeting-id)
-              (d*/patch-elements! sse "<div class='notification is-warning'>Please enter a valid topic (max 250 characters)</div>"))))))}))
+        (if (and new-topic user-id meeting-id 
+                 (not (clojure.string/blank? new-topic))
+                 (<= (count new-topic) 250))
+          ;; Add topic to database
+          (let [result (db/add-topic! meeting-id user-id (clojure.string/trim new-topic))]
+            (if (:success result)
+              (do
+                (log/info "Topic added successfully with ID:" (:topic-id result))
+                (broadcast-meeting-page-update! (render-meeting-body request false))
+                )
+              (do
+                (log/error "Failed to add topic:" (:error result))
+                (d*/patch-elements! sse "<div class='notification is-danger'>Failed to add topic</div>"))))
+          ;; Invalid input
+          (do
+            (log/warn "Invalid topic input - topic:" new-topic "user-id:" user-id "meeting-id:" meeting-id)
+            (d*/patch-elements! sse "<div class='notification is-warning'>Please enter a valid topic (max 250 characters)</div>")))))}))
 
 
 
 (defn meeting-vote-topic [request]
   (->sse-response
    request
-   {on-open
+   {hk-gen/on-open
     (fn [sse]
       (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
             user-id (get-in request [:session :userinfo :user-id])
@@ -226,7 +203,7 @@
 (defn admin-update-user-access-level [request]
   (->sse-response
    request
-   {on-open
+   {hk-gen/on-open
     (fn [sse]
       ;; (pprint request)
       (let [user_id (get-in request [:query-params "user_id"])
@@ -244,7 +221,7 @@
 (defn admin-toggle-user [request]
   (->sse-response
    request
-   {on-open
+   {hk-gen/on-open
     (fn [sse]
       (let [user_id (get-in request [:query-params "user_id"])
             ]
@@ -261,7 +238,7 @@
 (defn admin-refresh-users-list [request]
   (->sse-response
    request
-   {on-open
+   {hk-gen/on-open
     (fn [sse]
       (d*/with-open-sse sse
           (d*/patch-elements! sse (render-file "templates/users_list.html" {:users (db/get-all-users)})))
@@ -288,7 +265,7 @@
 (defn admin-user-teams [request]
   (->sse-response
    request
-   {on-open
+   {hk-gen/on-open
     (fn [sse]
       (let [user_id (get-in request [:path-params :user])
             user-id-long (when user_id (Long/parseLong user_id))
@@ -303,7 +280,7 @@
 (defn join-meeting-modal [{session :session :as request}]
   (->sse-response
    request
-   {on-open
+   {hk-gen/on-open
     (fn [sse]
       (let [userinfo (:userinfo session)
         user-id (:user-id userinfo)
@@ -319,7 +296,7 @@
 (defn staff-create-meeting-popup [request]
   (->sse-response
    request
-   {on-open
+   {hk-gen/on-open
     (fn [sse]
       (let [user-id (get-in request [:session :userinfo :user-id])
             user-data (db/get-user-by-id user-id)
@@ -335,7 +312,7 @@
 (defn staff-create-meeting-save [request]
   (->sse-response
    request
-   {on-open
+   {hk-gen/on-open
     (fn [sse]
       (let [user-id (get-in request [:session :userinfo :user-id])
             user-data (db/get-user-by-id user-id)
@@ -394,7 +371,7 @@
 (defn admin-project-settings [request]
   (->sse-response
    request
-   {on-open
+   {hk-gen/on-open
     (fn [sse]
       (let [settings {:allowed-domains ["example.com" "company.org"]
                       :google-oauth-enabled true
@@ -409,7 +386,7 @@
 (defn admin-user-teams-change [request]
   (->sse-response
    request
-   {on-open
+   {hk-gen/on-open
     (fn [sse]
       (let [user_id (get-in request [:path-params :user])
             user-id-long (when user_id (Long/parseLong user_id))
@@ -441,7 +418,7 @@
 (defn admin-user-teams-add [request]
   (->sse-response
    request
-   {on-open
+   {hk-gen/on-open
     (fn [sse]
       (let [user_id (get-in request [:path-params :user])
             user-id-long (when user_id (Long/parseLong user_id))
@@ -499,7 +476,7 @@
 (defn change-css-theme [{session :session :as request}]
   (->sse-response
    request
-   {on-open
+   {hk-gen/on-open
     (fn [sse]
       ;; (pprint request)
       (let [; user_id (get-in request [:query-params "user_id"])
@@ -601,7 +578,7 @@
 
 (defn fake-generate-random-data [request]
   (->sse-response request
-                  {on-open
+                  {hk-gen/on-open
                    (fn [sse]
                      (d*/with-open-sse sse
                        (d*/patch-elements! sse
