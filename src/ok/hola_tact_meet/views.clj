@@ -51,24 +51,27 @@
                                                :active-meetings active-meetings})}))
 
 
+(defn get-topics-for-meeting [meeting-id user-id]
+  (->> (db/get-topics-for-meeting meeting-id)
+       (mapv (fn [topic] (assoc topic :user-vote (db/get-user-vote-for-topic user-id (:id topic)))))
+       (sort-by (juxt (comp - :vote-score) (comp - #(.getTime (:created-at %)))))))
 
-
+(defn render-topics [{session :session :as request}]
+  (let [userinfo (:userinfo session)
+        user-id (:user-id userinfo)
+        meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+        topics-with-votes (get-topics-for-meeting meeting-id user-id)]
+    (render-file "templates/topics-list.html" {:topics topics-with-votes})))
 
 (defn render-meeting-body [{session :session :as request} render-full-body]
   (let [userinfo (:userinfo session)
         user-id (:user-id userinfo)
         meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
-        topics (when meeting-id (db/get-topics-for-meeting meeting-id))
-        ;; Add user's current vote for each topic
-        topics-with-votes (when user-id
-                            (mapv (fn [topic]
-                                    (assoc topic :user-vote 
-                                           (db/get-user-vote-for-topic user-id (:id topic))))
-                                  topics))
+        topics-with-votes (get-topics-for-meeting meeting-id user-id)
         template (if render-full-body "templates/meeting.html" "templates/meeting-content.html")]
     (render-file template {:userinfo userinfo
                            :meeting-id meeting-id
-                           :topics (or topics-with-votes topics [])})))
+                           :topics topics-with-votes})))
 
 (defn meeting-main [request]
   (log/info "Main meeting screen")
@@ -80,10 +83,10 @@
 ; atom, to be able to broadcast updates
 (def !meeting-screen-sse-gens (atom #{}))
 
-(defn meeting-main-refresh-content-watcher 
+(defn meeting-main-refresh-content-watcher
   "This SSE connection will stay open and will be used to broadcast updates"
-  [request] 
-  (->sse-response 
+  [request]
+  (->sse-response
    request
    {hk-gen/on-open
     (fn [sse-gen]
@@ -132,17 +135,14 @@
             user-id (get-in request [:session :userinfo :user-id])
             new-topic (get-in request [:form-params "new-topic"])]
         (log/info "Adding new topic:" new-topic "to meeting:" meeting-id "by user:" user-id)
-        
-        (if (and new-topic user-id meeting-id 
+
+        (if (and new-topic user-id meeting-id
                  (not (clojure.string/blank? new-topic))
                  (<= (count new-topic) 250))
           ;; Add topic to database
           (let [result (db/add-topic! meeting-id user-id (clojure.string/trim new-topic))]
             (if (:success result)
-              (do
-                (log/info "Topic added successfully with ID:" (:topic-id result))
-                (broadcast-meeting-page-update! (render-meeting-body request false))
-                )
+              (broadcast-meeting-page-update! (render-topics request))
               (do
                 (log/error "Failed to add topic:" (:error result))
                 (d*/patch-elements! sse "<div class='notification is-danger'>Failed to add topic</div>"))))
@@ -163,7 +163,7 @@
             topic-id (Long/parseLong (get-in request [:form-params "topic_id"]))
             vote-type (get-in request [:form-params "vote_type"])]
         (log/info "User" user-id "voting" vote-type "on topic" topic-id)
-        
+
         (if (and user-id topic-id vote-type
                  (contains? #{"upvote" "downvote"} vote-type))
           ;; Add/update vote in database
@@ -174,11 +174,11 @@
                 ;; Get updated topics list with votes
                 (let [topics (db/get-topics-for-meeting meeting-id)
                       topics-with-votes (mapv (fn [topic]
-                                                (assoc topic :user-vote 
+                                                (assoc topic :user-vote
                                                        (db/get-user-vote-for-topic user-id (:id topic))))
                                               topics)]
                   (d*/with-open-sse sse
-                    (d*/patch-elements! sse (render-file "templates/topics-list.html" 
+                    (d*/patch-elements! sse (render-file "templates/topics-list.html"
                                                          {:topics topics-with-votes
                                                           :meeting-id meeting-id})))))
               (do
