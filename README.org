@@ -296,7 +296,7 @@ I need fake login to quickly login several users for testing purposes on localho
  - [X] for staff user - limit teams to member only
    - [X] for admin user - no limits
 
-*** TODO Meeting screen (the biggest part) [0%] [0/7]
+*** TODO Meeting screen (the biggest part) [12%] [1/8]
     :PROPERTIES:
     :COOKIE_DATA: recursive
     :END:
@@ -304,39 +304,33 @@ I need fake login to quickly login several users for testing purposes on localho
     - State "TODO"       from              [2025-07-21 Mon 22:10]
     :END:
 
-**** TODO topics [25%]
+**** DONE topics [100%]
+     CLOSED: [2025-07-22 Tue 22:50]
      :LOGBOOK:
+     - State "DONE"       from "TODO"       [2025-07-22 Tue 22:50]
+     CLOCK: [2025-07-22 Tue 17:52]--[2025-07-22 Tue 22:48] =>  4:56
      - State "TODO"       from              [2025-07-21 Mon 22:10]
      :END:
 
  - [X] Add topic
    - [X] clear input value after add!
- - [ ] Vote for topic
- - [ ] Delete topic (if it is not active or finished)
- - [ ] Set current topic (only for staff)
-
-**** TODO timer
-     :LOGBOOK:
-     - State "TODO"       from              [2025-07-21 Mon 22:10]
-     :END:
-
- - [ ] SSE timer like in examples
+ - [X] Vote for topic
+ - [X] Delete topic (if it is not active or finished)
+ - [X] Set current topic (only for staff)
+ - [X] Meeting settings - votes are public
+ - [X] Make sure if voting is disabled, then we don't show the buttons and also backend checks
 
 **** TODO Current topic
      :LOGBOOK:
      - State "TODO"       from              [2025-07-21 Mon 22:20]
      :END:
 
-***** TODO Discussion notes - allow to edit by anyone but lock when someone starts editing.... Good idea?
-      :LOGBOOK:
-      - State "TODO"       from              [2025-07-21 Mon 22:20]
-      :END:
-
-
 ***** TODO Actions
       :LOGBOOK:
       - State "TODO"       from              [2025-07-21 Mon 22:20]
       :END:
+
+
 
 ****** TODO Add action
        :LOGBOOK:
@@ -347,6 +341,26 @@ I need fake login to quickly login several users for testing purposes on localho
        :LOGBOOK:
        - State "TODO"       from              [2025-07-21 Mon 22:20]
        :END:
+
+***** TODO Discussion notes - allow to edit by anyone but lock when someone starts editing.... Good idea?
+      :LOGBOOK:
+      - State "TODO"       from              [2025-07-21 Mon 22:20]
+      :END:
+
+
+**** TODO timer
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-21 Mon 22:10]
+     :END:
+
+ - [ ] SSE timer like in examples
+
+**** TODO bugs and small fixes [/]
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-22 Tue 18:05]
+     :END:
+
+ - [ ] validate meeting creation date - it should be in the future!
 
 *** TODO Admin settings & preferences [50%]
     :LOGBOOK:

@@ -1,6 +1,9 @@
 {% extends "templates/app.html" %}
 
-{% block current-breadcrumb %}<li class="is-active"><a href="#" aria-current="page">Meeting</a></li>{% endblock %}
+{% block current-breadcrumb %}
+<li><a href="/app">Meetings</a></li>
+<li class="is-active"><a href="#" aria-current="page" style="color: #363636 !important; text-decoration: none; cursor: default;">{{ meeting.meeting/title }}</a></li>
+{% endblock %}
 
 {% block app_content %}
 {% include "templates/meeting-content.html" %}

@@ -59,6 +59,8 @@
      ["/meeting/:meeting-id/main/refresh" {:get (middleware/wrap-require-auth views/meeting-main-refresh-content-watcher)}]
      ["/meeting/:meeting-id/add-topic" {:post (middleware/wrap-require-auth views/meeting-add-topic)}]
      ["/meeting/:meeting-id/vote-topic" {:post (middleware/wrap-require-auth views/meeting-vote-topic)}]
+     ["/meeting/:meeting-id/set-current-topic" {:post (middleware/wrap-require-auth views/meeting-set-current-topic)}]
+     ["/meeting/:meeting-id/delete-topic" {:post (middleware/wrap-require-auth views/meeting-delete-topic)}]
      ])
    (constantly {:status 404, :body "Not Found."})))
 

@@ -56,22 +56,29 @@
        (mapv (fn [topic] (assoc topic :user-vote (db/get-user-vote-for-topic user-id (:id topic)))))
        (sort-by (juxt (comp - :vote-score) (comp - #(.getTime (:created-at %)))))))
 
-(defn render-topics [{session :session :as request}]
-  (let [userinfo (:userinfo session)
+(defn get-meeting-screen-data [{session :session :as request}]
+  (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+        meeting-data (db/get-meeting-by-id meeting-id)
+        userinfo (:userinfo session)
         user-id (:user-id userinfo)
-        meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
-        topics-with-votes (get-topics-for-meeting meeting-id user-id)]
-    (render-file "templates/topics-list.html" {:topics topics-with-votes})))
-
-(defn render-meeting-body [{session :session :as request} render-full-body]
-  (let [userinfo (:userinfo session)
-        user-id (:user-id userinfo)
-        meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
         topics-with-votes (get-topics-for-meeting meeting-id user-id)
-        template (if render-full-body "templates/meeting.html" "templates/meeting-content.html")]
-    (render-file template {:userinfo userinfo
-                           :meeting-id meeting-id
-                           :topics topics-with-votes})))
+        current-topic (:meeting/current-topic meeting-data)
+        can-set-current-topic (db/user-can-set-current-topic? user-id meeting-id)
+        ]
+    {:meeting-id meeting-id
+     :userinfo userinfo
+     :meeting meeting-data
+     :topics topics-with-votes
+     :current-topic current-topic
+     :can-set-current-topic can-set-current-topic
+     :current-user-id user-id}))
+
+(defn render-topics [request]
+  (render-file "templates/topics-list.html" (get-meeting-screen-data request)))
+
+(defn render-meeting-body [request render-full-body]
+  (render-file (if render-full-body "templates/meeting.html" "templates/meeting-content.html") 
+               (get-meeting-screen-data request)))
 
 (defn meeting-main [request]
   (log/info "Main meeting screen")
@@ -151,7 +158,7 @@
           ;; Invalid input
           (do
             (log/warn "Invalid topic input - topic:" new-topic "user-id:" user-id "meeting-id:" meeting-id)
-            (d*/patch-elements! sse "<div class='notification is-warning'>Please enter a valid topic (max 250 characters)</div>")))))}))
+            (d*/patch-elements! sse "")))))}))
 
 
 
@@ -159,39 +166,103 @@
   (->sse-response
    request
    {hk-gen/on-open
-    (fn [sse]
-      (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
-            user-id (get-in request [:session :userinfo :user-id])
+    (fn [_]
+      (let [user-id (get-in request [:session :userinfo :user-id])
+            meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            meeting-data (db/get-meeting-by-id meeting-id)
             topic-id (Long/parseLong (get-in request [:form-params "topic_id"]))
             vote-type (get-in request [:form-params "vote_type"])]
         (log/info "User" user-id "voting" vote-type "on topic" topic-id)
+        (cond
+          ;; Check if meeting allows voting
+          (not (:meeting/allow-topic-voting meeting-data))
+          (log/warn "Voting is not allowed for this meeting")
 
-        (if (and user-id topic-id vote-type
-                 (contains? #{"upvote" "downvote"} vote-type))
-          ;; Add/update vote in database
-          (let [result (db/add-vote! user-id topic-id vote-type)]
+          ;; Validate input and handle vote toggle
+          (and user-id topic-id vote-type
+               (contains? #{"upvote" "downvote"} vote-type))
+          ;; Check current vote and toggle if same, otherwise add/update
+          (let [current-vote (db/get-user-vote-for-topic user-id topic-id)
+                result (if (= current-vote vote-type)
+                         ;; Same vote type - remove it (toggle off)
+                         (db/remove-vote! user-id topic-id)
+                         ;; Different vote type or no vote - add/update it
+                         (db/add-vote! user-id topic-id vote-type))]
             (if (:success result)
               (do
-                (log/info "Vote added/updated successfully")
-                ;; Get updated topics list with votes
-                (let [topics (db/get-topics-for-meeting meeting-id)
-                      topics-with-votes (mapv (fn [topic]
-                                                (assoc topic :user-vote
-                                                       (db/get-user-vote-for-topic user-id (:id topic))))
-                                              topics)]
-                  (d*/with-open-sse sse
-                    (d*/patch-elements! sse (render-file "templates/topics-list.html"
-                                                         {:topics topics-with-votes
-                                                          :meeting-id meeting-id})))))
-              (do
-                (log/error "Failed to add vote:" (:error result))
-                (d*/with-open-sse sse
-                  (d*/patch-elements! sse "<div class='notification is-danger'>Failed to vote</div>")))))
+                (if (:removed result)
+                  (log/info "Vote removed successfully (toggled off)")
+                  (log/info "Vote added/updated successfully"))
+                (broadcast-meeting-page-update! (render-topics request)))
+              (log/error "Failed to process vote:" (:error result))))
+
           ;; Invalid input
-          (do
-            (log/warn "Invalid vote input - user-id:" user-id "topic-id:" topic-id "vote-type:" vote-type)
-            (d*/with-open-sse sse
-              (d*/patch-elements! sse "<div class='notification is-warning'>Invalid vote</div>"))))))}))
+          :else
+          (log/warn "Invalid vote input - user-id:" user-id "topic-id:" topic-id "vote-type:" vote-type)
+          )))}))
+
+(defn meeting-set-current-topic [request]
+  (->sse-response
+   request
+   {hk-gen/on-open
+    (fn [_]
+      (let [user-id (get-in request [:session :userinfo :user-id])
+            meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            topic-id (Long/parseLong (get-in request [:form-params "topic_id"]))]
+        (log/info "User" user-id "setting current topic to" topic-id "for meeting" meeting-id)
+        (cond
+          ;; Check permissions
+          (not (db/user-can-set-current-topic? user-id meeting-id))
+          (log/warn "User" user-id "does not have permission to set current topic for meeting" meeting-id)
+
+          ;; Valid input - set current topic
+          (and user-id topic-id meeting-id)
+          (let [result (db/set-current-topic! meeting-id topic-id)]
+            (if (:success result)
+              (do
+                (log/info "Current topic set successfully")
+                (broadcast-meeting-page-update! (render-meeting-body request false)))
+              (log/error "Failed to set current topic:" (:error result))))
+
+          ;; Invalid input
+          :else
+          (log/warn "Invalid input - user-id:" user-id "topic-id:" topic-id "meeting-id:" meeting-id)
+          )))}))
+
+(defn meeting-delete-topic [request]
+  (->sse-response
+   request
+   {hk-gen/on-open
+    (fn [_]
+      (let [user-id (get-in request [:session :userinfo :user-id])
+            meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            topic-id (Long/parseLong (get-in request [:form-params "topic_id"]))
+            db (db/get-db)
+            ;; Get topic author directly
+            topic-author-result (d/q '[:find ?author
+                                      :in $ ?topic-id
+                                      :where [?topic-id :topic/created-by ?author]]
+                                    db topic-id)
+            topic-author-id (ffirst topic-author-result)]
+        (log/info "User" user-id "attempting to delete topic" topic-id)
+        (cond
+          ;; Check if user is the topic author
+          (not= user-id topic-author-id)
+          (log/warn "User" user-id "is not the author of topic" topic-id)
+
+          ;; Valid deletion - user is the author
+          (and user-id topic-id topic-author-id)
+          (let [result (db/delete-topic! topic-id)]
+            (if (:success result)
+              (do
+                (log/info "Topic deleted successfully")
+                (broadcast-meeting-page-update! (render-topics request)))
+              (log/error "Failed to delete topic:" (:error result))))
+
+          ;; Invalid input
+          :else
+          (log/warn "Invalid input - user-id:" user-id "topic-id:" topic-id)
+          )))}))
 
 (defn admin-manage-users [{session :session}]
   (let [users (db/get-all-users)
@@ -330,6 +401,7 @@
                             :scheduled-at (:scheduled-at form-params)
                             :join-url (:join-url form-params)
                             :allow-topic-voting (= (:allow-topic-voting form-params) "on")
+                            :votes-are-public (= (:votes-are-public form-params) "on")
                             :sort-topics-by-votes (= (:sort-topics-by-votes form-params) "on")
                             :is-visible (= (:is-visible form-params) "on")}]
 
