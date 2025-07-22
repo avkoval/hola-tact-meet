@@ -621,6 +621,91 @@
       (log/error "Failed to delete topic:" (.getMessage e))
       {:success false :error (.getMessage e)})))
 
+(defn add-action!
+  "Add a new action to a meeting/topic"
+  [meeting-id topic-id description assigned-to-user assigned-to-team deadline]
+  (try
+    (let [action-data (cond-> {:action/description description
+                              :action/meeting meeting-id
+                              :action/added-at (java.util.Date.)}
+                        topic-id (assoc :action/topic topic-id)
+                        assigned-to-user (assoc :action/assigned-to-user assigned-to-user)
+                        assigned-to-team (assoc :action/assigned-to-team assigned-to-team)
+                        deadline (assoc :action/deadline deadline))
+          result (d/transact (get-conn) {:tx-data [action-data]})
+          action-id (get-in result [:tempids (first (keys (:tempids result)))])]
+      (log/info "Action added successfully:" action-data)
+      {:success true :action-id action-id})
+    (catch Exception e
+      (log/error "Failed to add action:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
+
+(defn get-actions-for-meeting
+  "Get all actions for a meeting with assignee information"
+  [meeting-id]
+  (let [db (get-db)
+        ;; Get basic action info first
+        basic-actions-result (d/q '[:find ?action ?description ?added-at
+                                    :in $ ?meeting-id
+                                    :where
+                                    [?action :action/meeting ?meeting-id]
+                                    [?action :action/description ?description]
+                                    [?action :action/added-at ?added-at]]
+                                  db meeting-id)]
+    (mapv (fn [[action-id description added-at]]
+            (let [;; Get deadline if exists
+                  deadline-result (d/q '[:find ?deadline
+                                         :in $ ?action-id
+                                         :where [?action-id :action/deadline ?deadline]]
+                                       db action-id)
+                  deadline (ffirst deadline-result)
+
+                  ;; Get user assignment if exists
+                  user-result (d/q '[:find ?user ?user-name
+                                     :in $ ?action-id
+                                     :where
+                                     [?action-id :action/assigned-to-user ?user]
+                                     [?user :user/name ?user-name]]
+                                   db action-id)
+                  [assigned-user assigned-user-name] (first user-result)
+
+                  ;; Get team assignment if exists
+                  team-result (d/q '[:find ?team ?team-name
+                                     :in $ ?action-id
+                                     :where
+                                     [?action-id :action/assigned-to-team ?team]
+                                     [?team :team/name ?team-name]]
+                                   db action-id)
+                  [assigned-team assigned-team-name] (first team-result)]
+
+              {:id action-id
+               :description description
+               :deadline deadline
+               :added-at added-at
+               :assigned-to-user assigned-user
+               :assigned-to-user-name assigned-user-name
+               :assigned-to-team assigned-team
+               :assigned-to-team-name assigned-team-name
+               :is-team-action (some? assigned-team)}))
+          basic-actions-result)))
+
+(defn get-team-members-for-meeting
+  "Get team members for the meeting team to populate assignee dropdown"
+  [meeting-id]
+  (let [db (get-db)
+        team-members-result (d/q '[:find ?user ?user-name
+                                   :in $ ?meeting-id
+                                   :where
+                                   [?meeting-id :meeting/team ?team]
+                                   [?user :user/teams ?team]
+                                   [?user :user/name ?user-name]
+                                   [?user :user/active true]]
+                                 db meeting-id)]
+    (mapv (fn [[user-id user-name]]
+            {:id user-id
+             :name user-name})
+          team-members-result)))
+
 (comment
 
   ;; Initialize database and schema

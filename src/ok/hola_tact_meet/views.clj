@@ -15,6 +15,7 @@
    [datomic.client.api :as d]
    [clojure.pprint :refer [pprint]]
    [malli.core :as m]
+   [clojure.data.json :as json]
    )
   (:gen-class))
 
@@ -64,20 +65,25 @@
         topics-with-votes (get-topics-for-meeting meeting-id user-id)
         current-topic (:meeting/current-topic meeting-data)
         can-set-current-topic (db/user-can-set-current-topic? user-id meeting-id)
+        actions (db/get-actions-for-meeting meeting-id)
+        team-members (db/get-team-members-for-meeting meeting-id)
         ]
+    (pprint current-topic)
     {:meeting-id meeting-id
      :userinfo userinfo
      :meeting meeting-data
      :topics topics-with-votes
      :current-topic current-topic
      :can-set-current-topic can-set-current-topic
-     :current-user-id user-id}))
+     :current-user-id user-id
+     :actions actions
+     :team-members team-members}))
 
 (defn render-topics [request]
   (render-file "templates/topics-list.html" (get-meeting-screen-data request)))
 
 (defn render-meeting-body [request render-full-body]
-  (render-file (if render-full-body "templates/meeting.html" "templates/meeting-content.html") 
+  (render-file (if render-full-body "templates/meeting.html" "templates/meeting-content.html")
                (get-meeting-screen-data request)))
 
 (defn meeting-main [request]
@@ -108,6 +114,10 @@
 (defn broadcast-meeting-page-update! [elements]
   (doseq [c @!meeting-screen-sse-gens]
     (d*/patch-elements! c elements)))
+
+(defn broadcast-meeting-page-signals! [signals]
+  (doseq [c @!meeting-screen-sse-gens]
+    (d*/patch-signals! c signals)))
 
 (defn join-meeting
   "Join meeting by checking permissions and saving join time"
@@ -159,6 +169,27 @@
           (do
             (log/warn "Invalid topic input - topic:" new-topic "user-id:" user-id "meeting-id:" meeting-id)
             (d*/patch-elements! sse "")))))}))
+
+
+(defn meeting-edit-topic [request]
+  (->sse-response
+   request
+   {hk-gen/on-open
+    (fn [sse]
+      (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            topic-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            user-id (get-in request [:session :userinfo :user-id])
+            new-topic (get-in request [:form-params "new-topic"])
+            topicNotes (get-in request [:json :topicNotes])
+            reflection {"topicNotes" topicNotes}
+            ]
+        (log/info "Edit topic" )
+
+        (broadcast-meeting-page-signals! (json/write-str reflection))
+        ;; (d*/patch-signals! sse "{topicNotes: 'zzz'}")
+        ;; (pprint request)
+        ))}))
+
 
 
 
@@ -263,6 +294,45 @@
           :else
           (log/warn "Invalid input - user-id:" user-id "topic-id:" topic-id)
           )))}))
+
+(defn meeting-add-action [request]
+  (->sse-response
+   request
+   {hk-gen/on-open
+    (fn [sse]
+      (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            user-id (get-in request [:session :userinfo :user-id])
+            current-topic-id (get-in request [:path-params :topic-id])
+            description (get-in request [:form-params "action-description"])
+            assigned-to (get-in request [:form-params "assigned-to"])
+            deadline-str (get-in request [:form-params "deadline"])
+            is-team-action (= (get-in request [:form-params "team-action"]) "on")
+            deadline (when (and deadline-str (not (clojure.string/blank? deadline-str)))
+                      (java.time.Instant/parse (str deadline-str "T00:00:00Z")))
+            assigned-to-user (when (and assigned-to (not is-team-action) (not= assigned-to ""))
+                              (Long/parseLong assigned-to))
+            assigned-to-team (when is-team-action
+                              (:db/id (:meeting/team (db/get-meeting-by-id meeting-id))))]
+
+        (log/info "Adding action:" description "assigned to user:" assigned-to-user "team:" assigned-to-team)
+
+        (if (and description user-id meeting-id (not (clojure.string/blank? description)))
+          (let [result (db/add-action! meeting-id
+                                      (when current-topic-id (Long/parseLong current-topic-id))
+                                      (clojure.string/trim description)
+                                      assigned-to-user
+                                      assigned-to-team
+                                      (when deadline (java.util.Date/from deadline)))]
+            (if (:success result)
+              (do
+                (log/info "Action added successfully")
+                (broadcast-meeting-page-update! (render-meeting-body request false)))
+              (do
+                (log/error "Failed to add action:" (:error result))
+                (d*/patch-elements! sse "<div class='notification is-danger'>Failed to add action</div>"))))
+          (do
+            (log/warn "Invalid action input - description:" description "user-id:" user-id "meeting-id:" meeting-id)
+            (d*/patch-elements! sse "<div class='notification is-warning'>Please fill in the action description</div>")))))}))
 
 (defn admin-manage-users [{session :session}]
   (let [users (db/get-all-users)

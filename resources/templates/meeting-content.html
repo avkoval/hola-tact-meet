@@ -104,9 +104,18 @@
         </header>
         <div class="card-content">
           <div class="field">
-            <label class="label">Discussion Notes</label>
+            <label class="label">Discussion Notes
+              <span class="icon is-small has-text-info">
+                <i class="fas fa-keyboard"></i>
+              </span>
+              <span class="has-text-grey is-size-7">john.doe is typing...</span>
+            </label>
             <div class="control">
-              <textarea class="textarea" rows="8" placeholder="Enter discussion notes, decisions, and key points..."></textarea>
+              <textarea class="textarea" rows="8"
+                        data-signals-topic-notes data-bind="topicNotes"
+                        data-on-input__debounce.50ms="@post('/meeting/{{ meeting-id }}/topic/{{ current-topic.db/id }}')"
+                        placeholder="Enter discussion notes, decisions, and key points..."
+              ></textarea>
             </div>
           </div>
         </div>
@@ -120,10 +129,11 @@
           </p>
         </header>
         <div class="card-content">
+          <form id="add-action-form">
           <div class="field">
             <label class="label">Action Description</label>
             <div class="control">
-              <input class="input" type="text" placeholder="Describe the action to be taken">
+              <input class="input" type="text" name="action-description" placeholder="Describe the action to be taken" required>
             </div>
           </div>
 
@@ -133,12 +143,11 @@
                 <label class="label">Assign To</label>
                 <div class="control">
                   <div class="select is-fullwidth">
-                    <select>
-                      <option>Select team member</option>
-                      <option>John Doe</option>
-                      <option>Jane Smith</option>
-                      <option>Mike Johnson</option>
-                      <option>Entire Team</option>
+                    <select name="assigned-to">
+                      <option value="">Select team member</option>
+                      {% for member in team-members %}
+                        <option value="{{ member.id }}">{{ member.name }}</option>
+                      {% endfor %}
                     </select>
                   </div>
                 </div>
@@ -149,7 +158,7 @@
               <div class="field">
                 <label class="label">Deadline (Optional)</label>
                 <div class="control">
-                  <input class="input" type="date">
+                  <input class="input" type="date" name="deadline">
                 </div>
               </div>
             </div>
@@ -158,7 +167,7 @@
           <div class="field">
             <div class="control">
               <label class="checkbox">
-                <input type="checkbox">
+                <input type="checkbox" name="team-action">
                 Team Action (applies to all team members)
               </label>
             </div>
@@ -166,7 +175,8 @@
 
           <div class="field is-grouped">
             <div class="control">
-              <button class="button is-primary">
+              <button class="button is-primary" type="submit"
+                      data-on-click="@post('/meeting/{{ meeting-id }}/add-action', {contentType: 'form'}) ; document.getElementById('add-action-form').reset()">
                 <span class="icon">
                   <i class="fas fa-plus"></i>
                 </span>
@@ -174,50 +184,49 @@
               </button>
             </div>
           </div>
+          </form>
 
           <!-- Existing Actions List -->
           <div class="mt-4">
             <h5 class="title is-5">Meeting Actions</h5>
 
-            <div class="box">
-              <div class="level">
-                <div class="level-left">
-                  <div class="level-item">
-                    <div>
-                      <p class="subtitle is-6 mb-1">Review project milestones</p>
-                      <p class="is-size-7 has-text-grey">
-                        Assigned to: John Doe • Due: 2024-01-15
-                      </p>
+            {% if actions %}
+              {% for action in actions %}
+                <div class="box">
+                  <div class="level">
+                    <div class="level-left">
+                      <div class="level-item">
+                        <div>
+                          <p class="subtitle is-6 mb-1">{{ action.description }}</p>
+                          <p class="is-size-7 has-text-grey">
+                            Assigned to:
+                            {% if action.is-team-action %}
+                              {{ action.assigned-to-team-name }}
+                            {% else %}
+                              {{ action.assigned-to-user-name }}
+                            {% endif %}
+                            {% if action.deadline %}
+                              • Due: {{ action.deadline|date:"MMM d, yyyy" }}
+                            {% endif %}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="level-right">
+                      <div class="level-item">
+                        <span class="tag {% if action.is-team-action %}is-info{% else %}is-warning{% endif %}">
+                          {% if action.is-team-action %}Team{% else %}Individual{% endif %}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div class="level-right">
-                  <div class="level-item">
-                    <span class="tag is-warning">Individual</span>
-                  </div>
-                </div>
+              {% endfor %}
+            {% else %}
+              <div class="has-text-centered has-text-grey py-4">
+                <p>No actions yet. Add an action above to get started.</p>
               </div>
-            </div>
-
-            <div class="box">
-              <div class="level">
-                <div class="level-left">
-                  <div class="level-item">
-                    <div>
-                      <p class="subtitle is-6 mb-1">Prepare budget proposal</p>
-                      <p class="is-size-7 has-text-grey">
-                        Assigned to: Entire Team
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div class="level-right">
-                  <div class="level-item">
-                    <span class="tag is-info">Team</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {% endif %}
 
           </div>
         </div>
