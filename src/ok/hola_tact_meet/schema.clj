@@ -113,7 +113,7 @@
                      {:db/ident       :meeting/status
                       :db/valueType   :db.type/string
                       :db/cardinality :db.cardinality/one
-                      :db/doc         "Status: scheduled, in-progress, completed, cancelled."}
+                      :db/doc         "Status: new, started, finished."}
 
                      {:db/ident       :meeting/join-url
                       :db/valueType   :db.type/string
@@ -134,6 +134,16 @@
                       :db/valueType   :db.type/boolean
                       :db/cardinality :db.cardinality/one
                       :db/doc         "Whether the meeting is visible to team members."}
+
+                     {:db/ident       :meeting/votes-are-public
+                      :db/valueType   :db.type/boolean
+                      :db/cardinality :db.cardinality/one
+                      :db/doc         "Whether votes on topics are publicly visible."}
+
+                     {:db/ident       :meeting/current-topic
+                      :db/valueType   :db.type/ref
+                      :db/cardinality :db.cardinality/one
+                      :db/doc         "The current active topic being discussed in the meeting."}
 
                      ])
 

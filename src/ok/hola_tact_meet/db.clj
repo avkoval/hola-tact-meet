@@ -441,7 +441,7 @@
   "Get all topics for a meeting with vote counts, sorted by vote score"
   [meeting-id]
   (let [db (get-db)
-        topics-result (d/q '[:find ?topic ?title ?created-at ?created-by-name
+        topics-result (d/q '[:find ?topic ?title ?created-at ?created-by ?created-by-name
                              :in $ ?meeting-id
                              :where
                              [?topic :topic/meeting ?meeting-id]
@@ -450,7 +450,7 @@
                              [?topic :topic/created-by ?created-by]
                              [?created-by :user/name ?created-by-name]]
                            db meeting-id)]
-    (mapv (fn [[topic-id title created-at created-by-name]]
+    (mapv (fn [[topic-id title created-at created-by created-by-name]]
             (let [;; Get vote counts for this topic
                   upvotes-result (d/q '[:find (count ?vote)
                                         :in $ ?topic-id
@@ -470,6 +470,7 @@
               {:id topic-id
                :title title
                :created-at created-at
+               :created-by created-by
                :created-by-name created-by-name
                :upvotes upvotes
                :downvotes downvotes
@@ -508,6 +509,32 @@
       (log/error "Failed to add vote:" (.getMessage e))
       {:success false :error (.getMessage e)})))
 
+(defn remove-vote!
+  "Remove a user's vote for a topic"
+  [user-id topic-id]
+  (try
+    (let [db (get-db)
+          ;; Find existing vote
+          existing-vote-result (d/q '[:find ?vote
+                                     :in $ ?user-id ?topic-id
+                                     :where
+                                     [?vote :vote/user ?user-id]
+                                     [?vote :vote/topic ?topic-id]]
+                                   db user-id topic-id)
+          existing-vote-id (ffirst existing-vote-result)]
+      (if existing-vote-id
+        ;; Remove the vote
+        (do
+          (d/transact (get-conn) {:tx-data [[:db/retractEntity existing-vote-id]]})
+          (log/info "Vote removed for user" user-id "on topic" topic-id)
+          {:success true :removed true})
+        ;; No vote to remove
+        (do
+          (log/info "No vote to remove for user" user-id "on topic" topic-id)
+          {:success true :removed false})))
+    (catch Exception e
+      (log/error "Failed to remove vote:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
 
 (defn get-user-vote-for-topic
   "Get the current vote type for a user on a specific topic"
@@ -521,6 +548,78 @@
                       [?vote :vote/type ?vote-type]]
                     db user-id topic-id)]
     (ffirst result)))
+
+(defn get-meeting-by-id
+  "Get meeting data by ID"
+  [meeting-id]
+  (let [db (get-db)]
+    (d/pull db '[:db/id :meeting/title :meeting/description :meeting/status
+                 :meeting/scheduled-at :meeting/created-at :meeting/join-url
+                 :meeting/allow-topic-voting :meeting/sort-topics-by-votes
+                 :meeting/is-visible :meeting/votes-are-public
+                 {:meeting/team [:db/id :team/name]}
+                 {:meeting/created-by [:db/id :user/name :user/email]}
+                 {:meeting/current-topic [:db/id :topic/title
+                                         {:topic/created-by [:db/id :user/name]}]}]
+            meeting-id)))
+
+(defn set-current-topic!
+  "Set the current topic for a meeting"
+  [meeting-id topic-id]
+  (try
+    (let [result (d/transact (get-conn) {:tx-data [{:db/id meeting-id
+                                                    :meeting/current-topic topic-id}]})]
+      (log/info "Current topic set for meeting" meeting-id "to topic" topic-id)
+      {:success true})
+    (catch Exception e
+      (log/error "Failed to set current topic:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
+
+(defn user-can-set-current-topic?
+  "Check if user has permission to set current topic (staff/admin and meeting participant)"
+  [user-id meeting-id]
+  (let [db (get-db)
+        ;; Check user access level
+        user-access-result (d/q '[:find ?access-level
+                                 :in $ ?user-id
+                                 :where [?user-id :user/access-level ?access-level]]
+                               db user-id)
+        user-access (ffirst user-access-result)
+        has-staff-access (contains? #{"staff" "admin"} user-access)
+
+        ;; Check if user is participant in the meeting
+        participant-result (d/q '[:find ?participant
+                                 :in $ ?user-id ?meeting-id
+                                 :where [?participant :participant/user ?user-id]
+                                        [?participant :participant/meeting ?meeting-id]]
+                               db user-id meeting-id)
+        is-participant (seq participant-result)]
+
+    (and has-staff-access is-participant)))
+
+(defn delete-topic!
+  "Delete a topic by ID, including all related votes"
+  [topic-id]
+  (try
+    (let [db (get-db)
+          ;; Find all votes for this topic
+          votes-result (d/q '[:find ?vote
+                             :in $ ?topic-id
+                             :where [?vote :vote/topic ?topic-id]]
+                           db topic-id)
+          vote-ids (mapv first votes-result)
+          ;; Create transaction data to delete votes first, then topic
+          tx-data (concat
+                   ;; Delete all votes for this topic
+                   (mapv (fn [vote-id] [:db/retractEntity vote-id]) vote-ids)
+                   ;; Delete the topic itself
+                   [[:db/retractEntity topic-id]])]
+      (d/transact (get-conn) {:tx-data tx-data})
+      (log/info "Topic" topic-id "and" (count vote-ids) "related votes deleted")
+      {:success true})
+    (catch Exception e
+      (log/error "Failed to delete topic:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
 
 (comment
 
@@ -603,4 +702,46 @@
   (add-topic! 12345 67890 "Test topic")
   (get-topics-for-meeting 12345)
   (add-vote! 67890 98765 "upvote")
+
+  ;; Migration: Add votes_are_public field to meeting schema
+  ;; 1. Add the schema for the new field:
+  (d/transact (get-conn) {:tx-data [{:db/ident       :meeting/votes-are-public
+                                     :db/valueType   :db.type/boolean
+                                     :db/cardinality :db.cardinality/one
+                                     :db/doc         "Whether votes on topics are publicly visible."}]})
+
+  ;; 2. Set default value (false) for all existing meetings:
+  (let [db (get-db)
+        all-meeting-ids (d/q '[:find ?e
+                               :where [?e :meeting/title _]]
+                             db)
+        tx-data (map (fn [[meeting-id]]
+                       {:db/id meeting-id
+                        :meeting/votes-are-public false})
+                     all-meeting-ids)]
+    (when (seq tx-data)
+      (d/transact (get-conn) {:tx-data tx-data})))
+
+  ;; Migration: Update existing meeting status values to match new schema
+  ;; Note: Update status values from old format to new format if needed
+  ;; Old: "scheduled" -> New: "new"
+  ;; Old: "in-progress" -> New: "started"
+  ;; Old: "completed"/"cancelled" -> New: "finished"
+  (let [db (get-db)
+        meetings-to-update (d/q '[:find ?e ?status
+                                  :where
+                                  [?e :meeting/status ?status]
+                                  [(contains? #{"scheduled" "in-progress" "completed" "cancelled"} ?status)]]
+                                db)
+        tx-data (map (fn [[meeting-id old-status]]
+                       {:db/id meeting-id
+                        :meeting/status (case old-status
+                                         "scheduled" "new"
+                                         "in-progress" "started"
+                                         "completed" "finished"
+                                         "cancelled" "finished"
+                                         old-status)})
+                     meetings-to-update)]
+    (when (seq tx-data)
+      (d/transact (get-conn) {:tx-data tx-data})))
   )

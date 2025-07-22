@@ -1,9 +1,11 @@
 <div id="meeting-content"
-     data-on-load="@get('/meeting/{{ meeting-id }}/main/refresh')"
-     class="columns is-gapless is-fullheight">
-  <!-- Topics List Sidebar -->
-  <div class="column is-one-quarter">
-    <div class="panel">
+     data-on-load="@get('/meeting/{{ meeting-id }}/main/refresh')">
+
+  <!-- Meeting Content -->
+  <div class="columns is-gapless is-fullheight">
+    <!-- Topics List Sidebar -->
+  <div class="column is-one-third">
+    <div class="panel is-primary">
       <p class="panel-heading">
         Topics
       </p>
@@ -32,9 +34,10 @@
 
   <!-- Main Content Area -->
   <div class="column">
-    <div class="container is-fluid p-4">
+    <div class="container is-fluid">
 
       <!-- Meeting Controls -->
+      <div class="px-4">
       <div class="level mb-4">
         <div class="level-left">
           <div class="level-item">
@@ -68,12 +71,36 @@
         </div>
       </div>
 
+      <!-- Meeting Info -->
+      {% if meeting.meeting/description %}
+        <div class="box">
+          {% if meeting.meeting/description %}
+            <p class="subtitle is-6 has-text-grey mb-3">{{ meeting.meeting/description }}</p>
+          {% endif %}
+          <div class="tags">
+            <span class="tag is-info">{{ meeting.meeting/team.team/name }}</span>
+            <span class="tag">Scheduled: {{ meeting.meeting/scheduled-at|date:"MMM d, yyyy 'at' h:mm a" }}</span>
+          </div>
+        </div>
+      {% endif %}
+
+
+
+      {% if current-topic %}
       <!-- Current Topic -->
       <div class="card mb-4">
         <header class="card-header">
           <p class="card-header-title is-size-4">
-            Current Topic: Project Timeline Review
+            Current Topic: {{ current-topic.topic/title }}
           </p>
+          <div class="card-header-icon">
+            <button class="button is-small is-warning">
+              <span class="icon is-small">
+                <i class="fas fa-check"></i>
+              </span>
+              <span>Finish Topic</span>
+            </button>
+          </div>
         </header>
         <div class="card-content">
           <div class="field">
@@ -195,7 +222,10 @@
           </div>
         </div>
       </div>
+      {% endif %}
+      </div>
 
     </div>
+  </div>
   </div>
 </div>
