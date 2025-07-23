@@ -16,6 +16,8 @@
    [clojure.pprint :refer [pprint]]
    [malli.core :as m]
    [clojure.data.json :as json]
+   [clj-http.client :as http]
+   [clojure.string]
    )
   (:gen-class))
 
@@ -28,6 +30,7 @@
         ]
 
     (log/info "Home page accessed from" remote-addr "dev_mode: " dev_mode)
+    (pprint session)
     (if (get-in session [:userinfo :logged-in])
       (response/redirect "/app")
       {:status 200
@@ -93,6 +96,92 @@
   {:status 200
    :headers {"Content-Type" "text/html"}
    :body (render-meeting-body request true)})
+
+(defn fetch-google-userinfo
+  "Fetch user information from Google API using bearer token"
+  [access-token]
+  (try
+    (let [response (http/get "https://www.googleapis.com/oauth2/v2/userinfo"
+                            {:headers {"Authorization" (str "Bearer " access-token)}
+                             :as :json})]
+      (if (= 200 (:status response))
+        {:success true :userinfo (:body response)}
+        {:success false :error (str "Google API error: " (:status response))}))
+    (catch Exception e
+      (log/error "Error fetching Google userinfo:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
+
+(defn create-or-login-user
+  "Create new user or login existing user based on Google userinfo"
+  [google-userinfo]
+  (try
+    (log/info "Google userinfo received:" google-userinfo)
+    (log/info "Google given_name:" (:given_name google-userinfo))
+    (log/info "Google family_name:" (:family_name google-userinfo))
+    (let [email (:email google-userinfo)
+          existing-user-id (db/find-user-by-email email)]
+      (if existing-user-id
+        ;; User exists, update last login and return user info
+        (do
+          (db/update-last-login! existing-user-id)
+          (log/info "User logged in:" email)
+          {:success true :user-id existing-user-id :action :login})
+        ;; User doesn't exist, create new user
+        (let [user-data {:name (:name google-userinfo)
+                        :email email
+                        :family-name (:family_name google-userinfo)
+                        :given-name (:given_name google-userinfo)
+                        :picture (:picture google-userinfo)
+                        :auth-provider "google"
+                        :access-level "user"
+                        :active true}]
+          (log/info "Creating user with data:" user-data)
+          (let [new-user-id (db/create-user user-data)]
+            (log/info "New user created:" email)
+            {:success true :user-id new-user-id :action :register}))))
+    (catch Exception e
+      (log/error "Error in create-or-login-user:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
+
+(defn app-landing [request]
+  (log/info "App landing screen (after oauth2)")
+  (let [access-token (get-in request [:session :ring.middleware.oauth2/access-tokens :google :token])]
+    (if access-token
+      ;; Fetch user info from Google
+      (let [userinfo-result (fetch-google-userinfo access-token)]
+        (println userinfo-result)
+        (if (:success userinfo-result)
+          ;; Create or login user
+          (let [user-result (create-or-login-user (:userinfo userinfo-result))]
+            (if (:success user-result)
+              ;; Get user details and update session
+              (let [user-details (db/get-user-by-id (:user-id user-result))
+                    session-userinfo {:email (:user/email user-details)
+                                     :name (:user/name user-details)
+                                     :user-id (:user-id user-result)
+                                     :given-name (:user/given-name user-details)
+                                     :family-name (:user/family-name user-details)
+                                     :picture (:user/picture user-details)
+                                     :logged-in true
+                                     :auth-provider (:user/auth-provider user-details)
+                                     :access-level (:user/access-level user-details)}
+                    updated-session (assoc (:session request) :userinfo session-userinfo)]
+                (pprint updated-session)
+                {:status 302
+                 :headers {"Location" "/app"}
+                 :session updated-session})
+              ;; User creation/login failed
+              {:status 500
+               :headers {"Content-Type" "text/html"}
+               :body (str "Authentication failed: " (:error user-result))}))
+          ;; Google userinfo fetch failed
+          {:status 500
+           :headers {"Content-Type" "text/html"}
+           :body (str "Failed to fetch user info: " (:error userinfo-result))}))
+      ;; No access token
+      {:status 400
+       :headers {"Content-Type" "text/html"}
+       :body "No access token found"})))
 
 ; Lets collect all meeting participants open SSE generators into
 ; atom, to be able to broadcast updates
@@ -365,7 +454,7 @@
           :else
           (log/warn "Invalid input - user-id:" user-id "meeting-id:" meeting-id))))}))
 
-(defn meetings-list 
+(defn meetings-list
   "Display all finished meetings with topics and actions"
   [{session :session}]
   (log/info "Meetings list page accessed")
