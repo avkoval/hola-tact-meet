@@ -3,6 +3,7 @@
             [ok.hola-tact-meet.schema :as schema]
             [malli.core]
             [clojure.tools.logging :as log]
+            [clojure.string]
             ))
 
 (def client (d/client {:server-type :datomic-local
@@ -63,20 +64,32 @@
 (defn create-user
   "Create new user, throws exception if user with same email already exists"
   [userinfo]
+  (when (nil? (:email userinfo))
+    (throw (ex-info "Email is required" {:userinfo userinfo})))
+  (when (nil? (:name userinfo))
+    (throw (ex-info "Name is required" {:userinfo userinfo})))
 
   (let [existing-user (find-user-by-email (:email userinfo))]
     (when existing-user
       (throw (ex-info "User with this email already exists"
                       {:email (:email userinfo)
                        :existing-user-id existing-user})))
-    (let [user-data {:user/name (:name userinfo)
-                     :user/email (:email userinfo)
-                     :user/family-name (:family-name userinfo)
-                     :user/given-name (:given-name userinfo)
-                     :user/picture (:picture userinfo)
-                     :user/auth-provider (:auth-provider userinfo)
-                     :user/access-level (or (:access-level userinfo) "user")
-                     :user/active (or (:active userinfo) true)}
+    (let [full-name (str (or (:given-name userinfo) "")
+                         (if (and (:given-name userinfo) (:family-name userinfo)) " " "")
+                         (or (:family-name userinfo) ""))
+          constructed-name (if (clojure.string/blank? full-name)
+                            (or (:name userinfo) "Unknown User")
+                            (clojure.string/trim full-name))
+          user-data (->> {:user/name constructed-name
+                          :user/email (:email userinfo)
+                          :user/family-name (:family-name userinfo)
+                          :user/given-name (:given-name userinfo)
+                          :user/picture (:picture userinfo)
+                          :user/auth-provider (:auth-provider userinfo)
+                          :user/access-level (or (:access-level userinfo) "user")
+                          :user/active (or (:active userinfo) true)}
+                         (filter (fn [[k v]] (and (not (nil? v)) (not= v ""))))
+                         (into {}))
           result (d/transact (get-conn) {:tx-data [user-data]})
           user-id (get-in result [:tempids (first (keys (:tempids result)))])]
       user-id)))

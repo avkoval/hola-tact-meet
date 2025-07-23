@@ -34,6 +34,7 @@
      ["/favicon.ico" {:get (fn [_] (response/file-response "resources/public/favicon.ico"))}]
      ["/assets/*" (ring/create-resource-handler)]
      ["/app" {:get (middleware/wrap-require-auth views/app-main)}]
+     ["/app-landing" {:get views/app-landing}]
      ["/meetings" {:get (middleware/wrap-require-auth views/meetings-list)}]
      ["/actions" {:get (middleware/wrap-require-auth views/my-actions)}]
      ["/test-session" {:get views/test-session}]
@@ -73,9 +74,9 @@
 (defn create-app []
   (let [secret-key (encode-secret-key (:secret-key (utils/app-config)))]
     (-> base-app
+        middleware/my-wrap-oauth2
         utils/wrap-json-params
         wrap-params
-        middleware/my-wrap-oauth2
         (wrap-session {:store (cookie-store {:key secret-key})
                        :cookie-attrs {:http-only true}
                        })
