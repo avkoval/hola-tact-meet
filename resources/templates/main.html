@@ -180,25 +180,25 @@
         <div class="column">
           <div class="box has-text-centered">
             <p class="heading">Total Meetings</p>
-            <p class="title">0</p>
+            <p class="title">{{ statistics.total-meetings | default: 0 }}</p>
           </div>
         </div>
         <div class="column">
           <div class="box has-text-centered">
             <p class="heading">Active Actions</p>
-            <p class="title">0</p>
+            <p class="title">{{ statistics.active-actions | default: 0 }}</p>
           </div>
         </div>
         <div class="column">
           <div class="box has-text-centered">
             <p class="heading">Team Members</p>
-            <p class="title">1</p>
+            <p class="title">{{ statistics.team-members | default: 1 }}</p>
           </div>
         </div>
         <div class="column">
           <div class="box has-text-centered">
             <p class="heading">This Month</p>
-            <p class="title">0</p>
+            <p class="title">{{ statistics.meetings-this-month | default: 0 }}</p>
           </div>
         </div>
       </div>

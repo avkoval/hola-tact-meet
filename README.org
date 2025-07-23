@@ -296,13 +296,40 @@ I need fake login to quickly login several users for testing purposes on localho
  - [X] for staff user - limit teams to member only
    - [X] for admin user - no limits
 
-*** TODO Meeting screen (the biggest part) [12%] [1/8]
+*** TODO Meeting screen (the biggest part) [11%] [1/9]
     :PROPERTIES:
     :COOKIE_DATA: recursive
     :END:
     :LOGBOOK:
     - State "TODO"       from              [2025-07-21 Mon 22:10]
     :END:
+
+
+**** TODO split updates per meeting!
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-23 Wed 07:50]
+     :END:
+
+ - my broadcast functions are working app-wide. and so if several meetings are going
+   in parallel, it will affect each other!!! I need to pass the meeting ID to update
+   only current meeting clients!
+
+**** TODO Prepare to RND today
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-23 Wed 07:20]
+     :END:
+
+ - [X] Finish meeting - show confirmation, show meeting
+ - [X] Meetings page - display all recent meetings and their actions
+ - [ ] "My Actions" page - display my pending actions from all various meetings
+   - As a layout for this page, please use the HTML table with:
+     - meeting topic
+     - action topic
+     - deadline
+     - action status
+ - [ ] *maybe* would be good to start & finish timer
+ - [ ] test that appX.koval.kharkov.ua works fine
+
 
 **** DONE topics [100%]
      CLOSED: [2025-07-22 Tue 22:50]
@@ -319,6 +346,7 @@ I need fake login to quickly login several users for testing purposes on localho
  - [X] Set current topic (only for staff)
  - [X] Meeting settings - votes are public
  - [X] Make sure if voting is disabled, then we don't show the buttons and also backend checks
+
 
 **** TODO Current topic
      :LOGBOOK:
