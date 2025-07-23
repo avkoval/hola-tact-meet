@@ -24,7 +24,9 @@
       </td>
       <td>{{ user.email }}</td>
       <td data-signals-access-level-{{ user.id }}="'{{ user.access-level }}'">
-        <div class="control" data-on-signal-change-access-level-{{ user.id }}="@get('/admin/manage-users/update-user-access-level?user_id={{ user.id }}')">
+        <div class="control" data-on-signal-patch="@get('/admin/manage-users/update-user-access-level?user_id={{ user.id }}')"
+             data-on-signal-patch-filter="{include: /^accessLevel{{ user.id }}$/}"
+        >
           <label class="radio">
             <input type="radio" name="access-level-{{ user.id }}" data-bind-access-level-{{ user.id }} value="user"> <span class="tag {% if user.access-level = "user" %}is-success{% endif %}">User</span>
           </label>
