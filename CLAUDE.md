@@ -4,6 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Backend
 - Clojure/Ring
+- When adding a docstring to function, it should follow the function name, before parameters
 
 ## Templates (Selmer)
 - Location: resources/templates/*.html

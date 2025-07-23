@@ -1,0 +1,171 @@
+{% extends "templates/app.html" %}
+
+{% block current-breadcrumb %}
+  <li><a href="/app">Dashboard</a></li>
+  <li class="is-active"><a href="/actions">My Actions</a></li>
+{% endblock %}
+
+{% block app_content %}
+
+<section class="section">
+  <div class="container">
+    <div class="level">
+      <div class="level-left">
+        <div class="level-item">
+          <div>
+            <h1 class="title">My Actions</h1>
+            <p class="subtitle">
+              All action items assigned to you across meetings
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="level-right">
+        <div class="level-item">
+          <div class="tags">
+            <span class="tag is-info">{{ actions|length }} total actions</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if actions %}
+      <div class="card">
+        <div class="card-content">
+          <div class="table-container">
+            <table class="table is-fullwidth is-striped is-hoverable">
+              <thead>
+                <tr>
+                  <th>Meeting Title</th>
+                  <th>Action Description</th>
+                  <th>Deadline</th>
+                  <th>Status</th>
+                  <th>Added</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for action in actions %}
+                <tr>
+                  <td>
+                    <div class="is-flex is-align-items-center">
+                      <span class="icon has-text-info mr-2">
+                        <i class="fas fa-users"></i>
+                      </span>
+                      <div>
+                        <p class="has-text-weight-semibold">{{ action.meeting-title }}</p>
+                        <p class="is-size-7 has-text-grey">Meeting ID: {{ action.meeting-id }}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div>
+                      <p>{{ action.description }}</p>
+                    </div>
+                  </td>
+                  <td>
+                    {% if action.deadline %}
+                      <div class="is-flex is-align-items-center">
+                        <span class="icon has-text-warning mr-1">
+                          <i class="fas fa-calendar-alt"></i>
+                        </span>
+                        <div>
+                          <p class="has-text-weight-semibold">{{ action.deadline|date:"MMM d, yyyy" }}</p>
+                          <p class="is-size-7 has-text-grey">
+                            {% comment %}Check if deadline is past{% endcomment %}
+                            {% comment %}
+                            {#% if action.deadline < "now" %#}
+                              <span class="has-text-danger">Overdue</span>
+                            {#% else %#}
+                              Due in {{ action.deadline }}
+                            {#% endif %#}
+                            {% endcomment %}
+                          </p>
+                        </div>
+                      </div>
+                    {% else %}
+                      <span class="has-text-grey">
+                        <span class="icon">
+                          <i class="fas fa-minus"></i>
+                        </span>
+                        No deadline
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="tag {% if action.status = 'pending' %}is-warning{% elif action.status = 'completed' %}is-success{% else %}is-light{% endif %}">
+                      {% if action.status = "pending" %}
+                        <span class="icon">
+                          <i class="fas fa-clock"></i>
+                        </span>
+                        <span>Pending</span>
+                      {% elif action.status = "completed" %}
+                        <span class="icon">
+                          <i class="fas fa-check"></i>
+                        </span>
+                        <span>Completed</span>
+                      {% else %}
+                        <span>{{ action.status }}</span>
+                      {% endif %}
+                    </span>
+                  </td>
+                  <td>
+                    <div>
+                      <p class="is-size-7 has-text-grey">{{ action.added-at|date:"MMM d, yyyy" }}</p>
+                      <p class="is-size-7 has-text-grey">{{ action.added-at|date:"h:mm a" }}</p>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="field is-grouped">
+                      <div class="control">
+                        <a href="/meeting/{{ action.meeting-id }}/main" class="button is-small is-info is-outlined">
+                          <span class="icon">
+                            <i class="fas fa-external-link-alt"></i>
+                          </span>
+                          <span>View Meeting</span>
+                        </a>
+                      </div>
+                      {% if action.status = "pending" %}
+                      <div class="control">
+                        <button class="button is-small is-success is-outlined" title="Mark as completed">
+                          <span class="icon">
+                            <i class="fas fa-check"></i>
+                          </span>
+                          <span>Complete</span>
+                        </button>
+                      </div>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+
+    {% else %}
+      <div class="has-text-centered py-6">
+        <div class="icon is-large has-text-grey-light mb-4">
+          <i class="fas fa-tasks fa-3x"></i>
+        </div>
+        <h2 class="title is-4 has-text-grey">No Actions Assigned</h2>
+        <p class="subtitle has-text-grey">
+          You don't have any action items assigned to you yet.
+        </p>
+        <p class="has-text-grey">
+          <a href="/app" class="button is-primary">
+            <span class="icon">
+              <i class="fas fa-arrow-left"></i>
+            </span>
+            <span>Back to Dashboard</span>
+          </a>
+        </p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% endblock %}

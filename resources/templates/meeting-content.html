@@ -4,237 +4,240 @@
   <!-- Meeting Content -->
   <div class="columns is-gapless is-fullheight">
     <!-- Topics List Sidebar -->
-  <div class="column is-one-third">
-    <div class="panel is-primary">
-      <p class="panel-heading">
-        Topics
-      </p>
+    <div class="column is-one-third">
+      <div class="panel is-primary">
+        <p class="panel-heading">
+          Topics
+        </p>
 
-      <!-- Add Topic Form -->
-      <form>
-        <div class="panel-block">
-          <div class="field has-addons" style="width: 100%;">
-            <div class=>
-              {% include "templates/add-new-topic.html" %}
-            </div>
-            <div class="control">
-              <button class="button is-small is-primary" data-on-click="@post('/meeting/{{ meeting-id }}/add-topic', {contentType: 'form'})">
-                <span class="icon">
-                  <i class="fas fa-plus"></i>
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </form>
-
-      {% include "templates/topics-list.html" %}
-    </div>
-  </div>
-
-  <!-- Main Content Area -->
-  <div class="column">
-    <div class="container is-fluid">
-
-      <!-- Meeting Controls -->
-      <div class="px-4">
-      <div class="level mb-4">
-        <div class="level-left">
-          <div class="level-item">
-            <div class="field is-grouped">
+        <!-- Add Topic Form -->
+        <form>
+          <div class="panel-block">
+            <div class="field has-addons" style="width: 100%;">
+              <div class=>
+                {% include "templates/add-new-topic.html" %}
+              </div>
               <div class="control">
-                <div class="field has-addons">
+                <button class="button is-small is-primary" data-on-click="@post('/meeting/{{ meeting-id }}/add-topic', {contentType: 'form'})">
+                  <span class="icon">
+                    <i class="fas fa-plus"></i>
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        {% include "templates/topics-list.html" %}
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="column">
+      <div class="container is-fluid">
+
+        <!-- Meeting Controls -->
+        <div class="px-4">
+          <div class="level mb-4">
+            <div class="level-left">
+              <div class="level-item">
+                <div class="field is-grouped">
                   <div class="control">
-                    <input class="input" type="text" placeholder="Timer (mm:ss)" value="15:00">
-                  </div>
-                  <div class="control">
-                    <button class="button is-info">
-                      <span class="icon">
-                        <i class="fas fa-play"></i>
-                      </span>
-                    </button>
+                    <div class="field has-addons">
+                      <div class="control">
+                        <input class="input" type="text" placeholder="Timer (mm:ss)" value="15:00">
+                      </div>
+                      <div class="control">
+                        <button class="button is-info">
+                          <span class="icon">
+                            <i class="fas fa-play"></i>
+                          </span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+            <div class="level-right">
+              <div class="level-item">
+                <button class="button is-danger" data-on-click="confirm('All important topics are sorted out? This will close the meeting for all.') && @post('/meeting/{{ meeting-id }}/finish')">
+                  <span class="icon">
+                    <i class="fas fa-times"></i>
+                  </span>
+                  <span>Finish Meeting</span>
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="level-right">
-          <div class="level-item">
-            <button class="button is-danger">
-              <span class="icon">
-                <i class="fas fa-times"></i>
-              </span>
-              <span>Finish Meeting</span>
-            </button>
-          </div>
-        </div>
-      </div>
 
-      <!-- Meeting Info -->
-      {% if meeting.meeting/description %}
-        <div class="box">
+          <!-- Meeting Info -->
           {% if meeting.meeting/description %}
-            <p class="subtitle is-6 has-text-grey mb-3">{{ meeting.meeting/description }}</p>
+            <div class="box">
+              {% if meeting.meeting/description %}
+                <p class="subtitle is-6 has-text-grey mb-3">{{ meeting.meeting/description }}</p>
+              {% endif %}
+              <div class="tags">
+                <span class="tag is-info">{{ meeting.meeting/team.team/name }}</span>
+                <span class="tag">Scheduled: {{ meeting.meeting/scheduled-at|date:"MMM d, yyyy 'at' h:mm a" }}</span>
+              </div>
+            </div>
           {% endif %}
-          <div class="tags">
-            <span class="tag is-info">{{ meeting.meeting/team.team/name }}</span>
-            <span class="tag">Scheduled: {{ meeting.meeting/scheduled-at|date:"MMM d, yyyy 'at' h:mm a" }}</span>
-          </div>
-        </div>
-      {% endif %}
 
 
 
-      {% if current-topic %}
-      <!-- Current Topic -->
-      <div class="card mb-4">
-        <header class="card-header">
-          <p class="card-header-title is-size-4">
-            Current Topic: {{ current-topic.topic/title }}
-          </p>
-          <div class="card-header-icon">
-            <button class="button is-small is-warning">
-              <span class="icon is-small">
-                <i class="fas fa-check"></i>
-              </span>
-              <span>Finish Topic</span>
-            </button>
-          </div>
-        </header>
-        <div class="card-content">
-          <div class="field">
-            <label class="label">Discussion Notes
-              <span class="icon is-small has-text-info">
-                <i class="fas fa-keyboard"></i>
-              </span>
-              <span class="has-text-grey is-size-7">john.doe is typing...</span>
-            </label>
-            <div class="control">
-              <textarea class="textarea" rows="8"
-                        data-signals-topic-notes data-bind="topicNotes"
-                        data-on-input__debounce.50ms="@post('/meeting/{{ meeting-id }}/topic/{{ current-topic.db/id }}')"
-                        placeholder="Enter discussion notes, decisions, and key points..."
-              ></textarea>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Actions Block -->
-      <div class="card">
-        <header class="card-header">
-          <p class="card-header-title">
-            Actions
-          </p>
-        </header>
-        <div class="card-content">
-          <form id="add-action-form">
-          <div class="field">
-            <label class="label">Action Description</label>
-            <div class="control">
-              <input class="input" type="text" name="action-description" placeholder="Describe the action to be taken" required>
-            </div>
-          </div>
-
-          <div class="columns">
-            <div class="column">
-              <div class="field">
-                <label class="label">Assign To</label>
+          {% if current-topic %}
+            <!-- Current Topic -->
+            <div class="card mb-4">
+              <header class="card-header">
+                <p class="card-header-title is-size-4">
+                  Current Topic: {{ current-topic.topic/title }}
+                </p>
+                <div class="card-header-icon">
+                  <button class="button is-small is-warning">
+                    <span class="icon is-small">
+                      <i class="fas fa-check"></i>
+                    </span>
+                    <span>Finish Topic</span>
+                  </button>
+                </div>
+              </header>
+              <div class="card-content" data-signals-user-is-typing="false">
+                <div class="field">
+                  <label class="label">Discussion Notes
+                    <span data-show="$userIsTyping" data-on-interval__duration.3000ms="$userIsTyping=false">
+                      <span class="icon is-small has-text-info">
+                        <i class="fas fa-keyboard"></i>
+                      </span>
+                      <span class="has-text-grey is-size-7" data-text="$userIsTyping">john.doe is typing...</span>
+                    </span>
+                  </label>
+                </div>
                 <div class="control">
-                  <div class="select is-fullwidth">
-                    <select name="assigned-to">
-                      <option value="">Select team member</option>
-                      {% for member in team-members %}
-                        <option value="{{ member.id }}">{{ member.name }}</option>
-                      {% endfor %}
-                    </select>
+                  <textarea class="textarea" rows="8"
+                            data-signals-topic-notes data-bind="topicNotes"
+                            data-on-input__debounce.50ms="@post('/meeting/{{ meeting-id }}/topic/{{ current-topic.db/id }}')"
+                            placeholder="Enter discussion notes, decisions, and key points..."
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+        </div>
+
+        <!-- Actions Block -->
+        <div class="card">
+          <header class="card-header">
+            <p class="card-header-title">
+              Actions
+            </p>
+          </header>
+          <div class="card-content">
+            <form id="add-action-form">
+              <div class="field">
+                <label class="label">Action Description</label>
+                <div class="control">
+                  <input class="input" type="text" name="action-description" placeholder="Describe the action to be taken" required>
+                </div>
+              </div>
+
+              <div class="columns">
+                <div class="column">
+                  <div class="field">
+                    <label class="label">Assign To</label>
+                    <div class="control">
+                      <div class="select is-fullwidth">
+                        <select name="assigned-to">
+                          <option value="">Select team member</option>
+                          {% for member in team-members %}
+                            <option value="{{ member.id }}">{{ member.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="column">
+                  <div class="field">
+                    <label class="label">Deadline (Optional)</label>
+                    <div class="control">
+                      <input class="input" type="date" name="deadline">
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div class="column">
               <div class="field">
-                <label class="label">Deadline (Optional)</label>
                 <div class="control">
-                  <input class="input" type="date" name="deadline">
+                  <label class="checkbox">
+                    <input type="checkbox" name="team-action">
+                    Team Action (applies to all team members)
+                  </label>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <div class="field">
-            <div class="control">
-              <label class="checkbox">
-                <input type="checkbox" name="team-action">
-                Team Action (applies to all team members)
-              </label>
-            </div>
-          </div>
+              <div class="field is-grouped">
+                <div class="control">
+                  <button class="button is-primary" type="submit"
+                          data-on-click="@post('/meeting/{{ meeting-id }}/add-action', {contentType: 'form'}) ; document.getElementById('add-action-form').reset()">
+                    <span class="icon">
+                      <i class="fas fa-plus"></i>
+                    </span>
+                    <span>Add Action</span>
+                  </button>
+                </div>
+              </div>
+            </form>
 
-          <div class="field is-grouped">
-            <div class="control">
-              <button class="button is-primary" type="submit"
-                      data-on-click="@post('/meeting/{{ meeting-id }}/add-action', {contentType: 'form'}) ; document.getElementById('add-action-form').reset()">
-                <span class="icon">
-                  <i class="fas fa-plus"></i>
-                </span>
-                <span>Add Action</span>
-              </button>
-            </div>
-          </div>
-          </form>
+            <!-- Existing Actions List -->
+            <div class="mt-4">
+              <h5 class="title is-5">Meeting Actions</h5>
 
-          <!-- Existing Actions List -->
-          <div class="mt-4">
-            <h5 class="title is-5">Meeting Actions</h5>
-
-            {% if actions %}
-              {% for action in actions %}
-                <div class="box">
-                  <div class="level">
-                    <div class="level-left">
-                      <div class="level-item">
-                        <div>
-                          <p class="subtitle is-6 mb-1">{{ action.description }}</p>
-                          <p class="is-size-7 has-text-grey">
-                            Assigned to:
-                            {% if action.is-team-action %}
-                              {{ action.assigned-to-team-name }}
-                            {% else %}
-                              {{ action.assigned-to-user-name }}
-                            {% endif %}
-                            {% if action.deadline %}
-                              • Due: {{ action.deadline|date:"MMM d, yyyy" }}
-                            {% endif %}
-                          </p>
+              {% if actions %}
+                {% for action in actions %}
+                  <div class="box">
+                    <div class="level">
+                      <div class="level-left">
+                        <div class="level-item">
+                          <div>
+                            <p class="subtitle is-6 mb-1">{{ action.description }}</p>
+                            <p class="is-size-7 has-text-grey">
+                              Assigned to:
+                              {% if action.is-team-action %}
+                                {{ action.assigned-to-team-name }}
+                              {% else %}
+                                {{ action.assigned-to-user-name }}
+                              {% endif %}
+                              {% if action.deadline %}
+                                • Due: {{ action.deadline|date:"MMM d, yyyy" }}
+                              {% endif %}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="level-right">
+                        <div class="level-item">
+                          <span class="tag {% if action.is-team-action %}is-info{% else %}is-warning{% endif %}">
+                            {% if action.is-team-action %}Team{% else %}Individual{% endif %}
+                          </span>
                         </div>
                       </div>
                     </div>
-                    <div class="level-right">
-                      <div class="level-item">
-                        <span class="tag {% if action.is-team-action %}is-info{% else %}is-warning{% endif %}">
-                          {% if action.is-team-action %}Team{% else %}Individual{% endif %}
-                        </span>
-                      </div>
-                    </div>
                   </div>
+                {% endfor %}
+              {% else %}
+                <div class="has-text-centered has-text-grey py-4">
+                  <p>No actions yet. Add an action above to get started.</p>
                 </div>
-              {% endfor %}
-            {% else %}
-              <div class="has-text-centered has-text-grey py-4">
-                <p>No actions yet. Add an action above to get started.</p>
-              </div>
-            {% endif %}
+              {% endif %}
 
+            </div>
           </div>
         </div>
-      </div>
-      {% endif %}
+          {% endif %}
       </div>
 
     </div>
   </div>
-  </div>
+</div>
 </div>

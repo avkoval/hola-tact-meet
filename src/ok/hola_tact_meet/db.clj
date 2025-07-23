@@ -334,7 +334,7 @@
       [])))
 
 (defn get-active-meetings-for-user
-  "Get all active meetings for user's teams (future/now + is_visible=true)"
+  "Get all active meetings for user's teams (future/now + is_visible=true + not finished)"
   [user-id]
   (let [db (get-db)
         now (java.util.Date.)
@@ -345,8 +345,8 @@
                               db user-id)
         user-team-ids (mapv first user-teams-result)]
     (if (seq user-team-ids)
-      ;; Get active meetings for user's teams
-      (let [meetings-result (d/q '[:find ?meeting ?title ?scheduled-at ?created-by-name ?join-url
+      ;; Get active meetings for user's teams (excluding finished meetings)
+      (let [meetings-result (d/q '[:find ?meeting ?title ?scheduled-at ?created-by-name ?join-url ?status
                                   :in $ [?team-id ...] ?now
                                   :where
                                   [?meeting :meeting/team ?team-id]
@@ -356,17 +356,20 @@
                                   [?meeting :meeting/created-by ?created-by]
                                   [?created-by :user/name ?created-by-name]
                                   [?meeting :meeting/join-url ?join-url]
-                                  [(>= ?scheduled-at ?now)]]
+                                  [?meeting :meeting/status ?status]
+                                  [(>= ?scheduled-at ?now)]
+                                  [(not= ?status "finished")]]
                                 db user-team-ids now)
             ;; Sort by scheduled-at asc (earliest first)
             sorted-meetings (->> meetings-result
                                (sort-by #(nth % 2)))]
-        (mapv (fn [[meeting-id title scheduled-at created-by-name join-url]]
+        (mapv (fn [[meeting-id title scheduled-at created-by-name join-url status]]
                 {:id meeting-id
                  :title title
                  :scheduled-at scheduled-at
                  :created-by-name created-by-name
-                 :join-url join-url})
+                 :join-url join-url
+                 :status status})
               sorted-meetings))
       [])))
 
@@ -406,18 +409,39 @@
     (contains? meeting-ids meeting-id)))
 
 (defn add-participant!
-  "Add a participant to a meeting"
+  "Add a participant to a meeting and set status to 'started' if first participant"
   [user-id meeting-id]
   (try
-    (let [participant-data {:participant/user user-id
-                            :participant/meeting meeting-id
-                            :participant/joined-at (java.util.Date.)}
-          _ (d/transact (get-conn) {:tx-data [participant-data]})]
-      (log/info "Participant added successfully:" participant-data)
+    (let [db (get-db)
+          ;; Check if this is the first participant
+          existing-participants-result (d/q '[:find (count ?p)
+                                              :in $ ?meeting-id
+                                              :where [?p :participant/meeting ?meeting-id]]
+                                            db meeting-id)
+          participant-count (or (ffirst existing-participants-result) 0)
+          is-first-participant (zero? participant-count)
+          
+          ;; Prepare transaction data
+          participant-data {:participant/user user-id
+                           :participant/meeting meeting-id
+                           :participant/joined-at (java.util.Date.)}
+          tx-data (if is-first-participant
+                    ;; If first participant, also update meeting status
+                    [participant-data
+                     {:db/id meeting-id
+                      :meeting/status "started"}]
+                    ;; Otherwise just add participant
+                    [participant-data])
+          
+          _ (d/transact (get-conn) {:tx-data tx-data})]
+      
+      (if is-first-participant
+        (log/info "First participant added, meeting status set to 'started':" participant-data)
+        (log/info "Participant added successfully:" participant-data))
       {:success true})
     (catch Exception e
       (log/error "Failed to add participant:" (.getMessage e))
-      )))
+      {:success false :error (.getMessage e)})))
 
 (defn add-topic!
   "Add a new topic to a meeting"
@@ -705,6 +729,211 @@
             {:id user-id
              :name user-name})
           team-members-result)))
+
+(defn finish-meeting!
+  "Set meeting status to 'finished'"
+  [meeting-id]
+  (try
+    (let [result (d/transact (get-conn) {:tx-data [{:db/id meeting-id
+                                                    :meeting/status "finished"}]})]
+      (log/info "Meeting" meeting-id "status set to finished")
+      {:success true})
+    (catch Exception e
+      (log/error "Failed to finish meeting:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
+
+(defn get-dashboard-statistics
+  "Get dashboard statistics for a specific user"
+  [user-id]
+  (let [db (get-db)
+        now (java.util.Date.)
+        ;; Get first day of current month
+        cal (java.util.Calendar/getInstance)
+        _ (.setTime cal now)
+        _ (.set cal java.util.Calendar/DAY_OF_MONTH 1)
+        _ (.set cal java.util.Calendar/HOUR_OF_DAY 0)
+        _ (.set cal java.util.Calendar/MINUTE 0)
+        _ (.set cal java.util.Calendar/SECOND 0)
+        _ (.set cal java.util.Calendar/MILLISECOND 0)
+        month-start (.getTime cal)
+        
+        ;; Get user's teams
+        user-teams-result (d/q '[:find ?team
+                                :in $ ?user-id
+                                :where [?user-id :user/teams ?team]]
+                              db user-id)
+        user-team-ids (mapv first user-teams-result)
+        
+        ;; Total meetings for user's teams
+        total-meetings (if (seq user-team-ids)
+                        (count (d/q '[:find ?meeting
+                                     :in $ [?team-id ...]
+                                     :where
+                                     [?meeting :meeting/team ?team-id]]
+                                   db user-team-ids))
+                        0)
+        
+        ;; Meetings this month for user's teams
+        meetings-this-month (if (seq user-team-ids)
+                             (count (d/q '[:find ?meeting
+                                          :in $ [?team-id ...] ?month-start
+                                          :where
+                                          [?meeting :meeting/team ?team-id]
+                                          [?meeting :meeting/created-at ?created-at]
+                                          [(>= ?created-at ?month-start)]]
+                                        db user-team-ids month-start))
+                             0)
+        
+        ;; Active actions assigned to user (both direct and team assignments)
+        user-actions-count (count (d/q '[:find ?action
+                                        :in $ ?user-id
+                                        :where [?action :action/assigned-to-user ?user-id]]
+                                      db user-id))
+        
+        team-actions-count (if (seq user-team-ids)
+                            (count (d/q '[:find ?action
+                                         :in $ [?team-id ...]
+                                         :where [?action :action/assigned-to-team ?team-id]]
+                                       db user-team-ids))
+                            0)
+        
+        active-actions (+ user-actions-count team-actions-count)
+        
+        ;; Team members count (all members across user's teams)
+        team-members-count (if (seq user-team-ids)
+                            (count (d/q '[:find ?user
+                                         :in $ [?team-id ...]
+                                         :where
+                                         [?user :user/teams ?team-id]
+                                         [?user :user/active true]]
+                                       db user-team-ids))
+                            1)] ; At least the current user
+    
+    {:total-meetings total-meetings
+     :active-actions active-actions
+     :team-members team-members-count
+     :meetings-this-month meetings-this-month}))
+
+(defn get-user-actions
+  "Get all actions assigned to a specific user across all meetings"
+  [user-id]
+  (let [db (get-db)
+        ;; Get actions assigned directly to user
+        user-actions-result (d/q '[:find ?action ?description ?added-at ?meeting ?meeting-title
+                                   :in $ ?user-id
+                                   :where
+                                   [?action :action/assigned-to-user ?user-id]
+                                   [?action :action/description ?description]
+                                   [?action :action/added-at ?added-at]
+                                   [?action :action/meeting ?meeting]
+                                   [?meeting :meeting/title ?meeting-title]]
+                                 db user-id)
+        
+        ;; Get actions assigned to user's teams
+        user-teams-result (d/q '[:find ?team
+                                :in $ ?user-id
+                                :where [?user-id :user/teams ?team]]
+                              db user-id)
+        user-team-ids (mapv first user-teams-result)
+        
+        team-actions-result (if (seq user-team-ids)
+                             (d/q '[:find ?action ?description ?added-at ?meeting ?meeting-title
+                                    :in $ [?team-id ...]
+                                    :where
+                                    [?action :action/assigned-to-team ?team-id]
+                                    [?action :action/description ?description]
+                                    [?action :action/added-at ?added-at]
+                                    [?action :action/meeting ?meeting]
+                                    [?meeting :meeting/title ?meeting-title]]
+                                  db user-team-ids)
+                             [])]
+    
+    ;; Combine and process both types of actions
+    (mapv (fn [[action-id description added-at meeting-id meeting-title]]
+            (let [;; Get deadline separately if it exists
+                  deadline-result (d/q '[:find ?deadline
+                                        :in $ ?action-id
+                                        :where [?action-id :action/deadline ?deadline]]
+                                      db action-id)
+                  deadline (ffirst deadline-result)]
+              {:id action-id
+               :description description
+               :deadline deadline
+               :added-at added-at
+               :meeting-id meeting-id
+               :meeting-title meeting-title
+               :status "pending"})) ; For now, all actions are pending
+          (sort-by :added-at #(compare %2 %1) (concat user-actions-result team-actions-result)))))
+
+(defn get-finished-meetings-for-user
+  "Get all finished meetings for user's teams with topics and actions"
+  [user-id is-admin?]
+  (let [db (get-db)]
+    (if is-admin?
+      ;; Admin can see all finished meetings
+      (let [basic-meetings-result (d/q '[:find ?meeting ?title ?scheduled-at ?created-by-name ?team-name
+                                         :where
+                                         [?meeting :meeting/status "finished"]
+                                         [?meeting :meeting/title ?title]
+                                         [?meeting :meeting/scheduled-at ?scheduled-at]
+                                         [?meeting :meeting/created-by ?created-by]
+                                         [?created-by :user/name ?created-by-name]
+                                         [?meeting :meeting/team ?team]
+                                         [?team :team/name ?team-name]]
+                                       db)]
+        (mapv (fn [[meeting-id title scheduled-at created-by-name team-name]]
+                ;; Get description separately if it exists
+                (let [description-result (d/q '[:find ?description
+                                               :in $ ?meeting-id
+                                               :where [?meeting-id :meeting/description ?description]]
+                                             db meeting-id)
+                      description (ffirst description-result)]
+                  {:id meeting-id
+                   :title title
+                   :scheduled-at scheduled-at
+                   :created-by-name created-by-name
+                   :team-name team-name
+                   :description description
+                   :topics (get-topics-for-meeting meeting-id)
+                   :actions (get-actions-for-meeting meeting-id)}))
+              (sort-by #(nth % 2) #(compare %2 %1) basic-meetings-result)))
+      
+      ;; Regular users see only their team's finished meetings
+      (let [user-teams-result (d/q '[:find ?team
+                                     :in $ ?user-id
+                                     :where [?user-id :user/teams ?team]]
+                                   db user-id)
+            user-team-ids (mapv first user-teams-result)]
+        (if (seq user-team-ids)
+          (let [basic-meetings-result (d/q '[:find ?meeting ?title ?scheduled-at ?created-by-name ?team-name
+                                             :in $ [?team-id ...]
+                                             :where
+                                             [?meeting :meeting/status "finished"]
+                                             [?meeting :meeting/team ?team-id]
+                                             [?meeting :meeting/title ?title]
+                                             [?meeting :meeting/scheduled-at ?scheduled-at]
+                                             [?meeting :meeting/created-by ?created-by]
+                                             [?created-by :user/name ?created-by-name]
+                                             [?meeting :meeting/team ?team]
+                                             [?team :team/name ?team-name]]
+                                           db user-team-ids)]
+            (mapv (fn [[meeting-id title scheduled-at created-by-name team-name]]
+                    ;; Get description separately if it exists
+                    (let [description-result (d/q '[:find ?description
+                                                   :in $ ?meeting-id
+                                                   :where [?meeting-id :meeting/description ?description]]
+                                                 db meeting-id)
+                          description (ffirst description-result)]
+                      {:id meeting-id
+                       :title title
+                       :scheduled-at scheduled-at
+                       :created-by-name created-by-name
+                       :team-name team-name
+                       :description description
+                       :topics (get-topics-for-meeting meeting-id)
+                       :actions (get-actions-for-meeting meeting-id)}))
+                  (sort-by #(nth % 2) #(compare %2 %1) basic-meetings-result)))
+          [])))))
 
 (comment
 

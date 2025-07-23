@@ -43,13 +43,15 @@
   (let [userinfo (:userinfo session)
         user-id (:user-id userinfo)
         recent-meetings (if user-id (db/get-recent-meetings-for-user user-id) [])
-        active-meetings (if user-id (db/get-active-meetings-for-user user-id) [])]
+        active-meetings (if user-id (db/get-active-meetings-for-user user-id) [])
+        statistics (if user-id (db/get-dashboard-statistics user-id) {})]
     (log/info userinfo)
     {:status 200
      :headers {"Content-Type" "text/html"}
      :body (render-file "templates/main.html" {:userinfo userinfo
                                                :recent-meetings recent-meetings
-                                               :active-meetings active-meetings})}))
+                                               :active-meetings active-meetings
+                                               :statistics statistics})}))
 
 
 (defn get-topics-for-meeting [meeting-id user-id]
@@ -119,6 +121,10 @@
   (doseq [c @!meeting-screen-sse-gens]
     (d*/patch-signals! c signals)))
 
+(defn broadcast-execute-script! [script]
+  (doseq [c @!meeting-screen-sse-gens]
+    (d*/execute-script! c script)))
+
 (defn join-meeting
   "Join meeting by checking permissions and saving join time"
   [{session :session :as request}]
@@ -175,22 +181,13 @@
   (->sse-response
    request
    {hk-gen/on-open
-    (fn [sse]
-      (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
-            topic-id (Long/parseLong (get-in request [:path-params :meeting-id]))
-            user-id (get-in request [:session :userinfo :user-id])
-            new-topic (get-in request [:form-params "new-topic"])
+    (fn [_]
+      (let [user-name (get-in request [:session :userinfo :name])
             topicNotes (get-in request [:json :topicNotes])
-            reflection {"topicNotes" topicNotes}
+            reflection {"topicNotes" topicNotes "userIsTyping" (str user-name " is typing ...")}
             ]
-        (log/info "Edit topic" )
-
-        (broadcast-meeting-page-signals! (json/write-str reflection))
-        ;; (d*/patch-signals! sse "{topicNotes: 'zzz'}")
-        ;; (pprint request)
-        ))}))
-
-
+        (log/info "Edit topic by" user-name)
+        (broadcast-meeting-page-signals! (json/write-str reflection))))}))
 
 
 (defn meeting-vote-topic [request]
@@ -333,6 +330,68 @@
           (do
             (log/warn "Invalid action input - description:" description "user-id:" user-id "meeting-id:" meeting-id)
             (d*/patch-elements! sse "<div class='notification is-warning'>Please fill in the action description</div>")))))}))
+
+
+(defn meeting-finish [request]
+  (->sse-response
+   request
+   {hk-gen/on-open
+    (fn [sse]
+      (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            user-id (get-in request [:session :userinfo :user-id])
+            user-access (get-in request [:session :userinfo :access-level])
+            has-staff-access (contains? #{"staff" "admin"} user-access)]
+
+        (log/info "User" user-id "attempting to finish meeting" meeting-id)
+
+        (cond
+          ;; Check if user has staff/admin access
+          (not has-staff-access)
+          (log/warn "User" user-id "does not have staff/admin access")
+
+          ;; Valid request - finish the meeting
+          (and user-id meeting-id has-staff-access)
+          (let [result (db/finish-meeting! meeting-id)]
+            (if (:success result)
+              (do
+                (log/info "Meeting" meeting-id "finished successfully by user" user-id)
+                ;; TODO later we can show nice modal, timeout, redirect, as in example https://data-star.dev/how_tos/redirect_the_page_from_the_backend/
+                (broadcast-execute-script! "window.location = '/app'")
+                )
+              (log/error "Failed to finish meeting:" (:error result))
+                ))
+
+          ;; Invalid input
+          :else
+          (log/warn "Invalid input - user-id:" user-id "meeting-id:" meeting-id))))}))
+
+(defn meetings-list 
+  "Display all finished meetings with topics and actions"
+  [{session :session}]
+  (log/info "Meetings list page accessed")
+  (let [userinfo (:userinfo session)
+        user-id (:user-id userinfo)
+        user-access (:access-level userinfo)
+        is-admin (= user-access "admin")
+        finished-meetings (if user-id (db/get-finished-meetings-for-user user-id is-admin) [])]
+    {:status 200
+     :headers {"Content-Type" "text/html"}
+     :body (render-file "templates/meetings-list.html" {:userinfo userinfo
+                                                        :meetings finished-meetings
+                                                        :is-admin is-admin})}))
+
+(defn my-actions
+  "Display all actions assigned to the current user"
+  [{session :session}]
+  (log/info "My Actions page accessed")
+  (let [userinfo (:userinfo session)
+        user-id (:user-id userinfo)
+        user-actions (if user-id (db/get-user-actions user-id) [])]
+    {:status 200
+     :headers {"Content-Type" "text/html"}
+     :body (render-file "templates/my-actions.html" {:userinfo userinfo
+                                                     :actions user-actions})}))
+
 
 (defn admin-manage-users [{session :session}]
   (let [users (db/get-all-users)

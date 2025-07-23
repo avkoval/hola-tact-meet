@@ -34,6 +34,8 @@
      ["/favicon.ico" {:get (fn [_] (response/file-response "resources/public/favicon.ico"))}]
      ["/assets/*" (ring/create-resource-handler)]
      ["/app" {:get (middleware/wrap-require-auth views/app-main)}]
+     ["/meetings" {:get (middleware/wrap-require-auth views/meetings-list)}]
+     ["/actions" {:get (middleware/wrap-require-auth views/my-actions)}]
      ["/test-session" {:get views/test-session}]
      ["/google-login" {:post views/google-login}]
      ["/login/fake" {:get (middleware/wrap-localhost-only views/fake-login-page)}]
@@ -63,6 +65,7 @@
      ["/meeting/:meeting-id/delete-topic" {:post (middleware/wrap-require-auth views/meeting-delete-topic)}]
      ["/meeting/:meeting-id/topic/:topic-id" {:post (middleware/wrap-require-auth views/meeting-edit-topic)}]
      ["/meeting/:meeting-id/add-action" {:post (middleware/wrap-require-auth views/meeting-add-action)}]
+     ["/meeting/:meeting-id/finish" {:post (middleware/wrap-require-auth views/meeting-finish)}]
      ])
    (constantly {:status 404, :body "Not Found."})))
 
