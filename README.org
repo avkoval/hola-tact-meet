@@ -296,7 +296,7 @@ I need fake login to quickly login several users for testing purposes on localho
  - [X] for staff user - limit teams to member only
    - [X] for admin user - no limits
 
-*** TODO Meeting screen (the biggest part) [11%] [1/9]
+*** TODO Meeting screen (the biggest part) [60%] [6/10]
     :PROPERTIES:
     :COOKIE_DATA: recursive
     :END:
@@ -314,22 +314,23 @@ I need fake login to quickly login several users for testing purposes on localho
    in parallel, it will affect each other!!! I need to pass the meeting ID to update
    only current meeting clients!
 
-**** TODO Prepare to RND today
+**** DONE Prepare to RND today
+     CLOSED: [2025-07-23 Wed 21:15]
      :LOGBOOK:
+     - State "DONE"       from "TODO"       [2025-07-23 Wed 21:15]
      - State "TODO"       from              [2025-07-23 Wed 07:20]
      :END:
 
  - [X] Finish meeting - show confirmation, show meeting
  - [X] Meetings page - display all recent meetings and their actions
- - [ ] "My Actions" page - display my pending actions from all various meetings
+ - [X] "My Actions" page - display my pending actions from all various meetings
    - As a layout for this page, please use the HTML table with:
      - meeting topic
      - action topic
      - deadline
      - action status
  - [ ] *maybe* would be good to start & finish timer
- - [ ] test that appX.koval.kharkov.ua works fine
-
+ - [X] test that appX.koval.kharkov.ua works fine
 
 **** DONE topics [100%]
      CLOSED: [2025-07-22 Tue 22:50]
@@ -347,26 +348,29 @@ I need fake login to quickly login several users for testing purposes on localho
  - [X] Meeting settings - votes are public
  - [X] Make sure if voting is disabled, then we don't show the buttons and also backend checks
 
-
-**** TODO Current topic
+**** DONE Current topic
+     CLOSED: [2025-07-23 Wed 21:20]
      :LOGBOOK:
+     - State "DONE"       from "TODO"       [2025-07-23 Wed 21:20]
      - State "TODO"       from              [2025-07-21 Mon 22:20]
      :END:
-
-***** TODO Actions
+***** DONE Actions
+      CLOSED: [2025-07-23 Wed 21:20]
       :LOGBOOK:
+      - State "DONE"       from "TODO"       [2025-07-23 Wed 21:20]
       - State "TODO"       from              [2025-07-21 Mon 22:20]
       :END:
-
-
-
-****** TODO Add action
+****** DONE Add action
+       CLOSED: [2025-07-23 Wed 21:20]
        :LOGBOOK:
+       - State "DONE"       from "TODO"       [2025-07-23 Wed 21:20]
        - State "TODO"       from              [2025-07-21 Mon 22:20]
        :END:
 
-****** TODO Display actions list
+****** DONE Display actions list
+       CLOSED: [2025-07-23 Wed 21:20]
        :LOGBOOK:
+       - State "DONE"       from "TODO"       [2025-07-23 Wed 21:20]
        - State "TODO"       from              [2025-07-21 Mon 22:20]
        :END:
 
@@ -374,7 +378,6 @@ I need fake login to quickly login several users for testing purposes on localho
       :LOGBOOK:
       - State "TODO"       from              [2025-07-21 Mon 22:20]
       :END:
-
 
 **** TODO timer
      :LOGBOOK:

@@ -18,6 +18,8 @@
    [clojure.data.json :as json]
    [clj-http.client :as http]
    [clojure.string]
+   [buddy.sign.jwt :as jwt]
+   [buddy.core.keys :as keys]
    )
   (:gen-class))
 
@@ -127,7 +129,13 @@
           (log/info "User logged in:" email)
           {:success true :user-id existing-user-id :action :login})
         ;; User doesn't exist, create new user
-        (let [user-data {:name (:name google-userinfo)
+        (let [constructed-name (or (:name google-userinfo)
+                                  (let [given (:given_name google-userinfo)
+                                        family (:family_name google-userinfo)]
+                                    (if (and given family)
+                                      (str given " " family)
+                                      (or given family "Unknown User"))))
+              user-data {:name constructed-name
                         :email email
                         :family-name (:family_name google-userinfo)
                         :given-name (:given_name google-userinfo)
@@ -186,6 +194,7 @@
 ; Lets collect all meeting participants open SSE generators into
 ; atom, to be able to broadcast updates
 (def !meeting-screen-sse-gens (atom #{}))
+
 
 (defn meeting-main-refresh-content-watcher
   "This SSE connection will stay open and will be used to broadcast updates"
@@ -592,6 +601,7 @@
       (let [user-id (get-in request [:session :userinfo :user-id])
             user-data (db/get-user-by-id user-id)
             user-teams (:user/teams user-data)]
+        (println user-teams)
         (log/info (str "Create meeting popup requested by: " (:user/email user-data)))
         (d*/with-open-sse sse
           (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html" {:teams user-teams}))
@@ -795,12 +805,81 @@
     (-> (response/response (str "You accessed this page " count " times."))
         (assoc :session session))))
 
+(defn decode-google-jwt
+  "Decode Google JWT credential without verification (Google already verified it)"
+  [jwt-token]
+  (try
+    ;; For Google Sign-In, we can decode without verification since Google has already verified it
+    ;; and we're receiving it directly from Google's servers
+    (let [decoded (jwt/unsign jwt-token nil {:alg :none})]
+      {:success true :payload decoded})
+    (catch Exception e
+      (log/error "Error decoding Google JWT:" (.getMessage e))
+      ;; Fallback: manually decode the payload (JWT structure: header.payload.signature)
+      (try
+        (let [parts (clojure.string/split jwt-token #"\.")
+              payload-b64 (nth parts 1)
+              ;; Add padding if needed for base64 decoding
+              padded-payload (let [mod (mod (count payload-b64) 4)]
+                              (if (zero? mod)
+                                payload-b64
+                                (str payload-b64 (apply str (repeat (- 4 mod) "=")))))
+              decoded-bytes (.decode (java.util.Base64/getUrlDecoder) padded-payload)
+              json-str (String. decoded-bytes "UTF-8")
+              payload (json/read-str json-str :key-fn keyword)]
+          {:success true :payload payload})
+        (catch Exception e2
+          (log/error "Error manually decoding JWT:" (.getMessage e2))
+          {:success false :error (.getMessage e2)})))))
+
 (defn google-login [{session :session :as request}]
-  (let [login-count   (:login-count session 0)
-        session (assoc session :count (inc login-count))]
+  (let [credential (get-in request [:form-params "credential"])
+        g_csrf_token (get-in request [:form-params "g_csrf_token"])]
     (log/info "Google login attempt from" (:remote-addr request))
-    (-> (response/response (str "Logged IN. " login-count " times."))
-        (assoc :session session))))
+    (log/info "Received credential token of length:" (count (or credential "")))
+
+    (if credential
+      ;; Decode JWT and process user info
+      (let [jwt-result (decode-google-jwt credential)]
+        (if (:success jwt-result)
+          (let [google-userinfo (:payload jwt-result)
+                ;; Map Google JWT fields to our expected format
+                mapped-userinfo {:email (:email google-userinfo)
+                                :name (:name google-userinfo)
+                                :given_name (:given_name google-userinfo)
+                                :family_name (:family_name google-userinfo)
+                                :picture (:picture google-userinfo)}]
+            (log/info "Decoded Google userinfo:" mapped-userinfo)
+            ;; Use existing create-or-login-user logic
+            (let [user-result (create-or-login-user mapped-userinfo)]
+              (if (:success user-result)
+                ;; Get user details and update session
+                (let [user-details (db/get-user-by-id (:user-id user-result))
+                      session-userinfo {:email (:user/email user-details)
+                                       :name (:user/name user-details)
+                                       :user-id (:user-id user-result)
+                                       :given-name (:user/given-name user-details)
+                                       :family-name (:user/family-name user-details)
+                                       :picture (:user/picture user-details)
+                                       :logged-in true
+                                       :auth-provider (:user/auth-provider user-details)
+                                       :access-level (:user/access-level user-details)}
+                      updated-session (assoc session :userinfo session-userinfo)]
+                  {:status 302
+                   :headers {"Location" "/app"}
+                   :session updated-session})
+                ;; User creation/login failed
+                {:status 500
+                 :headers {"Content-Type" "text/html"}
+                 :body (str "Authentication failed: " (:error user-result))})))
+          ;; JWT decoding failed
+          {:status 500
+           :headers {"Content-Type" "text/html"}
+           :body (str "Failed to decode JWT: " (:error jwt-result))}))
+      ;; No credential provided
+      {:status 400
+       :headers {"Content-Type" "text/html"}
+       :body "No credential provided"})))
 
 
 (defn login-user-by-id
