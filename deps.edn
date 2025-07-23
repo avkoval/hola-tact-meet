@@ -32,6 +32,7 @@
         ;;
         com.datomic/local    {:mvn/version "1.0.291"}
         org.clojure/core.async {:mvn/version "1.8.741"}
+        buddy/buddy {:mvn/version "2.0.0"}
         }
  :aliases
  {:dev {:main-opts ["-m" "ok.hola-tact-meet.core"
