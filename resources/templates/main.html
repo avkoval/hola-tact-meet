@@ -29,13 +29,13 @@
             <div class="card-content">
               <div class="content">
                 <div class="buttons">
-                  <button class="button is-primary is-fullwidth"  data-on-click="@get('/meeting/join')">
+                  <button class="button is-primary is-fullwidth" {% ifequal meetings-count 0 %}disabled {% else %}data-on-click="@get('/meeting/join')" {% endifequal %}>
                     <span class="icon">
                       <i class="fas fa-plus"></i>
                     </span>
-                    <span>Join Meeting</span>
+                    <span>Join Meeting {% if meetings-count > 0 %}({{ meetings-count }}){% endif %}</span>
                   </button>
-                  <a class="button is-link is-fullwidth" href="/meetings">
+                  <a class="button is-link is-fullwidth" {% ifequal meetings-count 0 %}disabled {% else %}href="/meetings"  {% endifequal %}>
                     <span class="icon">
                       <i class="fas fa-history"></i>
                     </span>

@@ -80,7 +80,9 @@
           constructed-name (if (clojure.string/blank? full-name)
                             (or (:name userinfo) "Unknown User")
                             (clojure.string/trim full-name))
-          user-data (->> {:user/name constructed-name
+          temp-id "new-user"
+          user-data (->> {:db/id temp-id
+                          :user/name constructed-name
                           :user/email (:email userinfo)
                           :user/family-name (:family-name userinfo)
                           :user/given-name (:given-name userinfo)
@@ -91,7 +93,7 @@
                          (filter (fn [[k v]] (and (not (nil? v)) (not= v ""))))
                          (into {}))
           result (d/transact (get-conn) {:tx-data [user-data]})
-          user-id (get-in result [:tempids (first (keys (:tempids result)))])]
+          user-id (get-in result [:tempids temp-id])]
       user-id)))
 
 (defn get-all-users
@@ -489,7 +491,10 @@
                              [?created-by :user/name ?created-by-name]]
                            db meeting-id)]
     (mapv (fn [[topic-id title created-at created-by created-by-name]]
-            (let [;; Get vote counts for this topic
+            (let [;; Get discussion notes using pull
+                  topic-data (d/pull db '[:topic/discussion-notes] topic-id)
+                  discussion-notes (or (:topic/discussion-notes topic-data) "")
+                  ;; Get vote counts for this topic
                   upvotes-result (d/q '[:find (count ?vote)
                                         :in $ ?topic-id
                                         :where
@@ -510,6 +515,7 @@
                :created-at created-at
                :created-by created-by
                :created-by-name created-by-name
+               :discussion-notes discussion-notes
                :upvotes upvotes
                :downvotes downvotes
                :vote-score vote-score}))
@@ -657,6 +663,27 @@
       {:success true})
     (catch Exception e
       (log/error "Failed to delete topic:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
+
+(defn get-topic-by-id
+  "Get topic data by ID"
+  [topic-id]
+  (let [db (get-db)]
+    (d/pull db '[:db/id :topic/title :topic/discussion-notes :topic/created-at
+                 {:topic/created-by [:db/id :user/name]}
+                 {:topic/meeting [:db/id :meeting/title]}]
+            topic-id)))
+
+(defn update-topic-discussion-notes!
+  "Update discussion notes for a topic"
+  [topic-id discussion-notes]
+  (try
+    (let [result (d/transact (get-conn) {:tx-data [{:db/id topic-id
+                                                    :topic/discussion-notes discussion-notes}]})]
+      (log/info "Discussion notes updated for topic" topic-id)
+      {:success true})
+    (catch Exception e
+      (log/error "Failed to update topic discussion notes:" (.getMessage e))
       {:success false :error (.getMessage e)})))
 
 (defn add-action!

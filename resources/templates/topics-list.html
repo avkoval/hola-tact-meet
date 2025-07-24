@@ -41,7 +41,7 @@
                   <form data-on-submit="@post('/meeting/{{ meeting-id }}/vote-topic', {contentType: 'form'})" style="display: inline;">
                     <input type="hidden" name="topic_id" value="{{ topic.id }}">
                     <input type="hidden" name="vote_type" value="upvote">
-                    <button type="submit" class="button{% if topic.user-vote = 'upvote' %} is-success{% endif %}">
+                    <button type="submit" class="button{% if topic.user-vote = 'upvote' %} is-success{% endif %}" title="Upvote">
                       <span class="icon is-small">
                         <i class="fas fa-arrow-up"></i>
                       </span>
@@ -51,7 +51,7 @@
                   <form data-on-submit="@post('/meeting/{{ meeting-id }}/vote-topic', {contentType: 'form'})" style="display: inline;">
                     <input type="hidden" name="topic_id" value="{{ topic.id }}">
                     <input type="hidden" name="vote_type" value="downvote">
-                    <button type="submit" class="button{% if topic.user-vote = 'downvote' %} is-danger{% endif %}">
+                    <button type="submit" class="button{% if topic.user-vote = 'downvote' %} is-danger{% endif %}" title="Downvote">
                       <span class="icon is-small">
                         <i class="fas fa-arrow-down"></i>
                       </span>

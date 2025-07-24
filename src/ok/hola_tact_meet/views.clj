@@ -49,13 +49,16 @@
         user-id (:user-id userinfo)
         recent-meetings (if user-id (db/get-recent-meetings-for-user user-id) [])
         active-meetings (if user-id (db/get-active-meetings-for-user user-id) [])
-        statistics (if user-id (db/get-dashboard-statistics user-id) {})]
+        statistics (if user-id (db/get-dashboard-statistics user-id) {})
+        ]
     (log/info userinfo)
     {:status 200
      :headers {"Content-Type" "text/html"}
      :body (render-file "templates/main.html" {:userinfo userinfo
                                                :recent-meetings recent-meetings
+                                               :recent-meetings-count (count recent-meetings)
                                                :active-meetings active-meetings
+                                               :meetings-count (count active-meetings)
                                                :statistics statistics})}))
 
 
@@ -64,11 +67,8 @@
        (mapv (fn [topic] (assoc topic :user-vote (db/get-user-vote-for-topic user-id (:id topic)))))
        (sort-by (juxt (comp - :vote-score) (comp - #(.getTime (:created-at %)))))))
 
-(defn get-meeting-screen-data [{session :session :as request}]
-  (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
-        meeting-data (db/get-meeting-by-id meeting-id)
-        userinfo (:userinfo session)
-        user-id (:user-id userinfo)
+(defn get-meeting-screen-data [meeting-id user-id]
+  (let [meeting-data (db/get-meeting-by-id meeting-id)
         topics-with-votes (get-topics-for-meeting meeting-id user-id)
         current-topic (:meeting/current-topic meeting-data)
         can-set-current-topic (db/user-can-set-current-topic? user-id meeting-id)
@@ -77,7 +77,6 @@
         ]
     (pprint current-topic)
     {:meeting-id meeting-id
-     :userinfo userinfo
      :meeting meeting-data
      :topics topics-with-votes
      :current-topic current-topic
@@ -86,18 +85,22 @@
      :actions actions
      :team-members team-members}))
 
-(defn render-topics [request]
-  (render-file "templates/topics-list.html" (get-meeting-screen-data request)))
+(defn render-topics [meeting-id user-id]
+  (render-file "templates/topics-list.html" (get-meeting-screen-data meeting-id user-id)))
 
-(defn render-meeting-body [request render-full-body]
+(defn render-meeting-body [render-full-body meeting-id user-id]
   (render-file (if render-full-body "templates/meeting.html" "templates/meeting-content.html")
-               (get-meeting-screen-data request)))
+               (get-meeting-screen-data meeting-id user-id)))
 
-(defn meeting-main [request]
+(defn meeting-main [{session :session :as request}]
   (log/info "Main meeting screen")
-  {:status 200
-   :headers {"Content-Type" "text/html"}
-   :body (render-meeting-body request true)})
+  (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+        userinfo (:userinfo session)
+        user-id (:user-id userinfo)
+        ]
+    {:status 200
+     :headers {"Content-Type" "text/html"}
+     :body (render-meeting-body true meeting-id user-id)}))
 
 (defn fetch-google-userinfo
   "Fetch user information from Google API using bearer token"
@@ -194,7 +197,13 @@
 ; Lets collect all meeting participants open SSE generators into
 ; atom, to be able to broadcast updates
 (def !meeting-screen-sse-gens (atom #{}))
-
+(defn meeting-screen-sse-gen-data [{session :session :as request} sse-gen]
+  (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+        userinfo (:userinfo session)
+        user-id (:user-id userinfo)]
+    [sse-gen meeting-id user-id]
+    )
+  )
 
 (defn meeting-main-refresh-content-watcher
   "This SSE connection will stay open and will be used to broadcast updates"
@@ -204,23 +213,29 @@
    {hk-gen/on-open
     (fn [sse-gen]
       (log/info "meeting-main-refresh-content-watcher established hk-gen/on-open" sse-gen)
-      (swap! !meeting-screen-sse-gens conj sse-gen))
+      (swap! !meeting-screen-sse-gens conj (meeting-screen-sse-gen-data request sse-gen))
+      )
 
     hk-gen/on-close
     (fn [sse-gen status]
       (log/info "meeting-main-refresh-content-watcher hk-gen/on-close:" status)
-      (swap! !meeting-screen-sse-gens disj sse-gen))}))
+      (swap! !meeting-screen-sse-gens disj (meeting-screen-sse-gen-data request sse-gen)))}))
 
-(defn broadcast-meeting-page-update! [elements]
-  (doseq [c @!meeting-screen-sse-gens]
-    (d*/patch-elements! c elements)))
+(defn broadcast-meeting-page-update! [func meeting-id func-args add-user-and-meeting-args?]
+  (doseq [[c gen-meeting-id gen-user-id] @!meeting-screen-sse-gens]
+    (when (= gen-meeting-id meeting-id) 
+      (let [args (if add-user-and-meeting-args? (concat func-args [gen-meeting-id gen-user-id]) func-args)
+            elements (apply func args)]
+        (d*/patch-elements! c elements)))))
 
-(defn broadcast-meeting-page-signals! [signals]
-  (doseq [c @!meeting-screen-sse-gens]
-    (d*/patch-signals! c signals)))
+(defn broadcast-meeting-page-signals! [meeting-id signals exclude-user]
+  (doseq [[c gen-meeting-id gen-user-id] @!meeting-screen-sse-gens]
+    (when (= gen-meeting-id meeting-id)
+      (if exclude-user (when-not (= gen-user-id exclude-user) (d*/patch-signals! c signals))
+          (d*/patch-signals! c signals)))))
 
 (defn broadcast-execute-script! [script]
-  (doseq [c @!meeting-screen-sse-gens]
+  (doseq [[c _ _] @!meeting-screen-sse-gens]
     (d*/execute-script! c script)))
 
 (defn join-meeting
@@ -264,41 +279,72 @@
           (let [result (db/add-topic! meeting-id user-id (clojure.string/trim new-topic))]
             (if (:success result)
               (do
-                (broadcast-meeting-page-update! (render-file "templates/add-new-topic.html" {}))
-                (broadcast-meeting-page-update! (render-topics request)))
+                (broadcast-meeting-page-update! render-file meeting-id ["templates/add-new-topic.html" {}] false)
+                (broadcast-meeting-page-update! render-topics meeting-id [] true))
               (do
                 (log/error "Failed to add topic:" (:error result))
                 (d*/patch-elements! sse "<div class='notification is-danger'>Failed to add topic</div>"))))
           ;; Invalid input
           (do
             (log/warn "Invalid topic input - topic:" new-topic "user-id:" user-id "meeting-id:" meeting-id)
-            (d*/patch-elements! sse "")))))}))
+            (d*/patch-elements! sse "")))
+        (d*/close-sse! sse)
+        ))}))
 
 
 (defn meeting-edit-topic [request]
   (->sse-response
    request
    {hk-gen/on-open
-    (fn [_]
+    (fn [sse]
       (let [user-name (get-in request [:session :userinfo :name])
+            user-id (get-in request [:session :userinfo :user-id])
+            meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
             topicNotes (get-in request [:json :topicNotes])
             reflection {"topicNotes" topicNotes "userIsTyping" (str user-name " is typing ...")}
             ]
         (log/info "Edit topic by" user-name)
-        (broadcast-meeting-page-signals! (json/write-str reflection))))}))
+        (broadcast-meeting-page-signals! meeting-id (json/write-str reflection) user-id)
+        (d*/close-sse! sse)
+        ))}))
+
+
+(defn meeting-edit-topic-save [request]
+  (->sse-response
+   request
+   {hk-gen/on-open
+    (fn [sse]
+      (let [user-name (get-in request [:session :userinfo :name])
+            user-id (get-in request [:session :userinfo :user-id])
+            meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            topic-id (Long/parseLong (get-in request [:path-params :topic-id]))
+            topicNotes (get-in request [:json :topicNotes])
+            reflection {"topicNotes" topicNotes "userIsTyping" " Saved "}
+            ]
+        (log/info "Save topic data by" user-name)
+        (log/info meeting-id topic-id)
+        ;; Update topic discussion notes in database
+        (let [update-result (db/update-topic-discussion-notes! topic-id topicNotes)]
+          (if (:success update-result)
+            (log/info "Topic discussion notes updated successfully")
+            (log/error "Failed to update topic discussion notes:" (:error update-result))))
+        (broadcast-meeting-page-signals! meeting-id (json/write-str reflection) nil)
+        (d*/close-sse! sse)
+        ))}))
 
 
 (defn meeting-vote-topic [request]
   (->sse-response
    request
    {hk-gen/on-open
-    (fn [_]
+    (fn [sse]
       (let [user-id (get-in request [:session :userinfo :user-id])
             meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
             meeting-data (db/get-meeting-by-id meeting-id)
             topic-id (Long/parseLong (get-in request [:form-params "topic_id"]))
             vote-type (get-in request [:form-params "vote_type"])]
         (log/info "User" user-id "voting" vote-type "on topic" topic-id)
+
         (cond
           ;; Check if meeting allows voting
           (not (:meeting/allow-topic-voting meeting-data))
@@ -319,19 +365,21 @@
                 (if (:removed result)
                   (log/info "Vote removed successfully (toggled off)")
                   (log/info "Vote added/updated successfully"))
-                (broadcast-meeting-page-update! (render-topics request)))
+                (broadcast-meeting-page-update! render-topics meeting-id [] true))
               (log/error "Failed to process vote:" (:error result))))
 
           ;; Invalid input
           :else
           (log/warn "Invalid vote input - user-id:" user-id "topic-id:" topic-id "vote-type:" vote-type)
-          )))}))
+          )
+        (d*/close-sse! sse)
+        ))}))
 
 (defn meeting-set-current-topic [request]
   (->sse-response
    request
    {hk-gen/on-open
-    (fn [_]
+    (fn [sse]
       (let [user-id (get-in request [:session :userinfo :user-id])
             meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
             topic-id (Long/parseLong (get-in request [:form-params "topic_id"]))]
@@ -343,17 +391,23 @@
 
           ;; Valid input - set current topic
           (and user-id topic-id meeting-id)
-          (let [result (db/set-current-topic! meeting-id topic-id)]
+          (let [result (db/set-current-topic! meeting-id topic-id)
+                topic (db/get-topic-by-id topic-id)]
             (if (:success result)
               (do
                 (log/info "Current topic set successfully")
-                (broadcast-meeting-page-update! (render-meeting-body request false)))
+                (broadcast-meeting-page-update! render-meeting-body meeting-id [false] true)
+                (log/info (json/write-str {"topicNotes" (:topic/discussion-notes topic)}) user-id)
+                (broadcast-meeting-page-signals! meeting-id (json/write-str {"topicNotes" (:topic/discussion-notes topic)}) nil)
+                )
               (log/error "Failed to set current topic:" (:error result))))
 
           ;; Invalid input
           :else
           (log/warn "Invalid input - user-id:" user-id "topic-id:" topic-id "meeting-id:" meeting-id)
-          )))}))
+          ))
+      (d*/close-sse! sse)
+      )}))
 
 (defn meeting-delete-topic [request]
   (->sse-response
@@ -382,7 +436,7 @@
             (if (:success result)
               (do
                 (log/info "Topic deleted successfully")
-                (broadcast-meeting-page-update! (render-topics request)))
+                (broadcast-meeting-page-update! render-topics meeting-id [] true))
               (log/error "Failed to delete topic:" (:error result))))
 
           ;; Invalid input
@@ -421,13 +475,13 @@
             (if (:success result)
               (do
                 (log/info "Action added successfully")
-                (broadcast-meeting-page-update! (render-meeting-body request false)))
-              (do
-                (log/error "Failed to add action:" (:error result))
-                (d*/patch-elements! sse "<div class='notification is-danger'>Failed to add action</div>"))))
-          (do
-            (log/warn "Invalid action input - description:" description "user-id:" user-id "meeting-id:" meeting-id)
-            (d*/patch-elements! sse "<div class='notification is-warning'>Please fill in the action description</div>")))))}))
+                (broadcast-meeting-page-update! render-meeting-body meeting-id [false] true))
+              (log/error "Failed to add action:" (:error result))
+                ))
+          (log/warn "Invalid action input - description:" description "user-id:" user-id "meeting-id:" meeting-id)
+          ))
+      (d*/close-sse! sse)
+      )}))
 
 
 (defn meeting-finish [request]
@@ -461,7 +515,8 @@
 
           ;; Invalid input
           :else
-          (log/warn "Invalid input - user-id:" user-id "meeting-id:" meeting-id))))}))
+          (log/warn "Invalid input - user-id:" user-id "meeting-id:" meeting-id)))
+      (d*/close-sse! sse))}))
 
 (defn meetings-list
   "Display all finished meetings with topics and actions"
@@ -601,7 +656,6 @@
       (let [user-id (get-in request [:session :userinfo :user-id])
             user-data (db/get-user-by-id user-id)
             user-teams (:user/teams user-data)]
-        (println user-teams)
         (log/info (str "Create meeting popup requested by: " (:user/email user-data)))
         (d*/with-open-sse sse
           (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html" {:teams user-teams}))

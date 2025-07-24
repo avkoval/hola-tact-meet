@@ -119,9 +119,10 @@
                 <div class="control">
                   <textarea class="textarea" rows="8"
                             data-signals-topic-notes data-bind="topicNotes"
-                            data-on-input__debounce.50ms="@post('/meeting/{{ meeting-id }}/topic/{{ current-topic.db/id }}')"
+                            data-on-input__debounce.200ms="@post('/meeting/{{ meeting-id }}/topic/{{ current-topic.db/id }}')"
+                            data-on-input__debounce.10000ms="@post('/meeting/{{ meeting-id }}/topic/{{ current-topic.db/id }}/save')"
                             placeholder="Enter discussion notes, decisions, and key points..."
-                  ></textarea>
+                  >{{ current-topic.topic/discussion-notes }}</textarea>
                 </div>
               </div>
             </div>
