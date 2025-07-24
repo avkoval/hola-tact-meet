@@ -204,7 +204,6 @@
    {hk-gen/on-open
     (fn [sse-gen]
       (log/info "meeting-main-refresh-content-watcher established hk-gen/on-open" sse-gen)
-      (d*/patch-signals! sse-gen (json/write-str {"myId" (str sse-gen)}))
       (swap! !meeting-screen-sse-gens conj sse-gen))
 
     hk-gen/on-close
@@ -214,13 +213,10 @@
 
 (defn broadcast-meeting-page-update! [elements]
   (doseq [c @!meeting-screen-sse-gens]
-    (d*/patch-signals! c (json/write-str {"myId" (str c)}))
-    (println (str "sending update to " c))
     (d*/patch-elements! c elements)))
 
 (defn broadcast-meeting-page-signals! [signals]
   (doseq [c @!meeting-screen-sse-gens]
-    (d*/patch-signals! c (json/write-str {"myId" (str c)}))
     (d*/patch-signals! c signals)))
 
 (defn broadcast-execute-script! [script]
