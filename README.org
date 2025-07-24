@@ -296,7 +296,7 @@ I need fake login to quickly login several users for testing purposes on localho
  - [X] for staff user - limit teams to member only
    - [X] for admin user - no limits
 
-*** TODO Meeting screen (the biggest part) [60%] [6/10]
+*** TODO Meeting screen (the biggest part) [50%] [7/14]
     :PROPERTIES:
     :COOKIE_DATA: recursive
     :END:
@@ -305,7 +305,37 @@ I need fake login to quickly login several users for testing purposes on localho
     :END:
 
 
-**** TODO split updates per meeting!
+**** DONE vote topic and other places - close SSE if its not needed
+     CLOSED: [2025-07-24 Thu 21:35]
+     :LOGBOOK:
+     - State "DONE"       from "TODO"       [2025-07-24 Thu 21:35]
+     - State "TODO"       from              [2025-07-24 Thu 21:20]
+     :END:
+
+**** WORKING [#A] re-render the whole screen individually by signal - screen changed.
+     :LOGBOOK:
+     CLOCK: [2025-07-24 Thu 22:01]
+     - State "WORKING"    from "TODO"       [2025-07-24 Thu 21:35]
+     - State "TODO"       from              [2025-07-24 Thu 21:15]
+     :END:
+
+**** TODO [#A] finish topic
+      :LOGBOOK:
+      - State "TODO"       from              [2025-07-24 Thu 21:15]
+      :END:
+
+ - [ ] save disucssion notes finally
+ - [ ] mark topic as finished, gray it out or strike out at left side
+
+**** TODO [#B] save discussion notes every 10 secs
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-24 Thu 21:15]
+     :END:
+
+ - [ ] save
+ - [ ] read from db on topic change
+
+**** TODO [#C] support several meetings in parallel - split updates per meeting!
      :LOGBOOK:
      - State "TODO"       from              [2025-07-23 Wed 07:50]
      :END:

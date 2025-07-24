@@ -49,13 +49,16 @@
         user-id (:user-id userinfo)
         recent-meetings (if user-id (db/get-recent-meetings-for-user user-id) [])
         active-meetings (if user-id (db/get-active-meetings-for-user user-id) [])
-        statistics (if user-id (db/get-dashboard-statistics user-id) {})]
+        statistics (if user-id (db/get-dashboard-statistics user-id) {})
+        ]
     (log/info userinfo)
     {:status 200
      :headers {"Content-Type" "text/html"}
      :body (render-file "templates/main.html" {:userinfo userinfo
                                                :recent-meetings recent-meetings
+                                               :recent-meetings-count (count recent-meetings)
                                                :active-meetings active-meetings
+                                               :meetings-count (count active-meetings)
                                                :statistics statistics})}))
 
 
@@ -272,7 +275,9 @@
           ;; Invalid input
           (do
             (log/warn "Invalid topic input - topic:" new-topic "user-id:" user-id "meeting-id:" meeting-id)
-            (d*/patch-elements! sse "")))))}))
+            (d*/patch-elements! sse "")))
+        (d*/close-sse! sse)
+        ))}))
 
 
 (defn meeting-edit-topic [request]
@@ -292,13 +297,14 @@
   (->sse-response
    request
    {hk-gen/on-open
-    (fn [_]
+    (fn [sse]
       (let [user-id (get-in request [:session :userinfo :user-id])
             meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
             meeting-data (db/get-meeting-by-id meeting-id)
             topic-id (Long/parseLong (get-in request [:form-params "topic_id"]))
             vote-type (get-in request [:form-params "vote_type"])]
         (log/info "User" user-id "voting" vote-type "on topic" topic-id)
+
         (cond
           ;; Check if meeting allows voting
           (not (:meeting/allow-topic-voting meeting-data))
@@ -325,7 +331,9 @@
           ;; Invalid input
           :else
           (log/warn "Invalid vote input - user-id:" user-id "topic-id:" topic-id "vote-type:" vote-type)
-          )))}))
+          )
+        (d*/close-sse! sse)
+        ))}))
 
 (defn meeting-set-current-topic [request]
   (->sse-response
@@ -422,12 +430,12 @@
               (do
                 (log/info "Action added successfully")
                 (broadcast-meeting-page-update! (render-meeting-body request false)))
-              (do
-                (log/error "Failed to add action:" (:error result))
-                (d*/patch-elements! sse "<div class='notification is-danger'>Failed to add action</div>"))))
-          (do
-            (log/warn "Invalid action input - description:" description "user-id:" user-id "meeting-id:" meeting-id)
-            (d*/patch-elements! sse "<div class='notification is-warning'>Please fill in the action description</div>")))))}))
+              (log/error "Failed to add action:" (:error result))
+                ))
+          (log/warn "Invalid action input - description:" description "user-id:" user-id "meeting-id:" meeting-id)
+          ))
+      (d*/close-sse! sse)
+      )}))
 
 
 (defn meeting-finish [request]
@@ -461,7 +469,8 @@
 
           ;; Invalid input
           :else
-          (log/warn "Invalid input - user-id:" user-id "meeting-id:" meeting-id))))}))
+          (log/warn "Invalid input - user-id:" user-id "meeting-id:" meeting-id)))
+      (d*/close-sse! sse))}))
 
 (defn meetings-list
   "Display all finished meetings with topics and actions"
@@ -601,7 +610,6 @@
       (let [user-id (get-in request [:session :userinfo :user-id])
             user-data (db/get-user-by-id user-id)
             user-teams (:user/teams user-data)]
-        (println user-teams)
         (log/info (str "Create meeting popup requested by: " (:user/email user-data)))
         (d*/with-open-sse sse
           (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html" {:teams user-teams}))

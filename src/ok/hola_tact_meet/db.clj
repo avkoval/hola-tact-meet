@@ -80,7 +80,9 @@
           constructed-name (if (clojure.string/blank? full-name)
                             (or (:name userinfo) "Unknown User")
                             (clojure.string/trim full-name))
-          user-data (->> {:user/name constructed-name
+          temp-id "new-user"
+          user-data (->> {:db/id temp-id
+                          :user/name constructed-name
                           :user/email (:email userinfo)
                           :user/family-name (:family-name userinfo)
                           :user/given-name (:given-name userinfo)
@@ -91,7 +93,7 @@
                          (filter (fn [[k v]] (and (not (nil? v)) (not= v ""))))
                          (into {}))
           result (d/transact (get-conn) {:tx-data [user-data]})
-          user-id (get-in result [:tempids (first (keys (:tempids result)))])]
+          user-id (get-in result [:tempids temp-id])]
       user-id)))
 
 (defn get-all-users
