@@ -123,6 +123,7 @@
   [user-id]
 
   (let [db (get-db)]
+    (println "pull from db")
     (d/pull db '[:user/name :user/email :user/family-name
                  :user/given-name :user/picture :user/auth-provider
                  :user/access-level :user/active

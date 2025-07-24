@@ -129,7 +129,13 @@
           (log/info "User logged in:" email)
           {:success true :user-id existing-user-id :action :login})
         ;; User doesn't exist, create new user
-        (let [user-data {:name (:name google-userinfo)
+        (let [constructed-name (or (:name google-userinfo)
+                                  (let [given (:given_name google-userinfo)
+                                        family (:family_name google-userinfo)]
+                                    (if (and given family)
+                                      (str given " " family)
+                                      (or given family "Unknown User"))))
+              user-data {:name constructed-name
                         :email email
                         :family-name (:family_name google-userinfo)
                         :given-name (:given_name google-userinfo)
@@ -189,6 +195,7 @@
 ; atom, to be able to broadcast updates
 (def !meeting-screen-sse-gens (atom #{}))
 
+
 (defn meeting-main-refresh-content-watcher
   "This SSE connection will stay open and will be used to broadcast updates"
   [request]
@@ -197,6 +204,7 @@
    {hk-gen/on-open
     (fn [sse-gen]
       (log/info "meeting-main-refresh-content-watcher established hk-gen/on-open" sse-gen)
+      (d*/patch-signals! sse-gen (json/write-str {"myId" (str sse-gen)}))
       (swap! !meeting-screen-sse-gens conj sse-gen))
 
     hk-gen/on-close
@@ -206,10 +214,13 @@
 
 (defn broadcast-meeting-page-update! [elements]
   (doseq [c @!meeting-screen-sse-gens]
+    (d*/patch-signals! c (json/write-str {"myId" (str c)}))
+    (println (str "sending update to " c))
     (d*/patch-elements! c elements)))
 
 (defn broadcast-meeting-page-signals! [signals]
   (doseq [c @!meeting-screen-sse-gens]
+    (d*/patch-signals! c (json/write-str {"myId" (str c)}))
     (d*/patch-signals! c signals)))
 
 (defn broadcast-execute-script! [script]
@@ -594,6 +605,7 @@
       (let [user-id (get-in request [:session :userinfo :user-id])
             user-data (db/get-user-by-id user-id)
             user-teams (:user/teams user-data)]
+        (println user-teams)
         (log/info (str "Create meeting popup requested by: " (:user/email user-data)))
         (d*/with-open-sse sse
           (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html" {:teams user-teams}))

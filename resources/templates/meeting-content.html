@@ -1,7 +1,9 @@
 <div id="meeting-content"
+     data-signals-my-id="'No Id Yet'"
      data-on-load="@get('/meeting/{{ meeting-id }}/main/refresh')">
 
   <!-- Meeting Content -->
+  <h2 data-text="$myId"></h2>
   <div class="columns is-gapless is-fullheight">
     <!-- Topics List Sidebar -->
     <div class="column is-one-third">
@@ -40,6 +42,7 @@
         <div class="px-4">
           <div class="level mb-4">
             <div class="level-left">
+            {% comment %}
               <div class="level-item">
                 <div class="field is-grouped">
                   <div class="control">
@@ -58,6 +61,7 @@
                   </div>
                 </div>
               </div>
+            {% endcomment %}
             </div>
             <div class="level-right">
               <div class="level-item">
