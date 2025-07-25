@@ -228,10 +228,11 @@
             elements (apply func args)]
         (d*/patch-elements! c elements)))))
 
-(defn broadcast-meeting-page-signals! [meeting-id signals]
-  (doseq [[c gen-meeting-id _] @!meeting-screen-sse-gens]
-    (when (= gen-meeting-id meeting-id) 
-      (d*/patch-signals! c signals))))
+(defn broadcast-meeting-page-signals! [meeting-id signals exclude-user]
+  (doseq [[c gen-meeting-id gen-user-id] @!meeting-screen-sse-gens]
+    (when (= gen-meeting-id meeting-id)
+      (if exclude-user (when-not (= gen-user-id exclude-user) (d*/patch-signals! c signals))
+          (d*/patch-signals! c signals)))))
 
 (defn broadcast-execute-script! [script]
   (doseq [[c _ _] @!meeting-screen-sse-gens]
@@ -297,12 +298,13 @@
    {hk-gen/on-open
     (fn [_]
       (let [user-name (get-in request [:session :userinfo :name])
+            user-id (get-in request [:session :userinfo :user-id])
             meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
             topicNotes (get-in request [:json :topicNotes])
             reflection {"topicNotes" topicNotes "userIsTyping" (str user-name " is typing ...")}
             ]
         (log/info "Edit topic by" user-name)
-        (broadcast-meeting-page-signals! meeting-id (json/write-str reflection))))}))
+        (broadcast-meeting-page-signals! meeting-id (json/write-str reflection) user-id)))}))
 
 
 (defn meeting-vote-topic [request]
