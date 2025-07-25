@@ -65,6 +65,7 @@
      ["/meeting/:meeting-id/set-current-topic" {:post (middleware/wrap-require-auth views/meeting-set-current-topic)}]
      ["/meeting/:meeting-id/delete-topic" {:post (middleware/wrap-require-auth views/meeting-delete-topic)}]
      ["/meeting/:meeting-id/topic/:topic-id" {:post (middleware/wrap-require-auth views/meeting-edit-topic)}]
+     ["/meeting/:meeting-id/topic/:topic-id/save" {:post (middleware/wrap-require-auth views/meeting-edit-topic-save)}]
      ["/meeting/:meeting-id/add-action" {:post (middleware/wrap-require-auth views/meeting-add-action)}]
      ["/meeting/:meeting-id/finish" {:post (middleware/wrap-require-auth views/meeting-finish)}]
      ])

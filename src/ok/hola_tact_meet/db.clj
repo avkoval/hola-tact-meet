@@ -661,6 +661,27 @@
       (log/error "Failed to delete topic:" (.getMessage e))
       {:success false :error (.getMessage e)})))
 
+(defn get-topic-by-id
+  "Get topic data by ID"
+  [topic-id]
+  (let [db (get-db)]
+    (d/pull db '[:db/id :topic/title :topic/discussion-notes :topic/created-at
+                 {:topic/created-by [:db/id :user/name]}
+                 {:topic/meeting [:db/id :meeting/title]}]
+            topic-id)))
+
+(defn update-topic-discussion-notes!
+  "Update discussion notes for a topic"
+  [topic-id discussion-notes]
+  (try
+    (let [result (d/transact (get-conn) {:tx-data [{:db/id topic-id
+                                                    :topic/discussion-notes discussion-notes}]})]
+      (log/info "Discussion notes updated for topic" topic-id)
+      {:success true})
+    (catch Exception e
+      (log/error "Failed to update topic discussion notes:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
+
 (defn add-action!
   "Add a new action to a meeting/topic"
   [meeting-id topic-id description assigned-to-user assigned-to-team deadline]

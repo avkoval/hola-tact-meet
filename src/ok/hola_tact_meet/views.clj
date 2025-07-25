@@ -296,7 +296,7 @@
   (->sse-response
    request
    {hk-gen/on-open
-    (fn [_]
+    (fn [sse]
       (let [user-name (get-in request [:session :userinfo :name])
             user-id (get-in request [:session :userinfo :user-id])
             meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
@@ -304,7 +304,33 @@
             reflection {"topicNotes" topicNotes "userIsTyping" (str user-name " is typing ...")}
             ]
         (log/info "Edit topic by" user-name)
-        (broadcast-meeting-page-signals! meeting-id (json/write-str reflection) user-id)))}))
+        (broadcast-meeting-page-signals! meeting-id (json/write-str reflection) user-id)
+        (d*/close-sse! sse)
+        ))}))
+
+
+(defn meeting-edit-topic-save [request]
+  (->sse-response
+   request
+   {hk-gen/on-open
+    (fn [sse]
+      (let [user-name (get-in request [:session :userinfo :name])
+            user-id (get-in request [:session :userinfo :user-id])
+            meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            topic-id (Long/parseLong (get-in request [:path-params :topic-id]))
+            topicNotes (get-in request [:json :topicNotes])
+            reflection {"topicNotes" topicNotes "userIsTyping" " Saved "}
+            ]
+        (log/info "Save topic data by" user-name)
+        (log/info meeting-id topic-id)
+        ;; Update topic discussion notes in database
+        (let [update-result (db/update-topic-discussion-notes! topic-id topicNotes)]
+          (if (:success update-result)
+            (log/info "Topic discussion notes updated successfully")
+            (log/error "Failed to update topic discussion notes:" (:error update-result))))
+        (broadcast-meeting-page-signals! meeting-id (json/write-str reflection) nil)
+        (d*/close-sse! sse)
+        ))}))
 
 
 (defn meeting-vote-topic [request]
@@ -353,7 +379,7 @@
   (->sse-response
    request
    {hk-gen/on-open
-    (fn [_]
+    (fn [sse]
       (let [user-id (get-in request [:session :userinfo :user-id])
             meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
             topic-id (Long/parseLong (get-in request [:form-params "topic_id"]))]
@@ -365,17 +391,23 @@
 
           ;; Valid input - set current topic
           (and user-id topic-id meeting-id)
-          (let [result (db/set-current-topic! meeting-id topic-id)]
+          (let [result (db/set-current-topic! meeting-id topic-id)
+                topic (db/get-topic-by-id topic-id)]
             (if (:success result)
               (do
                 (log/info "Current topic set successfully")
-                (broadcast-meeting-page-update! render-meeting-body meeting-id [false] true))
+                (broadcast-meeting-page-update! render-meeting-body meeting-id [false] true)
+                (log/info (json/write-str {"topicNotes" (:topic/discussion-notes topic)}) user-id)
+                (broadcast-meeting-page-signals! meeting-id (json/write-str {"topicNotes" (:topic/discussion-notes topic)}) nil)
+                )
               (log/error "Failed to set current topic:" (:error result))))
 
           ;; Invalid input
           :else
           (log/warn "Invalid input - user-id:" user-id "topic-id:" topic-id "meeting-id:" meeting-id)
-          )))}))
+          ))
+      (d*/close-sse! sse)
+      )}))
 
 (defn meeting-delete-topic [request]
   (->sse-response
