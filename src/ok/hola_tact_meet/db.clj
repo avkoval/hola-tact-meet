@@ -491,7 +491,10 @@
                              [?created-by :user/name ?created-by-name]]
                            db meeting-id)]
     (mapv (fn [[topic-id title created-at created-by created-by-name]]
-            (let [;; Get vote counts for this topic
+            (let [;; Get discussion notes using pull
+                  topic-data (d/pull db '[:topic/discussion-notes] topic-id)
+                  discussion-notes (or (:topic/discussion-notes topic-data) "")
+                  ;; Get vote counts for this topic
                   upvotes-result (d/q '[:find (count ?vote)
                                         :in $ ?topic-id
                                         :where
@@ -512,6 +515,7 @@
                :created-at created-at
                :created-by created-by
                :created-by-name created-by-name
+               :discussion-notes discussion-notes
                :upvotes upvotes
                :downvotes downvotes
                :vote-score vote-score}))
