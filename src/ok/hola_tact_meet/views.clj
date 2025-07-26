@@ -663,7 +663,8 @@
             user-teams (:user/teams user-data)]
         (log/info (str "Create meeting popup requested by: " (:user/email user-data)))
         (d*/with-open-sse sse
-          (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html" {:teams user-teams}))
+          (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html" {:teams user-teams
+                                                                                      :datetime-min (subs (str (java.time.LocalDateTime/now)) 0 16)}))
           (d*/patch-signals! sse "{createMeetingModalOpen: true}")
           ))
       )}))
@@ -676,8 +677,7 @@
     (fn [sse]
       (let [user-id (get-in request [:session :userinfo :user-id])
             user-data (db/get-user-by-id user-id)
-            form-params (keywordize-keys (:form-params request))
-            user-teams (:user/teams user-data)]
+            form-params (keywordize-keys (:form-params request))]
         (log/info (str "Create meeting save requested by: " (:user/email user-data)))
         (pprint form-params)
 
@@ -710,21 +710,18 @@
                                                         :text "New meeting created successfully" }]})))
                       (do
                         (log/warn "Failed to create meeting:" (:error create-result))
-                        (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html"
-                                                             {:teams user-teams
-                                                              :error-message (:error create-result)})))))
+                        (d*/patch-elements! sse (render-file "templates/create_meeting_modal_error.html"
+                                                             {:error-message (:error create-result)})))))
                   ;; User is not a member of the team
                   (do
                     (log/warn "User" user-id "is not a member of team" team-id)
-                    (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html"
-                                                         {:teams user-teams
-                                                          :error-message "You are not a member of the selected team"})))))
+                    (d*/patch-elements! sse (render-file "templates/create_meeting_modal_error.html"
+                                                         {:error-message "You are not a member of the selected team"})))))
               ;; Invalid meeting data
               (do
                 (log/warn "Invalid meeting data:" meeting-data)
-                (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html"
-                                                     {:teams user-teams
-                                                      :error-message "Invalid meeting data. Please check all fields."}))))))
+                (d*/patch-elements! sse (render-file "templates/create_meeting_modal_error.html"
+                                                     {:error-message "Invalid meeting data. Please check all fields."}))))))
         )
       )}))
 

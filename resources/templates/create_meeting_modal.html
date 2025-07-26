@@ -25,6 +25,8 @@
         <button class="delete" aria-label="close" data-on-click="$createMeetingModalOpen=false"></button>
       </header>
       <section class="modal-card-body">
+        <div id="create-meeting-error"></div>
+
         <form id="createMeetingForm" method="post" action="/meetings/create">
           <div class="field">
             <label class="label">Meeting Title</label>
@@ -57,7 +59,7 @@
           <div class="field">
             <label class="label">Scheduled Date & Time</label>
             <div class="control">
-              <input class="input" type="datetime-local" name="scheduled-at" data-attr-required="$createMeetingModalOpen" data-bind-scheduled-at>
+              <input class="input" type="datetime-local" name="scheduled-at" data-attr-required="$createMeetingModalOpen" data-bind-scheduled-at min="{{ datetime-min }}">
             </div>
           </div>
 
