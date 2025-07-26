@@ -218,7 +218,7 @@ Copyright © 2025 Oleksii Koval
 
 Distributed under the MIT License
 
-** Current work plan & progress [46%]
+** Current work plan & progress [43%]
 
 *** DONE Set appropriate License
     CLOSED: [2025-06-15 Sun 21:30]
@@ -296,6 +296,74 @@ I need fake login to quickly login several users for testing purposes on localho
  - [X] for staff user - limit teams to member only
    - [X] for admin user - no limits
 
+*** TODO To finish before 1st deploy
+    :LOGBOOK:
+    CLOCK: [2025-07-26 Sat 17:02]--[2025-07-26 Sat 17:02] =>  0:00
+    - State "TODO"       from              [2025-07-26 Sat 12:05]
+    :END:
+
+**** WORKING [#A] [Start meeting] button
+     :LOGBOOK:
+     CLOCK: [2025-07-26 Sat 13:10]--[2025-07-26 Sat 13:13] =>  0:03
+     - State "WORKING"    from "TODO"       [2025-07-26 Sat 13:10]
+     - State "TODO"       from              [2025-07-26 Sat 12:05]
+     :END:
+
+ - [ ] Do not set status 'started' on 1st participant
+ - [ ] Add button '[Start meeting'] on meeting screen, available only to staff users
+ - [ ] Disallow switching topics when meeting is not started yet
+
+**** TODO [#B] Run CI and build on GitHub - provide .jar as artifact
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-26 Sat 12:15]
+     :END:
+
+**** TODO [#B] Provide deployment documentation
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-26 Sat 12:55]
+     :END:
+
+ - [ ] nginx config
+ - [ ] how to map resources?
+ - [ ] how to configure logging via xml
+
+**** TODO [#B] Document deployment process and requirements
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-26 Sat 12:15]
+     :END:
+
+**** TODO [#D] Logging - configure correctly so it will save file ?
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-26 Sat 12:10]
+     :END:
+
+**** TODO [#D] Sentry
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-26 Sat 12:10]
+     :END:
+
+**** TODO [#C] manage meetings [/]
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-26 Sat 13:00]
+     :END:
+
+ - [ ] meetings list
+ - [ ] meeting "edit"
+ - [ ] meeting settings/preferences button on the main meeting page
+ 
+**** WORKING [#B] Small bug fixes [2/2]
+     :LOGBOOK:
+     CLOCK: [2025-07-26 Sat 17:02]
+     - State "WORKING"    from "TODO"       [2025-07-26 Sat 13:15]
+     CLOCK: [2025-07-26 Sat 13:13]--[2025-07-26 Sat 17:02] =>  3:49
+     - State "TODO"       from "TODO"       [2025-07-26 Sat 12:15]
+     - State "TODO"       from              [2025-07-26 Sat 12:15]
+     :END:
+
+ - [X] forbid creation of a meetings in the past
+ - [X] hide action creation form after submit
+
+
 *** TODO Meeting screen (the biggest part) [50%] [7/14]
     :PROPERTIES:
     :COOKIE_DATA: recursive
@@ -314,7 +382,7 @@ I need fake login to quickly login several users for testing purposes on localho
 
 **** WORKING [#A] re-render the whole screen individually by signal - screen changed.
      :LOGBOOK:
-     CLOCK: [2025-07-24 Thu 22:01]
+     CLOCK: [2025-07-24 Thu 22:01]--[2025-07-24 Thu 22:21] =>  0:20
      - State "WORKING"    from "TODO"       [2025-07-24 Thu 21:35]
      - State "TODO"       from              [2025-07-24 Thu 21:15]
      :END:

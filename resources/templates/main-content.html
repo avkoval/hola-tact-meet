@@ -1,0 +1,205 @@
+<section id="main-content" class="section"> <!-- Main Content -->
+  <div class="container">
+    
+    <!-- Welcome Message -->
+    <div class="notification is-info is-light">
+      <h1 class="title is-4">Welcome to Hola-Tact-Meet!</h1>
+      <p>Facilitate structured team meetings using Holacracy-inspired Tactical Meeting principles.</p>
+    </div>
+
+    <div class="columns">
+      <!-- User Actions Column -->
+      <div class="column is-one-third">
+        <div class="card">
+          <header class="card-header">
+            <p class="card-header-title">
+              <span class="icon">
+                <i class="fas fa-user"></i>
+              </span>
+              User Actions
+            </p>
+          </header>
+          <div class="card-content">
+            <div class="content">
+              <div class="buttons">
+                <button class="button is-primary is-fullwidth" {% ifequal meetings-count 0 %}disabled {% else %}data-on-click="@get('/meeting/join')" {% endifequal %}>
+                  <span class="icon">
+                    <i class="fas fa-plus"></i>
+                  </span>
+                  <span>Join Meeting {% if meetings-count > 0 %}({{ meetings-count }}){% endif %}</span>
+                </button>
+                <a class="button is-link is-fullwidth" {% ifequal meetings-count 0 %}disabled {% else %}href="/meetings"  {% endifequal %}>
+                  <span class="icon">
+                    <i class="fas fa-history"></i>
+                  </span>
+                  <span>Past Meetings</span>
+                </a>
+                <a class="button is-info is-fullwidth" href="/actions">
+                  <span class="icon">
+                    <i class="fas fa-tasks"></i>
+                  </span>
+                  <span>My Action Items</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manager Actions Column -->
+      {% ifunequal userinfo.access-level "user" %}
+      <div class="column is-one-third">
+        <div class="card">
+          <header class="card-header">
+            <p class="card-header-title">
+              <span class="icon">
+                <i class="fas fa-users-cog"></i>
+              </span>
+              Manager Actions
+            </p>
+          </header>
+          <div class="card-content">
+            <div class="content">
+              <div class="buttons">
+                <button class="button is-success is-fullwidth" data-on-click="@get('/staff/create-meeting')">
+                  <span class="icon">
+                    <i class="fas fa-calendar-plus"></i>
+                  </span>
+                  <span>Create New Meeting</span>
+                </button>
+                <button class="button is-warning is-fullwidth">
+                  <span class="icon">
+                    <i class="fas fa-calendar-alt"></i>
+                  </span>
+                  <span>Manage meetings</span>
+                </button>
+                <button class="button is-warning is-fullwidth">
+                  <span class="icon">
+                    <i class="fas fa-users"></i>
+                  </span>
+                  <span>Edit Team Members</span>
+                </button>
+                <a class="button is-fullwidth" href="/actions">
+                  <span class="icon">
+                    <i class="fas fa-search"></i>
+                  </span>
+                  <span>Review actions</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+        {% endifunequal %}
+
+        <!-- Admin Actions Column -->
+        {% ifequal userinfo.access-level "admin" %}
+          <div class="column is-one-third">
+            <div class="card">
+              <header class="card-header">
+                <p class="card-header-title">
+                  <span class="icon">
+                    <i class="fas fa-cog"></i>
+                  </span>
+                  Admin Actions
+                </p>
+              </header>
+              <div class="card-content">
+                <div class="content">
+                  <div class="buttons">
+                    <a class="button is-danger is-fullwidth" href="/admin/manage-users">
+                      <span class="icon">
+                        <i class="fas fa-users"></i>
+                      </span>
+                      <span>Manage Users</span>
+                    </a>
+                    <button class="button is-dark is-fullwidth" data-on-click="@get('/admin/project-settings')">
+                      <span class="icon">
+                        <i class="fas fa-tools"></i>
+                      </span>
+                      <span>Project Settings</span>
+                    </button>
+                    {% comment %}
+                    <button class="button is-light is-fullwidth">
+                    <span class="icon">
+                    <i class="fas fa-shield-alt"></i>
+                    </span>
+                    <span>Permissions</span>
+                    </button>
+                    {% endcomment %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endifequal %}
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="box mt-5">
+      <h2 class="title is-5">Recent Meetings</h2>
+      <div class="content">
+        {% if recent-meetings %}
+          {% for meeting in recent-meetings %}
+            <div class="box is-light">
+              <article class="media">
+                <div class="media-left">
+                  <span class="icon is-large">
+                    <i class="fas fa-calendar-alt fa-2x"></i>
+                  </span>
+                </div>
+                <div class="media-content">
+                  <div class="content">
+                    <p>
+                      <strong>{{ meeting.title }}</strong>
+                      <br>
+                      <small>Created by {{ meeting.created-by-name }} on {{ meeting.created-at|date:"MMM d, yyyy" }}</small>
+                    </p>
+                  </div>
+                </div>
+              </article>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="notification is-light">
+            <p><strong>No recent meetings</strong> - Create your first meeting to get started!</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="columns mt-4">
+      <div class="column">
+        <div class="box has-text-centered">
+          <p class="heading">Total Meetings</p>
+          <p class="title">{{ statistics.total-meetings | default: 0 }}</p>
+        </div>
+      </div>
+      <div class="column">
+        <div class="box has-text-centered">
+          <p class="heading">Active Actions</p>
+          <p class="title">{{ statistics.active-actions | default: 0 }}</p>
+        </div>
+      </div>
+      <div class="column">
+        <div class="box has-text-centered">
+          <p class="heading">Team Members</p>
+          <p class="title">{{ statistics.team-members | default: 1 }}</p>
+        </div>
+      </div>
+      <div class="column">
+        <div class="box has-text-centered">
+          <p class="heading">This Month</p>
+          <p class="title">{{ statistics.meetings-this-month | default: 0 }}</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div id="createMeetingModal" class="modal"></div>
+<div id="projectSettingsModal" class="modal"></div>
+<div id="joinMeetingModal" class="modal"></div>
+

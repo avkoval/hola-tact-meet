@@ -43,23 +43,27 @@
                                                  :host (get-in request [:headers "host"])
                                                  :dev_mode dev_mode})})))
 
-(defn app-main [{session :session}]
-  (log/info "Main app page accessed")
+(defn app-main-data [{session :session}]
   (let [userinfo (:userinfo session)
         user-id (:user-id userinfo)
         recent-meetings (if user-id (db/get-recent-meetings-for-user user-id) [])
         active-meetings (if user-id (db/get-active-meetings-for-user user-id) [])
         statistics (if user-id (db/get-dashboard-statistics user-id) {})
         ]
-    (log/info userinfo)
-    {:status 200
-     :headers {"Content-Type" "text/html"}
-     :body (render-file "templates/main.html" {:userinfo userinfo
-                                               :recent-meetings recent-meetings
-                                               :recent-meetings-count (count recent-meetings)
-                                               :active-meetings active-meetings
-                                               :meetings-count (count active-meetings)
-                                               :statistics statistics})}))
+    {:userinfo userinfo
+     :recent-meetings recent-meetings
+     :recent-meetings-count (count recent-meetings)
+     :active-meetings active-meetings
+     :meetings-count (count active-meetings)
+     :statistics statistics})
+  )
+
+
+(defn app-main [request]
+  (log/info "Main app page accessed")
+  {:status 200
+   :headers {"Content-Type" "text/html"}
+   :body (render-file "templates/main.html" (app-main-data request))})
 
 
 (defn get-topics-for-meeting [meeting-id user-id]
@@ -71,7 +75,7 @@
   (let [meeting-data (db/get-meeting-by-id meeting-id)
         topics-with-votes (get-topics-for-meeting meeting-id user-id)
         current-topic (:meeting/current-topic meeting-data)
-        can-set-current-topic (db/user-can-set-current-topic? user-id meeting-id)
+        can-change-meeting (db/user-can-change-meeting? user-id meeting-id)
         actions (db/get-actions-for-meeting meeting-id)
         team-members (db/get-team-members-for-meeting meeting-id)
         ]
@@ -80,7 +84,7 @@
      :meeting meeting-data
      :topics topics-with-votes
      :current-topic current-topic
-     :can-set-current-topic can-set-current-topic
+     :can-change-meeting can-change-meeting
      :current-user-id user-id
      :actions actions
      :team-members team-members}))
@@ -302,9 +306,10 @@
             meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
             topicNotes (get-in request [:json :topicNotes])
             reflection {"topicNotes" topicNotes "userIsTyping" (str user-name " is typing ...")}
+            reflection-json (json/write-str reflection)
             ]
-        (log/info "Edit topic by" user-name)
-        (broadcast-meeting-page-signals! meeting-id (json/write-str reflection) user-id)
+        (log/info "Edit topic by" user-name reflection-json)
+        (broadcast-meeting-page-signals! meeting-id reflection-json user-id)
         (d*/close-sse! sse)
         ))}))
 
@@ -386,7 +391,7 @@
         (log/info "User" user-id "setting current topic to" topic-id "for meeting" meeting-id)
         (cond
           ;; Check permissions
-          (not (db/user-can-set-current-topic? user-id meeting-id))
+          (not (db/user-can-change-meeting? user-id meeting-id))
           (log/warn "User" user-id "does not have permission to set current topic for meeting" meeting-id)
 
           ;; Valid input - set current topic
@@ -475,7 +480,11 @@
             (if (:success result)
               (do
                 (log/info "Action added successfully")
-                (broadcast-meeting-page-update! render-meeting-body meeting-id [false] true))
+                (broadcast-meeting-page-update! render-meeting-body meeting-id [false] true)
+                (d*/patch-signals! sse "{showAddAction: false}")
+                (d*/execute-script! sse "document.getElementById('add-action-form').reset()")
+                )
+              
               (log/error "Failed to add action:" (:error result))
                 ))
           (log/warn "Invalid action input - description:" description "user-id:" user-id "meeting-id:" meeting-id)
@@ -658,7 +667,8 @@
             user-teams (:user/teams user-data)]
         (log/info (str "Create meeting popup requested by: " (:user/email user-data)))
         (d*/with-open-sse sse
-          (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html" {:teams user-teams}))
+          (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html" {:teams user-teams
+                                                                                      :datetime-min (subs (str (java.time.LocalDateTime/now)) 0 16)}))
           (d*/patch-signals! sse "{createMeetingModalOpen: true}")
           ))
       )}))
@@ -671,8 +681,7 @@
     (fn [sse]
       (let [user-id (get-in request [:session :userinfo :user-id])
             user-data (db/get-user-by-id user-id)
-            form-params (keywordize-keys (:form-params request))
-            user-teams (:user/teams user-data)]
+            form-params (keywordize-keys (:form-params request))]
         (log/info (str "Create meeting save requested by: " (:user/email user-data)))
         (pprint form-params)
 
@@ -698,28 +707,27 @@
                       (do
                         (log/info "Meeting created successfully:" (:meeting-id create-result))
                         (d*/patch-elements! sse "<div id=\"createMeetingModal\"></div>")
-                        (d*/patch-elements!
-                         sse
-                         (render-file "templates/notifications.html"
-                                      {:notifications [{:level "info"
-                                                        :text "New meeting created successfully" }]})))
+                        (d*/patch-elements! sse (render-file "templates/main-content.html" (app-main-data request)))
+                        (d*/patch-elements! 
+                         sse (render-file "templates/notifications.html" {:notifications [{:level "info"
+                                                                                           :text "New meeting created successfully"}]}))
+
+                        )
+                      
                       (do
                         (log/warn "Failed to create meeting:" (:error create-result))
-                        (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html"
-                                                             {:teams user-teams
-                                                              :error-message (:error create-result)})))))
+                        (d*/patch-elements! sse (render-file "templates/create_meeting_modal_error.html"
+                                                             {:error-message (:error create-result)})))))
                   ;; User is not a member of the team
                   (do
                     (log/warn "User" user-id "is not a member of team" team-id)
-                    (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html"
-                                                         {:teams user-teams
-                                                          :error-message "You are not a member of the selected team"})))))
+                    (d*/patch-elements! sse (render-file "templates/create_meeting_modal_error.html"
+                                                         {:error-message "You are not a member of the selected team"})))))
               ;; Invalid meeting data
               (do
                 (log/warn "Invalid meeting data:" meeting-data)
-                (d*/patch-elements! sse (render-file "templates/create_meeting_modal.html"
-                                                     {:teams user-teams
-                                                      :error-message "Invalid meeting data. Please check all fields."}))))))
+                (d*/patch-elements! sse (render-file "templates/create_meeting_modal_error.html"
+                                                     {:error-message "Invalid meeting data. Please check all fields."}))))))
         )
       )}))
 

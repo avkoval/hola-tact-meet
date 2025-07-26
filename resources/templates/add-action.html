@@ -1,0 +1,60 @@
+<form id="add-action-form" style="display: none" data-show="$showAddAction" data-signals-team-action="false">
+  <div class="field">
+    <label class="label">Action Description</label>
+    <div class="control">
+      <input class="input" type="text" name="action-description" placeholder="Describe the action to be taken" data-attr-required="$showAddAction">
+    </div>
+  </div>
+
+  <div class="columns">
+    <div class="column">
+      <div class="field">
+        <label class="label">Assign To</label>
+        <div class="control">
+          <div class="select is-fullwidth">
+            <select name="assigned-to" data-attr-required="!$teamAction && $showAddAction" data-bind-assigned-to data-on-change="if($assignedTo) {$teamAction=false}; ''">
+              <option value="">Select team member</option>
+              {% for member in team-members %}
+                <option value="{{ member.id }}">{{ member.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="column">
+      <div class="field">
+        <label class="label">Deadline (Optional)</label>
+        <div class="control">
+          <input class="input" type="date" name="deadline">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="control">
+      <label class="checkbox">
+        <input type="checkbox" name="team-action" data-bind-team-action data-on-change="if($teamAction) {$assignedTo='';} ; ''">
+        Team Action (applies to all team members)
+      </label>
+    </div>
+  </div>
+
+  <div class="field is-grouped">
+    <div class="control">
+      <div class="buttons">
+        <button class="button is-primary" type="submit"
+                data-on-click="@post('/meeting/{{ meeting-id }}/add-action', {contentType: 'form'})">
+          <span class="icon">
+            <i class="fas fa-plus"></i>
+          </span>
+          <span>Add Action</span>
+        </button>
+        <button class="button" data-on-click="$showAddAction=false">Cancel</button>
+
+      </div>
+    </div>
+  </div>
+</form>

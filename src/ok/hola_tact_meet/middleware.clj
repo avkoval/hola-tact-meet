@@ -6,8 +6,25 @@
    [ok.oauth2.utils :refer [get-oauth-config]]
    [ring.middleware.oauth2 :refer [wrap-oauth2]]
    [clojure.tools.logging :as log]
+   [sentry-clj.core :as sentry]
    )
   (:gen-class))
+
+(defn wrap-exception-handling [handler]
+  "Middleware to catch exceptions and send them to Sentry"
+  (fn [request]
+    (try
+      (handler request)
+      (catch Exception e
+        (log/error "Unhandled exception:" (.getMessage e))
+        (sentry/send-event {:message (.getMessage e)
+                           :level "error"
+                           :extra {:request-uri (:uri request)
+                                   :request-method (:request-method request)
+                                   :stack-trace (str e)}})
+        {:status 500
+         :headers {"Content-Type" "text/html"}
+         :body "Internal Server Error"}))))
 
 (defn wrap-request-logging [handler]
   (fn [request]

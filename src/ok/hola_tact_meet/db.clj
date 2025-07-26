@@ -619,7 +619,7 @@
       (log/error "Failed to set current topic:" (.getMessage e))
       {:success false :error (.getMessage e)})))
 
-(defn user-can-set-current-topic?
+(defn user-can-change-meeting?
   "Check if user has permission to set current topic (staff/admin and meeting participant)"
   [user-id meeting-id]
   (let [db (get-db)
@@ -1099,4 +1099,6 @@
                      meetings-to-update)]
     (when (seq tx-data)
       (d/transact (get-conn) {:tx-data tx-data})))
+
+  (get-actions-for-meeting 96757023244418)
   )
