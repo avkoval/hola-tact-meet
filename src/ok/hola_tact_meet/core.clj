@@ -68,6 +68,7 @@
      ["/logout" {:get views/logout}]
      ["/meeting/join" {:get (middleware/wrap-require-auth views/join-meeting-modal)}]
      ["/meeting/:meeting-id/join" {:post (middleware/wrap-require-auth views/join-meeting)}]
+     ["/meeting/:meeting-id/start" {:post (middleware/wrap-require-staff views/meeting-start)}]
      ["/meeting/:meeting-id/main" {:get (middleware/wrap-require-auth views/meeting-main)}]
      ["/meeting/:meeting-id/main/refresh" {:get (middleware/wrap-require-auth views/meeting-main-refresh-content-watcher)}]
      ["/meeting/:meeting-id/add-topic" {:post (middleware/wrap-require-auth views/meeting-add-topic)}]

@@ -106,6 +106,7 @@
      :headers {"Content-Type" "text/html"}
      :body (render-meeting-body true meeting-id user-id)}))
 
+
 (defn fetch-google-userinfo
   "Fetch user information from Google API using bearer token"
   [access-token]
@@ -227,7 +228,7 @@
 
 (defn broadcast-meeting-page-update! [func meeting-id func-args add-user-and-meeting-args?]
   (doseq [[c gen-meeting-id gen-user-id] @!meeting-screen-sse-gens]
-    (when (= gen-meeting-id meeting-id) 
+    (when (= gen-meeting-id meeting-id)
       (let [args (if add-user-and-meeting-args? (concat func-args [gen-meeting-id gen-user-id]) func-args)
             elements (apply func args)]
         (d*/patch-elements! c elements)))))
@@ -484,7 +485,7 @@
                 (d*/patch-signals! sse "{showAddAction: false}")
                 (d*/execute-script! sse "document.getElementById('add-action-form').reset()")
                 )
-              
+
               (log/error "Failed to add action:" (:error result))
                 ))
           (log/warn "Invalid action input - description:" description "user-id:" user-id "meeting-id:" meeting-id)
@@ -708,12 +709,12 @@
                         (log/info "Meeting created successfully:" (:meeting-id create-result))
                         (d*/patch-elements! sse "<div id=\"createMeetingModal\"></div>")
                         (d*/patch-elements! sse (render-file "templates/main-content.html" (app-main-data request)))
-                        (d*/patch-elements! 
+                        (d*/patch-elements!
                          sse (render-file "templates/notifications.html" {:notifications [{:level "info"
                                                                                            :text "New meeting created successfully"}]}))
 
                         )
-                      
+
                       (do
                         (log/warn "Failed to create meeting:" (:error create-result))
                         (d*/patch-elements! sse (render-file "templates/create_meeting_modal_error.html"
@@ -1017,6 +1018,26 @@
                        (d*/patch-elements! sse
                         (render-file "templates/fake-user-form.html" (fake-user-data)))
                        ))}))
+
+
+(defn meeting-start [request]
+  (->sse-response
+   request
+   {hk-gen/on-open
+    (fn [sse]
+      (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            user-id (get-in request [:session :userinfo :user-id])]
+        (log/info "Start meeting:" meeting-id "by user:" user-id)
+
+        (let [result (db/start-meeting! meeting-id)]
+          (if (:success result)
+            (do
+              (log/info "Meeting started successfully")
+              (broadcast-meeting-page-update! render-meeting-body meeting-id [false] true))
+            (log/error "Failed to start meeting:" (:error result))))
+
+        (d*/close-sse! sse)))}))
+
 
 
 (defn logout [_]

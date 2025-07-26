@@ -30,7 +30,7 @@
                 {% if can-change-meeting %}
                   <form data-on-submit="@post('/meeting/{{ meeting-id }}/set-current-topic', {contentType: 'form'})" style="display: inline;">
                     <input type="hidden" name="topic_id" value="{{ topic.id }}">
-                    <button type="submit" class="button is-info{% if current-topic.db/id = topic.id %} is-active{% endif %}" title="Set as current topic">
+                    <button type="submit" class="button is-info{% if current-topic.db/id = topic.id %} is-active{% endif %}" title="Set as current topic"{% ifequal meeting.meeting/status "scheduled" %} disabled{% endifequal %}>
                       <span class="icon is-small">
                         <i class="fas fa-play"></i>
                       </span>

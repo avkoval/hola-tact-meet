@@ -425,35 +425,15 @@
     (contains? meeting-ids meeting-id)))
 
 (defn add-participant!
-  "Add a participant to a meeting and set status to 'started' if first participant"
+  "Add a participant to a meeting"
   [user-id meeting-id]
   (try
-    (let [db (get-db)
-          ;; Check if this is the first participant
-          existing-participants-result (d/q '[:find (count ?p)
-                                              :in $ ?meeting-id
-                                              :where [?p :participant/meeting ?meeting-id]]
-                                            db meeting-id)
-          participant-count (or (ffirst existing-participants-result) 0)
-          is-first-participant (zero? participant-count)
-          
-          ;; Prepare transaction data
-          participant-data {:participant/user user-id
+    (let [participant-data {:participant/user user-id
                            :participant/meeting meeting-id
                            :participant/joined-at (java.util.Date.)}
-          tx-data (if is-first-participant
-                    ;; If first participant, also update meeting status
-                    [participant-data
-                     {:db/id meeting-id
-                      :meeting/status "started"}]
-                    ;; Otherwise just add participant
-                    [participant-data])
-          
-          _ (d/transact (get-conn) {:tx-data tx-data})]
+          _ (d/transact (get-conn) {:tx-data [participant-data]})]
       
-      (if is-first-participant
-        (log/info "First participant added, meeting status set to 'started':" participant-data)
-        (log/info "Participant added successfully:" participant-data))
+      (log/info "Participant added successfully:" participant-data)
       {:success true})
     (catch Exception e
       (log/error "Failed to add participant:" (.getMessage e))
@@ -684,6 +664,18 @@
       {:success true})
     (catch Exception e
       (log/error "Failed to update topic discussion notes:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
+
+(defn start-meeting!
+  "Set meeting status to 'started'"
+  [meeting-id]
+  (try
+    (let [result (d/transact (get-conn) {:tx-data [{:db/id meeting-id
+                                                    :meeting/status "started"}]})]
+      (log/info "Meeting" meeting-id "started")
+      {:success true})
+    (catch Exception e
+      (log/error "Failed to start meeting:" (.getMessage e))
       {:success false :error (.getMessage e)})))
 
 (defn add-action!
