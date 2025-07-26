@@ -71,7 +71,7 @@
   (let [meeting-data (db/get-meeting-by-id meeting-id)
         topics-with-votes (get-topics-for-meeting meeting-id user-id)
         current-topic (:meeting/current-topic meeting-data)
-        can-set-current-topic (db/user-can-set-current-topic? user-id meeting-id)
+        can-change-meeting (db/user-can-change-meeting? user-id meeting-id)
         actions (db/get-actions-for-meeting meeting-id)
         team-members (db/get-team-members-for-meeting meeting-id)
         ]
@@ -80,7 +80,7 @@
      :meeting meeting-data
      :topics topics-with-votes
      :current-topic current-topic
-     :can-set-current-topic can-set-current-topic
+     :can-change-meeting can-change-meeting
      :current-user-id user-id
      :actions actions
      :team-members team-members}))
@@ -302,9 +302,10 @@
             meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
             topicNotes (get-in request [:json :topicNotes])
             reflection {"topicNotes" topicNotes "userIsTyping" (str user-name " is typing ...")}
+            reflection-json (json/write-str reflection)
             ]
-        (log/info "Edit topic by" user-name)
-        (broadcast-meeting-page-signals! meeting-id (json/write-str reflection) user-id)
+        (log/info "Edit topic by" user-name reflection-json)
+        (broadcast-meeting-page-signals! meeting-id reflection-json user-id)
         (d*/close-sse! sse)
         ))}))
 
@@ -386,7 +387,7 @@
         (log/info "User" user-id "setting current topic to" topic-id "for meeting" meeting-id)
         (cond
           ;; Check permissions
-          (not (db/user-can-set-current-topic? user-id meeting-id))
+          (not (db/user-can-change-meeting? user-id meeting-id))
           (log/warn "User" user-id "does not have permission to set current topic for meeting" meeting-id)
 
           ;; Valid input - set current topic
@@ -475,7 +476,11 @@
             (if (:success result)
               (do
                 (log/info "Action added successfully")
-                (broadcast-meeting-page-update! render-meeting-body meeting-id [false] true))
+                (broadcast-meeting-page-update! render-meeting-body meeting-id [false] true)
+                (d*/patch-signals! sse "{showAddAction: false}")
+                (d*/execute-script! sse "document.getElementById('add-action-form').reset()")
+                )
+              
               (log/error "Failed to add action:" (:error result))
                 ))
           (log/warn "Invalid action input - description:" description "user-id:" user-id "meeting-id:" meeting-id)

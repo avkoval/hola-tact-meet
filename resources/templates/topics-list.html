@@ -27,7 +27,7 @@
             </div>
             <div class="column is-narrow">
               <div class="buttons are-small">
-                {% if can-set-current-topic %}
+                {% if can-change-meeting %}
                   <form data-on-submit="@post('/meeting/{{ meeting-id }}/set-current-topic', {contentType: 'form'})" style="display: inline;">
                     <input type="hidden" name="topic_id" value="{{ topic.id }}">
                     <button type="submit" class="button is-info{% if current-topic.db/id = topic.id %} is-active{% endif %}" title="Set as current topic">

@@ -62,6 +62,7 @@
               </div>
             {% endcomment %}
             </div>
+            {% if can-change-meeting %}
             <div class="level-right">
               <div class="level-item">
                 <button class="button is-danger" data-on-click="confirm('All important topics are sorted out? This will close the meeting for all.') && @post('/meeting/{{ meeting-id }}/finish')">
@@ -72,6 +73,7 @@
                 </button>
               </div>
             </div>
+            {% endif %}
           </div>
 
           <!-- Meeting Info -->
@@ -96,6 +98,7 @@
                 <p class="card-header-title is-size-4">
                   Current Topic: {{ current-topic.topic/title }}
                 </p>
+                {% if can-change-meeting %}
                 <div class="card-header-icon">
                   <button class="button is-small is-warning">
                     <span class="icon is-small">
@@ -104,6 +107,7 @@
                     <span>Finish Topic</span>
                   </button>
                 </div>
+                {% endif %}
               </header>
               <div class="card-content" data-signals-user-is-typing="false">
                 <div class="field">
@@ -120,7 +124,7 @@
                   <textarea class="textarea" rows="8"
                             data-signals-topic-notes data-bind="topicNotes"
                             data-on-input__debounce.200ms="@post('/meeting/{{ meeting-id }}/topic/{{ current-topic.db/id }}')"
-                            data-on-input__debounce.10000ms="@post('/meeting/{{ meeting-id }}/topic/{{ current-topic.db/id }}/save')"
+                            data-on-input__debounce.5000ms="@post('/meeting/{{ meeting-id }}/topic/{{ current-topic.db/id }}/save')"
                             placeholder="Enter discussion notes, decisions, and key points..."
                   >{{ current-topic.topic/discussion-notes }}</textarea>
                 </div>
@@ -136,63 +140,12 @@
             </p>
           </header>
           <div class="card-content">
-            <form id="add-action-form">
-              <div class="field">
-                <label class="label">Action Description</label>
-                <div class="control">
-                  <input class="input" type="text" name="action-description" placeholder="Describe the action to be taken" required>
-                </div>
-              </div>
-
-              <div class="columns">
-                <div class="column">
-                  <div class="field">
-                    <label class="label">Assign To</label>
-                    <div class="control">
-                      <div class="select is-fullwidth">
-                        <select name="assigned-to">
-                          <option value="">Select team member</option>
-                          {% for member in team-members %}
-                            <option value="{{ member.id }}">{{ member.name }}</option>
-                          {% endfor %}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="column">
-                  <div class="field">
-                    <label class="label">Deadline (Optional)</label>
-                    <div class="control">
-                      <input class="input" type="date" name="deadline">
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="field">
-                <div class="control">
-                  <label class="checkbox">
-                    <input type="checkbox" name="team-action">
-                    Team Action (applies to all team members)
-                  </label>
-                </div>
-              </div>
-
-              <div class="field is-grouped">
-                <div class="control">
-                  <button class="button is-primary" type="submit"
-                          data-on-click="@post('/meeting/{{ meeting-id }}/add-action', {contentType: 'form'}) ; document.getElementById('add-action-form').reset()">
-                    <span class="icon">
-                      <i class="fas fa-plus"></i>
-                    </span>
-                    <span>Add Action</span>
-                  </button>
-                </div>
-              </div>
-            </form>
-
+            {% if can-change-meeting %}
+            <div id="add-action" data-signals-show-add-action="false">
+              <a href="#" data-on-click="$showAddAction=!$showAddAction" data-show="!$showAddAction">-> Add new outcome (action)</a>
+              {% include "templates/add-action.html" %}
+            </div>
+            {% endif %}
             <!-- Existing Actions List -->
             <div class="mt-4">
               <h5 class="title is-5">Meeting Actions</h5>

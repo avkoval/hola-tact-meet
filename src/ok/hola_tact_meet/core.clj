@@ -18,11 +18,21 @@
    [clojure.java.io]
    [ok.session.utils :refer [encode-secret-key]]
    [clojure.tools.logging :as log]
+   [sentry-clj.core :as sentry]
    )
   (:gen-class))
 
 ;; Configure logging before any logging occurs
 (utils/configure-logging!)
+
+;; Initialize Sentry
+(defn init-sentry! []
+  (let [config (utils/app-config)]
+    (when (:sentry/enabled config)
+      (sentry/init! {:dsn (:sentry/dsn config)
+                     :environment (:sentry/environment config)
+                     :debug false})
+      (log/info "Sentry initialized successfully"))))
 
 
 
@@ -82,6 +92,7 @@
                        :cookie-attrs {:http-only true}
                        })
         middleware/wrap-request-logging
+        middleware/wrap-exception-handling
         wrap-cookies
         wrap-forwarded-remote-addr
         middleware/wrap-force-https
@@ -92,6 +103,7 @@
 (defonce server (atom nil))
 
 (defn start! []
+  (init-sentry!)
   (log/info "Starting server on port 8080")
   (log/info (str "Log level: " (:log-level (utils/app-config))))
   (reset! server
