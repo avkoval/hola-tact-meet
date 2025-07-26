@@ -65,12 +65,22 @@
             {% if can-change-meeting %}
             <div class="level-right">
               <div class="level-item">
+                <div class="buttons">
+                {% ifequal meeting.meeting/status "scheduled" %}
+                  <button class="button is-primary" data-on-click="confirm('Start now?') && @post('/meeting/{{ meeting-id }}/start')">
+                  <span class="icon">
+                    <i class="fas fa-play"></i>
+                  </span>
+                  <span>Start Meeting</span>
+                {% endifequal %}
                 <button class="button is-danger" data-on-click="confirm('All important topics are sorted out? This will close the meeting for all.') && @post('/meeting/{{ meeting-id }}/finish')">
                   <span class="icon">
                     <i class="fas fa-times"></i>
                   </span>
-                  <span>Finish Meeting</span>
+                  {% ifequal meeting.meeting/status "started" %}<span>Finish Meeting</span>{% else %}<span>Dismiss this Meeting</span>{% endifequal %}
                 </button>
+
+                </div>
               </div>
             </div>
             {% endif %}
