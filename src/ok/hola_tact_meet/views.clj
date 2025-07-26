@@ -43,23 +43,27 @@
                                                  :host (get-in request [:headers "host"])
                                                  :dev_mode dev_mode})})))
 
-(defn app-main [{session :session}]
-  (log/info "Main app page accessed")
+(defn app-main-data [{session :session}]
   (let [userinfo (:userinfo session)
         user-id (:user-id userinfo)
         recent-meetings (if user-id (db/get-recent-meetings-for-user user-id) [])
         active-meetings (if user-id (db/get-active-meetings-for-user user-id) [])
         statistics (if user-id (db/get-dashboard-statistics user-id) {})
         ]
-    (log/info userinfo)
-    {:status 200
-     :headers {"Content-Type" "text/html"}
-     :body (render-file "templates/main.html" {:userinfo userinfo
-                                               :recent-meetings recent-meetings
-                                               :recent-meetings-count (count recent-meetings)
-                                               :active-meetings active-meetings
-                                               :meetings-count (count active-meetings)
-                                               :statistics statistics})}))
+    {:userinfo userinfo
+     :recent-meetings recent-meetings
+     :recent-meetings-count (count recent-meetings)
+     :active-meetings active-meetings
+     :meetings-count (count active-meetings)
+     :statistics statistics})
+  )
+
+
+(defn app-main [request]
+  (log/info "Main app page accessed")
+  {:status 200
+   :headers {"Content-Type" "text/html"}
+   :body (render-file "templates/main.html" (app-main-data request))})
 
 
 (defn get-topics-for-meeting [meeting-id user-id]
@@ -703,11 +707,13 @@
                       (do
                         (log/info "Meeting created successfully:" (:meeting-id create-result))
                         (d*/patch-elements! sse "<div id=\"createMeetingModal\"></div>")
-                        (d*/patch-elements!
-                         sse
-                         (render-file "templates/notifications.html"
-                                      {:notifications [{:level "info"
-                                                        :text "New meeting created successfully" }]})))
+                        (d*/patch-elements! sse (render-file "templates/main-content.html" (app-main-data request)))
+                        (d*/patch-elements! 
+                         sse (render-file "templates/notifications.html" {:notifications [{:level "info"
+                                                                                           :text "New meeting created successfully"}]}))
+
+                        )
+                      
                       (do
                         (log/warn "Failed to create meeting:" (:error create-result))
                         (d*/patch-elements! sse (render-file "templates/create_meeting_modal_error.html"
