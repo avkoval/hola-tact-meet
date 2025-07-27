@@ -1,26 +1,34 @@
 (ns ok.hola-tact-meet.db
   (:require [datomic.client.api :as d]
             [ok.hola-tact-meet.schema :as schema]
+            [ok.hola-tact-meet.utils :as utils]
             [malli.core]
             [clojure.tools.logging :as log]
             [clojure.string]
             ))
 
-(def client (d/client {:server-type :datomic-local
-                       :system "dev"}))
+(defn get-client []
+  (let [config (utils/app-config)
+        system (:datomic/system config)]
+    (d/client {:server-type :datomic-local
+               :system system})))
 
 (defn ensure-database-exists!
   "Create the database if it doesn't exist"
   []
-
-  (d/create-database client {:db-name "meetings"}))
+  (let [config (utils/app-config)
+        db-name (:datomic/db-name config)
+        client (get-client)]
+    (d/create-database client {:db-name db-name})))
 
 (defn get-connection
   "Get connection to the database, creating it if necessary"
   []
-
-  (ensure-database-exists!)
-  (d/connect client {:db-name "meetings"}))
+  (let [config (utils/app-config)
+        db-name (:datomic/db-name config)
+        client (get-client)]
+    (ensure-database-exists!)
+    (d/connect client {:db-name db-name})))
 
 
 
