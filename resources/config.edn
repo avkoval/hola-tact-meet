@@ -17,4 +17,5 @@
  :sentry/enabled #or [#env SENTRY_ENABLED false]
  :datomic/system #or [#env DATOMIC_SYSTEM "dev"]
  :datomic/db-name #or [#env DATOMIC_DB_NAME "meetings"]
+ :server/port #or [#env PORT 8081]
 }

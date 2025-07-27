@@ -105,12 +105,14 @@
 
 (defn start! []
   (init-sentry!)
-  (log/info "Starting server on port 8080")
-  (log/info (str "Log level: " (:log-level (utils/app-config))))
-  (reset! server
-          (httpkit/run-server
-           (wrap-reload #'app)
-           {:port 8081})))
+  (let [config (utils/app-config)
+        port (:server/port config)]
+    (log/info (str "Starting server on port " port))
+    (log/info (str "Log level: " (:log-level config)))
+    (reset! server
+            (httpkit/run-server
+             (wrap-reload #'app)
+             {:port port}))))
 
 (def nrepl-port 7889)
 
