@@ -46,14 +46,14 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: hola-tact-meet-${{ github.ref_name }}
-        path: target/*.jar
+        path: target/net.clojars.ok/hola-tact-meet-*.jar
         retention-days: 90
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: target/*.jar
+        files: target/net.clojars.ok/hola-tact-meet-*.jar
         draft: false
         prerelease: false
       env:
