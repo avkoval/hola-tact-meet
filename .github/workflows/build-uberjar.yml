@@ -35,7 +35,7 @@ jobs:
         restore-keys: cljdeps-
 
     - name: Build uberjar
-      run: clj -T:slim build
+      run: clojure -A:slim
 
     - name: Upload uberjar artifact
       uses: actions/upload-artifact@v4
