@@ -139,11 +139,16 @@ See also [[https://orgpad.info/o/AZXSvxkUdIo7kZUmIwy7SP][Orgpad: Structural Meet
    brew install openjdk@21
    #+end_example
 
-3. Install Datomic Local (required for database)
-   #+begin_example
-   # Download from https://docs.datomic.com/on-prem/getting-started/get-datomic.html
-   # Extract and configure ~/.datomic/local.edn
-   #+end_example
+3. Configure Datomic local:
+
+4. Configure ~/.datomic/local.edn
+
+
+   #+BEGIN_SRC sh :dir ~ :results output replace :exports both
+   cat << EOF >  ~/.datomic/local.edn2
+   {:storage-dir "$HOME/.local/datomic"}
+   EOF
+   #+END_SRC
 
 4. Run the application
    #+begin_example
