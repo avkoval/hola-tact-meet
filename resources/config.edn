@@ -15,4 +15,6 @@
  :sentry/dsn #or [#ref [:secrets :app1/sentry-dsn] #env SENTRY_DSN]
  :sentry/environment #or [#env SENTRY_ENVIRONMENT "development"]
  :sentry/enabled #or [#env SENTRY_ENABLED false]
+ :datomic/system #or [#env DATOMIC_SYSTEM "dev"]
+ :datomic/db-name #or [#env DATOMIC_DB_NAME "meetings"]
 }

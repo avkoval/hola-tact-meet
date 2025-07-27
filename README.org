@@ -123,11 +123,103 @@ See also [[https://orgpad.info/o/AZXSvxkUdIo7kZUmIwy7SP][Orgpad: Structural Meet
 :CUSTOM_ID: installation
 :END:
 
-Download from https://github.com/avkoval/hola-tact-meet
+*** Quick Start with Pre-built JAR
+
+1. Download the latest release from [[https://github.com/avkoval/hola-tact-meet/releases][GitHub Releases]]
+   #+begin_example
+   wget https://github.com/avkoval/hola-tact-meet/releases/download/v0.0.12/hola-tact-meet-v0.0.12.jar
+   #+end_example
+
+2. Install Java 21 (required)
+   #+begin_example
+   # Ubuntu/Debian
+   sudo apt update && sudo apt install openjdk-21-jre
+
+   # macOS with Homebrew
+   brew install openjdk@21
+   #+end_example
+
+3. Install Datomic Local (required for database)
+   #+begin_example
+   # Download from https://docs.datomic.com/on-prem/getting-started/get-datomic.html
+   # Extract and configure ~/.datomic/local.edn
+   #+end_example
+
+4. Run the application
+   #+begin_example
+   java -jar hola-tact-meet-v0.0.12.jar
+   #+end_example
+
+*** Development Setup
+
+Clone and run from source:
+#+begin_example
+git clone https://github.com/avkoval/hola-tact-meet.git
+cd hola-tact-meet
+clojure -M:dev
+#+end_example
 
 ** Configuration
 
-1. Check and configure all settings in resources/config.edn - at least ~secret-key~ is required to be specified (16 bytes)
+The application uses =resources/config.edn= for configuration with environment variable overrides via [[https://github.com/juxt/aero][Aero]].
+
+*** Required Configuration
+
+**** Secret Key (Required)
+#+begin_example
+export SECRET_KEY="your-16-char-secret-key-here"
+#+end_example
+
+**** Datomic Configuration
+#+begin_example
+# Database system name (default: dev)
+export DATOMIC_SYSTEM=dev
+
+# Database name (default: meetings)
+export DATOMIC_DB_NAME=meetings
+#+end_example
+
+Setup Datomic Local configuration in =~/.datomic/local.edn=:
+#+begin_example
+{:storage-dir "/path/to/your/datomic/data"
+ :license-key "your-license-key"}
+#+end_example
+
+*** OAuth2 Configuration (Google Login)
+
+#+begin_example
+export OAUTH2_GOOGLE_CLIENT_ID="your-google-client-id"
+export OAUTH2_GOOGLE_CLIENT_SECRET="your-google-client-secret"
+#+end_example
+
+*** Optional Configuration
+
+**** Logging
+#+begin_example
+export LOG_LEVEL=INFO  # DEBUG, INFO, WARN, ERROR
+#+end_example
+
+**** Monitoring (Sentry)
+#+begin_example
+export SENTRY_DSN="https://your-sentry-dsn"
+export SENTRY_ENVIRONMENT=production
+export SENTRY_ENABLED=true
+#+end_example
+
+*** Configuration Precedence
+
+1. Environment variables (highest priority)
+2. =~/.secrets.edn= file
+3. Default values in =config.edn= (lowest priority)
+
+*** Example ~/.secrets.edn
+
+#+begin_example
+{:app1/secret-key "your-secret-key-16-chars"
+ :app1/google-client-id "your-google-oauth-client-id"
+ :app1/google-client-secret "your-google-oauth-secret"
+ :app1/sentry-dsn "https://your-sentry-dsn"}
+#+end_example
 
 ** Usage
 :PROPERTIES:
@@ -218,7 +310,7 @@ Copyright © 2025 Oleksii Koval
 
 Distributed under the MIT License
 
-** Current work plan & progress [43%]
+** COMMENT Current work plan & progress [43%]
 
 *** DONE Set appropriate License
     CLOSED: [2025-06-15 Sun 21:30]
@@ -302,16 +394,19 @@ I need fake login to quickly login several users for testing purposes on localho
     - State "TODO"       from              [2025-07-26 Sat 12:05]
     :END:
 
-**** WORKING [#A] [Start meeting] button
+**** DONE [#A] [Start meeting] button
+     CLOSED: [2025-07-27 Sun 06:45]
      :LOGBOOK:
+     - State "DONE"       from "WORKING"    [2025-07-27 Sun 06:45]
+     CLOCK: [2025-07-27 Sun 06:46]--[2025-07-27 Sun 06:47] =>  0:01
      CLOCK: [2025-07-26 Sat 13:10]--[2025-07-26 Sat 13:13] =>  0:03
      - State "WORKING"    from "TODO"       [2025-07-26 Sat 13:10]
      - State "TODO"       from              [2025-07-26 Sat 12:05]
      :END:
 
- - [ ] Do not set status 'started' on 1st participant
- - [ ] Add button '[Start meeting'] on meeting screen, available only to staff users
- - [ ] Disallow switching topics when meeting is not started yet
+ - [X] Do not set status 'started' on 1st participant
+ - [X] Add button '[Start meeting'] on meeting screen, available only to staff users
+ - [X] Disallow switching topics when meeting is not started yet
 
 **** TODO [#B] Run CI and build on GitHub - provide .jar as artifact
      :LOGBOOK:
@@ -326,6 +421,11 @@ I need fake login to quickly login several users for testing purposes on localho
  - [ ] nginx config
  - [ ] how to map resources?
  - [ ] how to configure logging via xml
+
+**** TODO team domains - auto add user to team
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-27 Sun 06:45]
+     :END:
 
 **** TODO [#B] Document deployment process and requirements
      :LOGBOOK:
@@ -350,10 +450,10 @@ I need fake login to quickly login several users for testing purposes on localho
  - [ ] meetings list
  - [ ] meeting "edit"
  - [ ] meeting settings/preferences button on the main meeting page
- 
+
 **** WORKING [#B] Small bug fixes [2/2]
      :LOGBOOK:
-     CLOCK: [2025-07-26 Sat 17:02]
+     CLOCK: [2025-07-26 Sat 17:02]--[2025-07-26 Sat 22:45] =>  5:43
      - State "WORKING"    from "TODO"       [2025-07-26 Sat 13:15]
      CLOCK: [2025-07-26 Sat 13:13]--[2025-07-26 Sat 17:02] =>  3:49
      - State "TODO"       from "TODO"       [2025-07-26 Sat 12:15]
@@ -362,6 +462,12 @@ I need fake login to quickly login several users for testing purposes on localho
 
  - [X] forbid creation of a meetings in the past
  - [X] hide action creation form after submit
+
+**** TODO [#A] my actions completion & notes button
+     :LOGBOOK:
+     - State "TODO"       from              [2025-07-26 Sat 22:55]
+     :END:
+
 
 
 *** TODO Meeting screen (the biggest part) [50%] [7/14]
