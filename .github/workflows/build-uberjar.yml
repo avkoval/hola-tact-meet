@@ -37,7 +37,7 @@ jobs:
         restore-keys: cljdeps-
 
     - name: Build uberjar
-      run: clj -T:slim build
+      run: clojure -T:slim build
 
     - name: List target directory
       run: ls -la target/
