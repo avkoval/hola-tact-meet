@@ -30,6 +30,7 @@
            data-auto_prompt="false">
       </div>
       <div class="g_id_signin"
+           data-ignore
            style="width: 350px"
            data-type="standard"
            data-size="large"
@@ -40,20 +41,23 @@
       </div>
 
       {% if dev_mode %}
-      <div style="margin-top: 20px;">
-        <a class="button" style="width: 350px" href="/login/fake">
-          <span>Fake login (development mode)</span>
-        </a>
-      </div>
+        <div style="margin-top: 20px;">
+          <a class="button" style="width: 350px" href="/login/fake">
+            <span>Fake login (development mode)</span>
+          </a>
+        </div>
       {% endif %}
 
 
-        <a class="button mt-4 is-primary" style="width: 228px" href="https://{{ host }}{{ google_launch_uri }}">
-          <span class="icon">
-            <i class="fab fa-google"></i>
-          </span>
-          <span>Login via Google</span>
-        </a>
+      <!-- google login which we don't use -->
+      <!--
+           <a class="button mt-4 is-primary" style="width: 228px" href="https://{{ host }}{{ google_launch_uri }}">
+           <span class="icon">
+           <i class="fab fa-google"></i>
+           </span>
+           <span>Login via Google</span>
+           </a>
+      -->
 
 
     </div>
@@ -61,12 +65,12 @@
 
     {% comment %}
     <div class="column">
-      <button class="button" style="width: 350px">
-        <span class="icon">
-          <i class="fab fa-jira"></i>
-        </span>
-        <span>Login via JIRA</span>
-      </button>
+    <button class="button" style="width: 350px">
+    <span class="icon">
+    <i class="fab fa-jira"></i>
+    </span>
+    <span>Login via JIRA</span>
+    </button>
     </div>
     {% endcomment %}
   </section>

@@ -124,7 +124,8 @@
                           :user/picture (:picture userinfo)
                           :user/auth-provider (:auth-provider userinfo)
                           :user/access-level (or (:access-level userinfo) default-access-level)
-                          :user/active (or (:active userinfo) true)}
+                          :user/active (or (:active userinfo) true)
+                          :user/last-login (java.util.Date.)}
                          (filter (fn [[k v]] (and (not (nil? v)) (not= v ""))))
                          (into {}))
           result (d/transact (get-conn) {:tx-data [user-data]})
