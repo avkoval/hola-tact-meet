@@ -277,6 +277,11 @@ I need fake login to quickly login several users for testing purposes on localho
 
 - [X] forbid creation of a meetings in the past
 - [X] hide action creation form after submit
+- [ ] Profile - settings absent
+- [ ] Project settings - shows some dialog, but nothing works.
+- [ ] Past Meetings must work for finished meetings
+- [ ] profile info to be displayed on meeting page (pass variable)
+
 
 ** TODO Meeting screen (the biggest part) [50%] [7/14]
    :PROPERTIES:
