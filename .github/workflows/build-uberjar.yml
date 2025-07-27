@@ -1,0 +1,55 @@
+name: Build Uberjar
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on tags starting with 'v' (e.g., v0.0.1, v1.2.3)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+
+    - name: Setup Clojure CLI
+      uses: DeLaGuardo/setup-clojure@13.4
+      with:
+        cli: latest
+
+    - name: Cache Clojure dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.m2/repository
+          ~/.gitlibs
+          ~/.deps.clj
+        key: cljdeps-${{ hashFiles('deps.edn') }}
+        restore-keys: cljdeps-
+
+    - name: Build uberjar
+      run: clj -T:slim build
+
+    - name: Upload uberjar artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: hola-tact-meet-${{ github.ref_name }}
+        path: target/standalone.jar
+        retention-days: 90
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: target/standalone.jar
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
