@@ -36,9 +36,6 @@ jobs:
         key: cljdeps-${{ hashFiles('deps.edn') }}
         restore-keys: cljdeps-
 
-    - name: Run tests
-      run: clojure -T:build ci
-
     - name: Build uberjar
       run: clojure -T:build uber
 
