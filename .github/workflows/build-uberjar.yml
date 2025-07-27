@@ -1,0 +1,70 @@
+name: Build Uberjar
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on tags starting with 'v' (e.g., v0.0.1, v1.2.3)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for creating releases
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+
+    - name: Setup Clojure CLI
+      uses: DeLaGuardo/setup-clojure@13.4
+      with:
+        cli: latest
+
+    - name: Cache Clojure dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.m2/repository
+          ~/.gitlibs
+          ~/.deps.clj
+        key: cljdeps-${{ hashFiles('deps.edn') }}
+        restore-keys: cljdeps-
+
+    - name: Setup Datomic config for CI
+      run: |
+        mkdir -p ~/.datomic
+        echo '{:storage-dir :mem}' > ~/.datomic/local.edn
+
+    - name: Build uberjar
+      run: clojure -T:slim build
+      env:
+        SECRET_KEY: "temp-ci-secret-key-for-compilation-only-not-for-production-use"
+
+    - name: Rename jar file
+      run: mv target/standalone.jar target/hola-tact-meet-${{ github.ref_name }}.jar
+
+    - name: List target directory
+      run: ls -la target/
+
+    - name: Upload uberjar artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: hola-tact-meet-${{ github.ref_name }}
+        path: target/hola-tact-meet-${{ github.ref_name }}.jar
+        retention-days: 90
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: target/hola-tact-meet-${{ github.ref_name }}.jar
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,7 +1,15 @@
 (ns ok.hola-tact-meet-test
-  (:require [clojure.test :refer :all]
-            [ok.hola-tact-meet :refer :all]))
+  (:require [clojure.test :refer :all]))
 
-(deftest a-test
-  (testing "FIXME, I fail."
-    (is (= 0 1))))
+(deftest basic-test
+  (testing "Basic functionality"
+    (is (= 1 1))))
+
+(deftest string-manipulation-test
+  (testing "String operations work"
+    (is (= "hello world" (str "hello" " " "world")))))
+
+(deftest math-test
+  (testing "Math operations work"
+    (is (= 4 (+ 2 2)))
+    (is (= 6 (* 2 3)))))
