@@ -1,7 +1,11 @@
 (ns ok.hola-tact-meet-test
   (:require [clojure.test :refer :all]
-            [ok.hola-tact-meet :refer :all]))
+            [ok.hola-tact-meet.core :as core]))
 
-(deftest a-test
-  (testing "FIXME, I fail."
-    (is (= 0 1))))
+(deftest basic-test
+  (testing "Basic functionality"
+    (is (= 1 1))))
+
+(deftest app-config-test
+  (testing "App config exists"
+    (is (some? core/app-config))))
