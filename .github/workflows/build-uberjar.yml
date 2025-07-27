@@ -36,6 +36,11 @@ jobs:
         key: cljdeps-${{ hashFiles('deps.edn') }}
         restore-keys: cljdeps-
 
+    - name: Setup Datomic config for CI
+      run: |
+        mkdir -p ~/.datomic
+        echo '{:storage-dir :mem}' > ~/.datomic/local.edn
+
     - name: Build uberjar
       run: clojure -T:slim build
 
