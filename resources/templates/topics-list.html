@@ -2,35 +2,45 @@
   <div class="content" style="width: 100%;">
     {% if topics %}
       {% for topic in topics %}
-        <div class="box mb-2" style="position: relative;">
+        <div class="box mb-2{% if topic.finished-at %} has-background-grey-lighter{% endif %}" style="position: relative;">
           {% ifequal topic.created-by current-user-id %}
-            <form data-on-submit="@post('/meeting/{{ meeting-id }}/delete-topic', {contentType: 'form'})" style="position: absolute; top: 0.5rem; right: 1.2rem;">
-              <input type="hidden" name="topic_id" value="{{ topic.id }}">
-              <button type="submit" class="button is-small is-danger is-outlined" title="Delete topic">
-                <span class="icon is-small">
-                  <i class="fas fa-times"></i>
-                </span>
-              </button>
-            </form>
+            {% if not topic.finished-at %}
+              <form data-on-submit="@post('/meeting/{{ meeting-id }}/delete-topic', {contentType: 'form'})" style="position: absolute; top: 0.5rem; right: 1.2rem;">
+                <input type="hidden" name="topic_id" value="{{ topic.id }}">
+                <button type="submit" class="button is-small is-danger is-outlined" title="Delete topic">
+                  <span class="icon is-small">
+                    <i class="fas fa-times"></i>
+                  </span>
+                </button>
+              </form>
+            {% endif %}
           {% endifequal %}
           <div class="columns is-mobile is-vcentered">
             <div class="column">
               <p class="subtitle is-6 mb-1">{{ topic.title }}</p>
               <p class="is-size-7 has-text-grey">by {{ topic.created-by-name }}</p>
-              {% if meeting.meeting/allow-topic-voting %}
-                <div class="tags has-addons mt-1">
+              <div class="tags mt-1">
+                {% if topic.finished-at %}
+                  <span class="tag is-success">
+                    <span class="icon is-small">
+                      <i class="fas fa-check"></i>
+                    </span>
+                    <span>Finished</span>
+                  </span>
+                {% endif %}
+                {% if meeting.meeting/allow-topic-voting %}
                   <span class="tag is-success">+{{ topic.upvotes }}</span>
                   <span class="tag is-danger">-{{ topic.downvotes }}</span>
                   <span class="tag is-info">Score: {{ topic.vote-score }}</span>
-                </div>
-              {% endif %}
+                {% endif %}
+              </div>
             </div>
             <div class="column is-narrow">
               <div class="buttons are-small">
                 {% if can-change-meeting %}
                   <form data-on-submit="@post('/meeting/{{ meeting-id }}/set-current-topic', {contentType: 'form'})" style="display: inline;">
                     <input type="hidden" name="topic_id" value="{{ topic.id }}">
-                    <button type="submit" class="button is-info{% if current-topic.db/id = topic.id %} is-active{% endif %}" title="Set as current topic"{% ifequal meeting.meeting/status "scheduled" %} disabled{% endifequal %}>
+                    <button type="submit" class="button is-info{% if current-topic.db/id = topic.id %} is-active{% endif %}" title="Set as current topic"{% ifequal meeting.meeting/status "scheduled" %} disabled{% endifequal %}{% if topic.finished-at %} disabled{% endif %}>
                       <span class="icon is-small">
                         <i class="fas fa-play"></i>
                       </span>
@@ -41,7 +51,7 @@
                   <form data-on-submit="@post('/meeting/{{ meeting-id }}/vote-topic', {contentType: 'form'})" style="display: inline;">
                     <input type="hidden" name="topic_id" value="{{ topic.id }}">
                     <input type="hidden" name="vote_type" value="upvote">
-                    <button type="submit" class="button{% if topic.user-vote = 'upvote' %} is-success{% endif %}" title="Upvote">
+                    <button type="submit" class="button{% if topic.user-vote = 'upvote' %} is-success{% endif %}" title="Upvote"{% if topic.finished-at %} disabled{% endif %}>
                       <span class="icon is-small">
                         <i class="fas fa-arrow-up"></i>
                       </span>
@@ -51,7 +61,7 @@
                   <form data-on-submit="@post('/meeting/{{ meeting-id }}/vote-topic', {contentType: 'form'})" style="display: inline;">
                     <input type="hidden" name="topic_id" value="{{ topic.id }}">
                     <input type="hidden" name="vote_type" value="downvote">
-                    <button type="submit" class="button{% if topic.user-vote = 'downvote' %} is-danger{% endif %}" title="Downvote">
+                    <button type="submit" class="button{% if topic.user-vote = 'downvote' %} is-danger{% endif %}" title="Downvote"{% if topic.finished-at %} disabled{% endif %}>
                       <span class="icon is-small">
                         <i class="fas fa-arrow-down"></i>
                       </span>

@@ -30,7 +30,7 @@
     </div>
 
     {% if actions %}
-      <div class="card">
+      <div class="card" data-signals-action-completion-modal-open>
         <div class="card-content">
           <div class="table-container">
             <table class="table is-fullwidth is-striped is-hoverable">
@@ -40,6 +40,7 @@
                   <th>Action Description</th>
                   <th>Deadline</th>
                   <th>Status</th>
+                  <th>Completion Notes</th>
                   <th>Added</th>
                   <th>Actions</th>
                 </tr>
@@ -110,6 +111,20 @@
                     </span>
                   </td>
                   <td>
+                    {% if action.completion-notes %}
+                      <div class="content">
+                        <p class="is-size-7">{{ action.completion-notes }}</p>
+                      </div>
+                    {% else %}
+                      <span class="has-text-grey-light">
+                        <span class="icon">
+                          <i class="fas fa-minus"></i>
+                        </span>
+                        No notes
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td>
                     <div>
                       <p class="is-size-7 has-text-grey">{{ action.added-at|date:"MMM d, yyyy" }}</p>
                       <p class="is-size-7 has-text-grey">{{ action.added-at|date:"h:mm a" }}</p>
@@ -127,7 +142,8 @@
                       </div>
                       {% if action.status = "pending" %}
                       <div class="control">
-                        <button class="button is-small is-success is-outlined" title="Mark as completed">
+                        <button class="button is-small is-success is-outlined" title="Mark as completed" 
+                                data-on-click="@get('/action/{{ action.id }}/completion-modal')">
                           <span class="icon">
                             <i class="fas fa-check"></i>
                           </span>
@@ -168,4 +184,5 @@
   </div>
 </section>
 
+<div id="actionCompletionModal"></div>
 {% endblock %}

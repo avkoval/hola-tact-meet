@@ -172,6 +172,11 @@
                     :db/cardinality :db.cardinality/one
                     :db/doc         "When the topic was created."}
 
+                   {:db/ident       :topic/finished-at
+                    :db/valueType   :db.type/instant
+                    :db/cardinality :db.cardinality/one
+                    :db/doc         "When the topic discussion was finished."}
+
                    {:db/ident       :topic/discussion-notes
                     :db/valueType   :db.type/string
                     :db/cardinality :db.cardinality/one
@@ -223,6 +228,11 @@
                           :db/valueType   :db.type/instant
                           :db/cardinality :db.cardinality/one
                           :db/doc         "When the action item was rejected."}
+
+                         {:db/ident       :action/completion-notes
+                          :db/valueType   :db.type/string
+                          :db/cardinality :db.cardinality/one
+                          :db/doc         "Notes added when completing or rejecting the action item."}
 
                          ])
 

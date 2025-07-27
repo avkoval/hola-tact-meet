@@ -216,26 +216,47 @@ I need fake login to quickly login several users for testing purposes on localho
 - [ ] how to map resources?
 - [ ] how to configure logging via xml
 
-*** TODO team domains - auto add user to team
+*** DONE team domains - auto add user to team
+    CLOSED: [2025-07-27 Sun 13:45]
     :LOGBOOK:
+    - State "DONE"       from "TODO"       [2025-07-27 Sun 13:45]
     - State "TODO"       from              [2025-07-27 Sun 06:45]
     :END:
 
-*** TODO [#B] Document deployment process and requirements
+*** DONE [#B] Document deployment process and requirements
+    CLOSED: [2025-07-27 Sun 13:45]
     :LOGBOOK:
+    - State "DONE"       from "TODO"       [2025-07-27 Sun 13:45]
     - State "TODO"       from              [2025-07-26 Sat 12:15]
     :END:
 
-*** TODO [#D] Logging - configure correctly so it will save file ?
+*** REJECTED [#D] Logging - configure correctly so it will save file ?
+    CLOSED: [2025-07-27 Sun 13:45]
     :LOGBOOK:
+    - State "REJECTED"   from "TODO"       [2025-07-27 Sun 13:45]
     - State "TODO"       from              [2025-07-26 Sat 12:10]
     :END:
 
-*** TODO [#D] Sentry
+*** DONE [#D] Sentry
+    CLOSED: [2025-07-27 Sun 13:45]
     :LOGBOOK:
+    - State "DONE"       from "TODO"       [2025-07-27 Sun 13:45]
     - State "TODO"       from              [2025-07-26 Sat 12:10]
     :END:
 
+*** DONE [#A] my actions completion & notes button
+    CLOSED: [2025-07-27 Sun 17:40]
+    :LOGBOOK:
+    - State "DONE"       from "TODO"       [2025-07-27 Sun 17:40]
+    CLOCK: [2025-07-27 Sun 13:48]--[2025-07-27 Sun 17:38] =>  3:50
+    - State "TODO"       from              [2025-07-26 Sat 22:55]
+    :END:
+*** DONE finish topic
+    CLOSED: [2025-07-27 Sun 17:40]
+    :LOGBOOK:
+    - State "DONE"       from "TODO"       [2025-07-27 Sun 17:40]
+    - State "TODO"       from              [2025-07-27 Sun 17:40]
+    :END:
 *** TODO [#C] manage meetings [/]
     :LOGBOOK:
     - State "TODO"       from              [2025-07-26 Sat 13:00]
@@ -256,12 +277,6 @@ I need fake login to quickly login several users for testing purposes on localho
 
 - [X] forbid creation of a meetings in the past
 - [X] hide action creation form after submit
-
-*** TODO [#A] my actions completion & notes button
-    :LOGBOOK:
-    - State "TODO"       from              [2025-07-26 Sat 22:55]
-    :END:
-
 
 ** TODO Meeting screen (the biggest part) [50%] [7/14]
    :PROPERTIES:

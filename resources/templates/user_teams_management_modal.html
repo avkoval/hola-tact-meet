@@ -16,61 +16,74 @@
         </div>
       </div>
 
-      <div class="field">
+      <!-- Tab Navigation -->
+      <div class="tabs" data-signals-active-tab="'select-teams'">
+        <ul>
+          <li data-class-is-active="$activeTab == 'select-teams'">
+            <a data-on-click="$activeTab='select-teams'">Select Teams</a>
+          </li>
+          <li data-class-is-active="$activeTab == 'add-team'">
+            <a data-on-click="$activeTab='add-team'">Add New Team</a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Tab Content -->
+      <!-- Select Teams Tab -->
+      <div data-class-is-hidden="$activeTab != 'select-teams'">
+        <div class="field">
+          <form>
+            <label class="label">Select Teams</label>
+            <div class="control">
+              <div class="select is-multiple" style="width: 100%;">
+                <select name="user-teams" multiple style="width: 100%; min-height: 120px;" data-on-change="@post('/admin/manage-users/{{ user-id }}/teams', {contentType: 'form'})">
+                  {% for team in all-teams %}
+                    <option value="{{ team.id }}" {% if team.user-is-member %}selected{% endif %}>
+                      {{ team.name }}{% if team.description %} - {{ team.description }}{% endif %}
+                    </option>
+                  {% empty %}
+                    <option disabled>No teams available</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Add New Team Tab -->
+      <div data-class-is-hidden="$activeTab != 'add-team'">
         <form>
-          <label class="label">Select Teams</label>
-          <div class="control">
-            <div class="select is-multiple" style="width: 100%;">
-              <select name="user-teams" multiple style="width: 100%; min-height: 120px;" data-on-change="@post('/admin/manage-users/{{ user-id }}/teams', {contentType: 'form'})">
-                {% for team in all-teams %}
-                  <option value="{{ team.id }}" {% if team.user-is-member %}selected{% endif %}>
-                    {{ team.name }}{% if team.description %} - {{ team.description }}{% endif %}
-                  </option>
-                {% empty %}
-                  <option disabled>No teams available</option>
-                {% endfor %}
-              </select>
+          <div class="field">
+            <label class="label">Add new team here</label>
+            <div class="control">
+              <input class="input" type="text" name="name" placeholder="Enter team name">
+            </div>
+            <div class="control mt-2">
+              <textarea class="textarea" name="description" placeholder="Team description (optional)" rows="2"></textarea>
+            </div>
+            <div class="control mt-2">
+              <label class="label is-small">Team Managers</label>
+              <div class="select is-multiple" style="width: 100%;">
+                <select name="managers" multiple style="width: 100%; min-height: 80px;">
+                  {% for user in staff-admin-users %}
+                    <option value="{{ user.id }}">{{ user.name }} ({{ user.access-level }})</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="control mt-2">
+              <label class="label is-small">Auto-assign Domains</label>
+              <textarea class="textarea" name="auto-domains" placeholder="One domain per line (e.g., company.com, example.org)" rows="3"></textarea>
+              <p class="help">Users with email addresses from these domains will be automatically added to this team</p>
+            </div>
+            <div class="control mt-2">
+              <button class="button is-primary" data-on-click="@post('/admin/manage-users/{{ user-id }}/teams/add', {contentType: 'form'})">Add Team</button>
+              <button class="button" data-on-click="$activeTab='select-teams'">Cancel</button>
             </div>
           </div>
         </form>
       </div>
-
-
-      <hr>
-
-      <div class="has-text-right">
-        <a href="#" data-signals-add-new-team-hidden="true" data-on-click="$addNewTeamHidden=false" data-class-is-hidden="!$addNewTeamHidden">Add new team</a>
-      </div>
-      <form>
-      <div class="field is-hidden" data-class-is-hidden="$addNewTeamHidden">
-        <label class="label">Add new team here</label>
-        <div class="control">
-          <input class="input" type="text" name="name" placeholder="Enter team name">
-        </div>
-        <div class="control mt-2">
-          <textarea class="textarea" name="description" placeholder="Team description (optional)" rows="2"></textarea>
-        </div>
-        <div class="control mt-2">
-          <label class="label is-small">Team Managers</label>
-          <div class="select is-multiple" style="width: 100%;">
-            <select name="managers" multiple style="width: 100%; min-height: 80px;">
-              {% for user in staff-admin-users %}
-                <option value="{{ user.id }}">{{ user.name }} ({{ user.access-level }})</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-        <div class="control mt-2">
-          <label class="label is-small">Auto-assign Domains</label>
-          <textarea class="textarea" name="auto-domains" placeholder="One domain per line (e.g., company.com, example.org)" rows="3"></textarea>
-          <p class="help">Users with email addresses from these domains will be automatically added to this team</p>
-        </div>
-        <div class="control mt-2">
-          <button class="button is-primary" data-on-click="@post('/admin/manage-users/{{ user-id }}/teams/add', {contentType: 'form'})">Add Team</button>
-          <button class="button"  data-on-click="$addNewTeamHidden=true">Cancel</button>
-        </div>
-      </div>
-      </form>
 
       <div class="field is-grouped mt-4">
         <div class="control">

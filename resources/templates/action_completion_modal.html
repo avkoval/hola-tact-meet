@@ -1,0 +1,58 @@
+<div id="actionCompletionModal"
+     class="modal is-active"
+     data-signals-action-completion-modal-open="true"
+     data-class-is-active="$actionCompletionModalOpen"
+     data-on-keydown__window="if(evt.key == 'Escape') {$actionCompletionModalOpen=false}; ''"
+> <!-- Action Completion Modal -->
+  <form data-signals-completion-notes>
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <header class="modal-card-head">
+        <p class="modal-card-title">
+          <span class="icon">
+            <i class="fas fa-check-circle"></i>
+          </span>
+          Complete Action
+        </p>
+        <button class="delete" aria-label="close" data-on-click="$actionCompletionModalOpen=false"></button>
+      </header>
+      <section class="modal-card-body">
+        <div id="action-completion-error"></div>
+
+        <div class="field">
+          <label class="label">Action Description</label>
+          <div class="content">
+            <p>{{ action.description }}</p>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label">Completion Notes</label>
+          <div class="control">
+            <textarea class="textarea" name="completion-notes" placeholder="Add any notes about completing or rejecting this action (optional)" rows="4" data-bind-completion-notes></textarea>
+          </div>
+          <p class="help">These notes will be saved with the action for future reference</p>
+        </div>
+
+        <input type="hidden" name="action-id" value="{{ action.id }}">
+      </section>
+      <footer class="modal-card-foot">
+        <div class="buttons">
+          <button class="button is-success" type="submit" name="status" value="complete" data-on-click="@post('/action/{{ action.db/id }}/update-status', {contentType: 'form'})">
+            <span class="icon">
+              <i class="fas fa-check"></i>
+            </span>
+            <span>Complete</span>
+          </button>
+          <button class="button is-danger" type="submit" name="status" value="reject" data-on-click="@post('/action/{{ action.db/id }}/update-status', {contentType: 'form'})">
+            <span class="icon">
+              <i class="fas fa-times"></i>
+            </span>
+            <span>Reject</span>
+          </button>
+          <button class="button" data-on-click="$actionCompletionModalOpen=false">Cancel</button>
+        </div>
+      </footer>
+    </div>
+  </form>
+</div>

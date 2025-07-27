@@ -267,7 +267,7 @@
                                    :team/created-at (java.util.Date.)}
                              (seq valid-managers) (assoc :team/managers valid-managers)
                              (first valid-managers) (assoc :team/created-by (first valid-managers))
-                             (and auto-domains (not (clojure.string/blank? auto-domains))) 
+                             (and auto-domains (not (clojure.string/blank? auto-domains)))
                              (assoc :team/auto-domains (clojure.string/trim auto-domains)))
               _ (log/debug "Team transaction data:" team-tx-data)
               result (d/transact (get-conn) {:tx-data [team-tx-data]})
@@ -483,7 +483,7 @@
                            :participant/meeting meeting-id
                            :participant/joined-at (java.util.Date.)}
           _ (d/transact (get-conn) {:tx-data [participant-data]})]
-      
+
       (log/info "Participant added successfully:" participant-data)
       {:success true})
     (catch Exception e
@@ -522,9 +522,10 @@
                              [?created-by :user/name ?created-by-name]]
                            db meeting-id)]
     (mapv (fn [[topic-id title created-at created-by created-by-name]]
-            (let [;; Get discussion notes using pull
-                  topic-data (d/pull db '[:topic/discussion-notes] topic-id)
+            (let [;; Get discussion notes and finished-at using pull
+                  topic-data (d/pull db '[:topic/discussion-notes :topic/finished-at] topic-id)
                   discussion-notes (or (:topic/discussion-notes topic-data) "")
+                  finished-at (:topic/finished-at topic-data)
                   ;; Get vote counts for this topic
                   upvotes-result (d/q '[:find (count ?vote)
                                         :in $ ?topic-id
@@ -549,7 +550,8 @@
                :discussion-notes discussion-notes
                :upvotes upvotes
                :downvotes downvotes
-               :vote-score vote-score}))
+               :vote-score vote-score
+               :finished-at finished-at}))
           ;; Sort by vote score (highest first)
           (sort-by :vote-score #(compare %2 %1) topics-result))))
 
@@ -634,7 +636,7 @@
                  :meeting/is-visible :meeting/votes-are-public
                  {:meeting/team [:db/id :team/name]}
                  {:meeting/created-by [:db/id :user/name :user/email]}
-                 {:meeting/current-topic [:db/id :topic/title
+                 {:meeting/current-topic [:db/id :topic/title :topic/finished-at
                                          {:topic/created-by [:db/id :user/name]}]}]
             meeting-id)))
 
@@ -784,7 +786,29 @@
                                      [?action-id :action/assigned-to-team ?team]
                                      [?team :team/name ?team-name]]
                                    db action-id)
-                  [assigned-team assigned-team-name] (first team-result)]
+                  [assigned-team assigned-team-name] (first team-result)
+
+                  ;; Get completion status
+                  completed-at-result (d/q '[:find ?completed-at
+                                           :in $ ?action-id
+                                           :where [?action-id :action/completed-at ?completed-at]]
+                                         db action-id)
+                  completed-at (ffirst completed-at-result)
+                  rejected-at-result (d/q '[:find ?rejected-at
+                                          :in $ ?action-id
+                                          :where [?action-id :action/rejected-at ?rejected-at]]
+                                        db action-id)
+                  rejected-at (ffirst rejected-at-result)
+                  ;; Get completion notes
+                  completion-notes-result (d/q '[:find ?notes
+                                               :in $ ?action-id
+                                               :where [?action-id :action/completion-notes ?notes]]
+                                             db action-id)
+                  completion-notes (ffirst completion-notes-result)
+                  status (cond
+                           completed-at "completed"
+                           rejected-at "rejected"
+                           :else "pending")]
 
               {:id action-id
                :description description
@@ -794,7 +818,11 @@
                :assigned-to-user-name assigned-user-name
                :assigned-to-team assigned-team
                :assigned-to-team-name assigned-team-name
-               :is-team-action (some? assigned-team)}))
+               :is-team-action (some? assigned-team)
+               :status status
+               :completed-at completed-at
+               :rejected-at rejected-at
+               :completion-notes completion-notes}))
           basic-actions-result)))
 
 (defn get-team-members-for-meeting
@@ -826,6 +854,32 @@
       (log/error "Failed to finish meeting:" (.getMessage e))
       {:success false :error (.getMessage e)})))
 
+(defn finish-topic!
+  "Set topic finished-at timestamp and clear meeting current-topic if this topic is current"
+  [topic-id meeting-id]
+  (try
+    (let [db (get-db)
+          ;; Check if this topic is the current topic for the meeting
+          current-topic-result (d/q '[:find ?current-topic
+                                     :in $ ?meeting-id
+                                     :where [?meeting-id :meeting/current-topic ?current-topic]]
+                                   db meeting-id)
+          current-topic-id (ffirst current-topic-result)
+          ;; Prepare transaction data
+          tx-data (cond-> [{:db/id topic-id
+                           :topic/finished-at (java.util.Date.)}]
+                    ;; If this topic is current, clear it from meeting
+                    (= current-topic-id topic-id)
+                    (conj [:db/retract meeting-id :meeting/current-topic topic-id]))
+          result (d/transact (get-conn) {:tx-data tx-data})]
+      (if (= current-topic-id topic-id)
+        (log/info "Topic" topic-id "finished and cleared as current topic from meeting" meeting-id)
+        (log/info "Topic" topic-id "finished"))
+      {:success true})
+    (catch Exception e
+      (log/error "Failed to finish topic:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
+
 (defn get-dashboard-statistics
   "Get dashboard statistics for a specific user"
   [user-id]
@@ -840,14 +894,14 @@
         _ (.set cal java.util.Calendar/SECOND 0)
         _ (.set cal java.util.Calendar/MILLISECOND 0)
         month-start (.getTime cal)
-        
+
         ;; Get user's teams
         user-teams-result (d/q '[:find ?team
                                 :in $ ?user-id
                                 :where [?user-id :user/teams ?team]]
                               db user-id)
         user-team-ids (mapv first user-teams-result)
-        
+
         ;; Total meetings for user's teams
         total-meetings (if (seq user-team-ids)
                         (count (d/q '[:find ?meeting
@@ -856,7 +910,7 @@
                                      [?meeting :meeting/team ?team-id]]
                                    db user-team-ids))
                         0)
-        
+
         ;; Meetings this month for user's teams
         meetings-this-month (if (seq user-team-ids)
                              (count (d/q '[:find ?meeting
@@ -867,22 +921,22 @@
                                           [(>= ?created-at ?month-start)]]
                                         db user-team-ids month-start))
                              0)
-        
+
         ;; Active actions assigned to user (both direct and team assignments)
         user-actions-count (count (d/q '[:find ?action
                                         :in $ ?user-id
                                         :where [?action :action/assigned-to-user ?user-id]]
                                       db user-id))
-        
+
         team-actions-count (if (seq user-team-ids)
                             (count (d/q '[:find ?action
                                          :in $ [?team-id ...]
                                          :where [?action :action/assigned-to-team ?team-id]]
                                        db user-team-ids))
                             0)
-        
+
         active-actions (+ user-actions-count team-actions-count)
-        
+
         ;; Team members count (all members across user's teams)
         team-members-count (if (seq user-team-ids)
                             (count (d/q '[:find ?user
@@ -892,7 +946,7 @@
                                          [?user :user/active true]]
                                        db user-team-ids))
                             1)] ; At least the current user
-    
+
     {:total-meetings total-meetings
      :active-actions active-actions
      :team-members team-members-count
@@ -912,14 +966,14 @@
                                    [?action :action/meeting ?meeting]
                                    [?meeting :meeting/title ?meeting-title]]
                                  db user-id)
-        
+
         ;; Get actions assigned to user's teams
         user-teams-result (d/q '[:find ?team
                                 :in $ ?user-id
                                 :where [?user-id :user/teams ?team]]
                               db user-id)
         user-team-ids (mapv first user-teams-result)
-        
+
         team-actions-result (if (seq user-team-ids)
                              (d/q '[:find ?action ?description ?added-at ?meeting ?meeting-title
                                     :in $ [?team-id ...]
@@ -931,7 +985,7 @@
                                     [?meeting :meeting/title ?meeting-title]]
                                   db user-team-ids)
                              [])]
-    
+
     ;; Combine and process both types of actions
     (mapv (fn [[action-id description added-at meeting-id meeting-title]]
             (let [;; Get deadline separately if it exists
@@ -939,15 +993,86 @@
                                         :in $ ?action-id
                                         :where [?action-id :action/deadline ?deadline]]
                                       db action-id)
-                  deadline (ffirst deadline-result)]
+                  deadline (ffirst deadline-result)
+                  ;; Get completion status
+                  completed-at-result (d/q '[:find ?completed-at
+                                           :in $ ?action-id
+                                           :where [?action-id :action/completed-at ?completed-at]]
+                                         db action-id)
+                  completed-at (ffirst completed-at-result)
+                  rejected-at-result (d/q '[:find ?rejected-at
+                                          :in $ ?action-id
+                                          :where [?action-id :action/rejected-at ?rejected-at]]
+                                        db action-id)
+                  rejected-at (ffirst rejected-at-result)
+                  ;; Get completion notes
+                  completion-notes-result (d/q '[:find ?notes
+                                               :in $ ?action-id
+                                               :where [?action-id :action/completion-notes ?notes]]
+                                             db action-id)
+                  completion-notes (ffirst completion-notes-result)
+                  status (cond
+                           completed-at "completed"
+                           rejected-at "rejected"
+                           :else "pending")]
               {:id action-id
                :description description
                :deadline deadline
                :added-at added-at
                :meeting-id meeting-id
                :meeting-title meeting-title
-               :status "pending"})) ; For now, all actions are pending
+               :status status
+               :completed-at completed-at
+               :rejected-at rejected-at
+               :completion-notes completion-notes}))
           (sort-by :added-at #(compare %2 %1) (concat user-actions-result team-actions-result)))))
+
+(defn get-action-by-id
+  "Get action by ID with all details"
+  [action-id]
+  (let [db (get-db)]
+    (d/pull db '[:db/id
+                 :action/description
+                 :action/deadline
+                 :action/added-at
+                 :action/completed-at
+                 :action/rejected-at
+                 :action/completion-notes
+                 {:action/assigned-to-user [:db/id :user/name]}
+                 {:action/assigned-to-team [:db/id :team/name]}
+                 {:action/meeting [:db/id :meeting/title]}]
+            action-id)))
+
+(defn get-user-action-by-id
+  "Get action by ID only if it's assigned to the user or user's team (permission check)"
+  [action-id user-id]
+  (let [db (get-db)
+        ;; Check if action is assigned directly to user
+        user-action-result (d/q '[:find ?action-id
+                                  :in $ ?action-id ?user-id
+                                  :where
+                                  [?action-id :action/assigned-to-user ?user-id]]
+                                db action-id user-id)
+        ;; Check if action is assigned to user's team
+        team-action-result (d/q '[:find ?action-id
+                                  :in $ ?action-id ?user-id
+                                  :where
+                                  [?user-id :user/teams ?team]
+                                  [?action-id :action/assigned-to-team ?team]]
+                                db action-id user-id)]
+    (when (or (seq user-action-result) (seq team-action-result))
+      (get-action-by-id action-id))))
+
+(defn update-action-status!
+  "Update action status (complete or reject) with completion notes"
+  [action-id status completion-notes]
+  (let [now (java.util.Date.)
+        tx-data (cond-> {:db/id action-id}
+                  (= status "complete") (assoc :action/completed-at now)
+                  (= status "reject") (assoc :action/rejected-at now)
+                  (and completion-notes (not (clojure.string/blank? completion-notes)))
+                  (assoc :action/completion-notes (clojure.string/trim completion-notes)))]
+    (d/transact (get-conn) {:tx-data [tx-data]})))
 
 (defn get-finished-meetings-for-user
   "Get all finished meetings for user's teams with topics and actions"
@@ -981,7 +1106,7 @@
                    :topics (get-topics-for-meeting meeting-id)
                    :actions (get-actions-for-meeting meeting-id)}))
               (sort-by #(nth % 2) #(compare %2 %1) basic-meetings-result)))
-      
+
       ;; Regular users see only their team's finished meetings
       (let [user-teams-result (d/q '[:find ?team
                                      :in $ ?user-id

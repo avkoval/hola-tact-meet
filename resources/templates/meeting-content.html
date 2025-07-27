@@ -110,7 +110,9 @@
                 </p>
                 {% if can-change-meeting %}
                 <div class="card-header-icon">
-                  <button class="button is-small is-warning">
+                  <button class="button is-small is-warning" 
+                          data-on-click="confirm('Are you sure you want to finish this topic? This action cannot be undone.') && @post('/meeting/{{ meeting-id }}/topic/{{ current-topic.db/id }}/finish')"
+                          {% if current-topic.topic/finished-at %}disabled{% endif %}>
                     <span class="icon is-small">
                       <i class="fas fa-check"></i>
                     </span>
@@ -179,14 +181,44 @@
                                 • Due: {{ action.deadline|date:"MMM d, yyyy" }}
                               {% endif %}
                             </p>
+                            {% if action.completion-notes %}
+                              <div class="content mt-2">
+                                <p class="is-size-7 has-text-grey-dark">
+                                  <span class="icon is-small">
+                                    <i class="fas fa-sticky-note"></i>
+                                  </span>
+                                  <strong>Notes:</strong> {{ action.completion-notes }}
+                                </p>
+                              </div>
+                            {% endif %}
                           </div>
                         </div>
                       </div>
                       <div class="level-right">
                         <div class="level-item">
-                          <span class="tag {% if action.is-team-action %}is-info{% else %}is-warning{% endif %}">
-                            {% if action.is-team-action %}Team{% else %}Individual{% endif %}
-                          </span>
+                          <div class="tags">
+                            <span class="tag {% if action.is-team-action %}is-info{% else %}is-warning{% endif %}">
+                              {% if action.is-team-action %}Team{% else %}Individual{% endif %}
+                            </span>
+                            <span class="tag {% if action.completed-at %}is-success{% elif action.rejected-at %}is-danger{% else %}is-light{% endif %}">
+                              {% if action.completed-at %}
+                                <span class="icon">
+                                  <i class="fas fa-check"></i>
+                                </span>
+                                <span>Completed</span>
+                              {% elif action.rejected-at %}
+                                <span class="icon">
+                                  <i class="fas fa-times"></i>
+                                </span>
+                                <span>Rejected</span>
+                              {% else %}
+                                <span class="icon">
+                                  <i class="fas fa-clock"></i>
+                                </span>
+                                <span>Pending</span>
+                              {% endif %}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>

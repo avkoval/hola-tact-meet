@@ -536,6 +536,38 @@
           (log/warn "Invalid input - user-id:" user-id "meeting-id:" meeting-id)))
       (d*/close-sse! sse))}))
 
+(defn topic-finish [request]
+  (->sse-response
+   request
+   {hk-gen/on-open
+    (fn [sse]
+      (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            topic-id (Long/parseLong (get-in request [:path-params :topic-id]))
+            user-id (get-in request [:session :userinfo :user-id])]
+
+        (log/info "User" user-id "attempting to finish topic" topic-id "in meeting" meeting-id)
+
+        (cond
+          ;; Check if user can change the meeting
+          (not (db/user-can-change-meeting? user-id meeting-id))
+          (log/warn "User" user-id "does not have permission to finish topic in meeting" meeting-id)
+
+          ;; Valid request - finish the topic
+          (and user-id meeting-id topic-id)
+          (let [result (db/finish-topic! topic-id meeting-id)]
+            (if (:success result)
+              (do
+                (log/info "Topic" topic-id "finished successfully by user" user-id)
+                (broadcast-meeting-page-update! render-meeting-body meeting-id [false] true)
+                )
+              (log/error "Failed to finish topic:" (:error result))
+                ))
+
+          ;; Invalid input
+          :else
+          (log/warn "Invalid input - user-id:" user-id "meeting-id:" meeting-id "topic-id:" topic-id)))
+      (d*/close-sse! sse))}))
+
 (defn meetings-list
   "Display all finished meetings with topics and actions"
   [{session :session}]
@@ -562,6 +594,51 @@
      :headers {"Content-Type" "text/html"}
      :body (render-file "templates/my-actions.html" {:userinfo userinfo
                                                      :actions user-actions})}))
+
+(defn action-completion-modal [{session :session :as request}]
+  (->sse-response
+   request
+   {hk-gen/on-open
+    (fn [sse]
+      (let [userinfo (:userinfo session)
+            user-id (:user-id userinfo)
+            action-id (Long/parseLong (get-in request [:path-params :action-id]))
+            action (db/get-user-action-by-id action-id user-id)]
+        (d*/with-open-sse sse
+          (if action
+            (do
+              (d*/patch-elements! sse (render-file "templates/action_completion_modal.html" {:action action}))
+              (d*/patch-signals! sse "{actionCompletionModalOpen: true}"))
+            (d*/patch-elements! sse "<div class=\"notification is-danger\">Action not found or you don't have permission to access it</div>"))))
+      )}))
+
+(defn action-update-status
+  "Update action status (complete or reject)"
+  [{session :session :as request}]
+  (->sse-response
+   request
+   {hk-gen/on-open
+    (fn [sse]
+      (let [userinfo (:userinfo session)
+            user-id (:user-id userinfo)
+            action-id (Long/parseLong (get-in request [:path-params :action-id]))
+            form-params (:form-params request)
+            status (get form-params "status")
+            completion-notes (get form-params "completion-notes" "")
+            action (db/get-user-action-by-id action-id user-id)]
+        (d*/with-open-sse sse
+          (if action
+            (try
+              (db/update-action-status! action-id status completion-notes)
+              (log/info (str "Action " action-id " status updated to: " status))
+
+              ;; Close modal and refresh page
+              (d*/patch-signals! sse "{actionCompletionModalOpen: false}")
+              (d*/execute-script! sse "window.location.reload()")
+              (catch Exception e
+                (log/error "Error updating action status:" (.getMessage e))
+                (d*/patch-elements! sse "<div id=\"action-completion-error\" class=\"notification is-danger\">Error updating action status</div>")))
+            (d*/patch-elements! sse "<div class=\"notification is-danger\">Action not found or you don't have permission to access it</div>")))))}))
 
 
 (defn admin-manage-users [{session :session}]
