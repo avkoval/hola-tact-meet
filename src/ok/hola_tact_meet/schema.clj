@@ -78,6 +78,11 @@
                    :db/cardinality :db.cardinality/many
                    :db/doc         "Users who can manage this team."}
 
+                  {:db/ident       :team/auto-domains
+                   :db/valueType   :db.type/string
+                   :db/cardinality :db.cardinality/one
+                   :db/doc         "Newline-separated list of email domains for auto-assignment to this team."}
+
                   ])
 
 (def meeting-schema [{:db/ident       :meeting/title

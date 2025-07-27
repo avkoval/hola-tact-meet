@@ -61,6 +61,11 @@
           </div>
         </div>
         <div class="control mt-2">
+          <label class="label is-small">Auto-assign Domains</label>
+          <textarea class="textarea" name="auto-domains" placeholder="One domain per line (e.g., company.com, example.org)" rows="3"></textarea>
+          <p class="help">Users with email addresses from these domains will be automatically added to this team</p>
+        </div>
+        <div class="control mt-2">
           <button class="button is-primary" data-on-click="@post('/admin/manage-users/{{ user-id }}/teams/add', {contentType: 'form'})">Add Team</button>
           <button class="button"  data-on-click="$addNewTeamHidden=true">Cancel</button>
         </div>

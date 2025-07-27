@@ -121,6 +121,14 @@
       (log/error "Error fetching Google userinfo:" (.getMessage e))
       {:success false :error (.getMessage e)})))
 
+(defn assign-user-to-auto-teams!
+  "Assign user to teams based on email domain matching"
+  [user-id email]
+  (let [auto-teams (db/find-teams-for-email-domain email)]
+    (when (seq auto-teams)
+      (log/info (str "Auto-assigning user " user-id " to teams " auto-teams " based on email domain"))
+      (db/add-user-to-teams! user-id auto-teams))))
+
 (defn create-or-login-user
   "Create new user or login existing user based on Google userinfo"
   [google-userinfo]
@@ -149,11 +157,11 @@
                         :given-name (:given_name google-userinfo)
                         :picture (:picture google-userinfo)
                         :auth-provider "google"
-                        :access-level "user"
                         :active true}]
           (log/info "Creating user with data:" user-data)
           (let [new-user-id (db/create-user user-data)]
             (log/info "New user created:" email)
+            (assign-user-to-auto-teams! new-user-id email)
             {:success true :user-id new-user-id :action :register}))))
     (catch Exception e
       (log/error "Error in create-or-login-user:" (.getMessage e))
@@ -792,6 +800,7 @@
             ;; Parse form data
             team-name (get form-params "name")
             team-description (get form-params "description" "")
+            team-auto-domains (get form-params "auto-domains" "")
             team-managers-str (get form-params "managers" [])
             team-managers (if (vector? team-managers-str)
                            (mapv #(Long/parseLong %) team-managers-str)
@@ -802,6 +811,7 @@
             ;; Create team data structure
             team-data {:name team-name
                       :description team-description
+                      :auto-domains team-auto-domains
                       :managers team-managers}]
 
         (log/debug "Adding team for user:" user_id)
@@ -962,6 +972,7 @@
   [request userinfo]
   (let [user-id (db/create-user userinfo)]
     (log/info "User created:" (:email userinfo) "ID:" user-id)
+    (assign-user-to-auto-teams! user-id (:email userinfo))
     (login-user-by-id request user-id userinfo)))
 
 (defn fake-login-page [request]

@@ -69,6 +69,31 @@
                     db email)]
     (ffirst result)))
 
+(defn find-teams-for-email-domain
+  "Find teams that should auto-assign users based on email domain"
+  [email]
+  (when email
+    (let [domain (second (clojure.string/split email #"@"))
+          db (get-db)
+          teams-with-domains (d/q '[:find ?e ?domains
+                                    :where [?e :team/auto-domains ?domains]]
+                                  db)]
+      (->> teams-with-domains
+           (filter (fn [[team-id domains]]
+                     (when domains
+                       (let [domain-list (clojure.string/split-lines domains)]
+                         (some #(= (clojure.string/trim %) domain) domain-list)))))
+           (map first)))))
+
+(defn is-first-user?
+  "Check if this would be the first user in the system"
+  []
+  (let [db (get-db)
+        users (d/q '[:find ?e
+                     :where [?e :user/name _]]
+                   db)]
+    (empty? users)))
+
 (defn create-user
   "Create new user, throws exception if user with same email already exists"
   [userinfo]
@@ -82,7 +107,9 @@
       (throw (ex-info "User with this email already exists"
                       {:email (:email userinfo)
                        :existing-user-id existing-user})))
-    (let [full-name (str (or (:given-name userinfo) "")
+    (let [is-first-user (is-first-user?)
+          default-access-level (if is-first-user "admin" "user")
+          full-name (str (or (:given-name userinfo) "")
                          (if (and (:given-name userinfo) (:family-name userinfo)) " " "")
                          (or (:family-name userinfo) ""))
           constructed-name (if (clojure.string/blank? full-name)
@@ -96,12 +123,14 @@
                           :user/given-name (:given-name userinfo)
                           :user/picture (:picture userinfo)
                           :user/auth-provider (:auth-provider userinfo)
-                          :user/access-level (or (:access-level userinfo) "user")
+                          :user/access-level (or (:access-level userinfo) default-access-level)
                           :user/active (or (:active userinfo) true)}
                          (filter (fn [[k v]] (and (not (nil? v)) (not= v ""))))
                          (into {}))
           result (d/transact (get-conn) {:tx-data [user-data]})
           user-id (get-in result [:tempids temp-id])]
+      (when is-first-user
+        (log/info (str "First user registered with admin privileges: " (:email userinfo))))
       user-id)))
 
 (defn get-all-users
@@ -220,7 +249,7 @@
    team-data should contain: {:name string :description string :managers [user-ids]}
    Returns: {:success true :team-id id} or {:success false :error string}"
   [team-data]
-  (let [{:keys [name description managers]} team-data]
+  (let [{:keys [name description auto-domains managers]} team-data]
     (log/info "ok-2025-07-06-1751810064")
     (log/info [name description managers])
     (try
@@ -236,7 +265,9 @@
                                    :team/description (or description "")
                                    :team/created-at (java.util.Date.)}
                              (seq valid-managers) (assoc :team/managers valid-managers)
-                             (first valid-managers) (assoc :team/created-by (first valid-managers)))
+                             (first valid-managers) (assoc :team/created-by (first valid-managers))
+                             (and auto-domains (not (clojure.string/blank? auto-domains))) 
+                             (assoc :team/auto-domains (clojure.string/trim auto-domains)))
               _ (log/debug "Team transaction data:" team-tx-data)
               result (d/transact (get-conn) {:tx-data [team-tx-data]})
               team-id (get-in result [:tempids (first (keys (:tempids result)))])]
@@ -255,6 +286,7 @@
   (let [validation-schema [:map
                           [:name [:string {:min 1}]]
                           [:description {:optional true} [:string]]
+                          [:auto-domains {:optional true} [:string]]
                           [:managers {:optional true} [:vector :int]]]]
     (if (malli.core/validate validation-schema team-data)
       (create-team! team-data)
@@ -297,6 +329,16 @@
     (catch Exception e
       (log/error "Failed to create meeting:" (.getMessage e))
       {:success false :error (str "Failed to create meeting: " (.getMessage e))})))
+
+(defn add-user-to-teams!
+  "Add user to additional teams (doesn't remove existing teams)"
+  [user-id team-ids]
+  (when (seq team-ids)
+    (let [tx-data (mapv (fn [team-id]
+                          {:db/id user-id
+                           :user/teams team-id})
+                        team-ids)]
+      (d/transact (get-conn) {:tx-data tx-data}))))
 
 (defn update-user-teams!
   "Update user's team memberships. Replaces all existing team memberships with new ones.
