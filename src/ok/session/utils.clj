@@ -9,9 +9,8 @@
     (throw (Exception. (str "Secret key must be a string, got: " (type key-string) " value: " key-string)))
     
     (empty? key-string)
-    (throw (Exception. "Secret key cannot be empty"))
-    
-    :else nil)
+    (throw (Exception. "Secret key cannot be empty")))
+  
   (let [key-bytes (.getBytes key-string "UTF-8")
         ;; Truncate or pad the key to ensure it's 16 bytes
         truncated-or-padded-key (if (> (count key-bytes) 16)

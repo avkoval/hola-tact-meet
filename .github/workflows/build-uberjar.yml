@@ -43,6 +43,8 @@ jobs:
 
     - name: Build uberjar
       run: clojure -T:slim build
+      env:
+        SECRET_KEY: "temp-ci-secret-key-for-compilation-only-not-for-production-use"
 
     - name: List target directory
       run: ls -la target/
