@@ -23,7 +23,33 @@
    )
   (:gen-class))
 
+;; Atom to store timer data with meeting-id as key and timer-until as data
+(defonce meeting-timers (atom {}))
 
+(defn parse-timer-string
+  "Parse timer string like '00:20', '0:20', or '20' and return total seconds"
+  [timer-str]
+  (let [parts (clojure.string/split timer-str #":")]
+    (cond
+      (= (count parts) 2) (+ (* (Integer/parseInt (first parts)) 60)
+                             (Integer/parseInt (second parts)))
+      (= (count parts) 1) (Integer/parseInt (first parts))
+      :else 0)))
+
+(defn set-meeting-timer!
+  "Set timer for a meeting. timer-str can be '00:20', '0:20', or '20'"
+  [meeting-id timer-str]
+  (let [seconds (parse-timer-string timer-str)
+        timer-until (+ (System/currentTimeMillis) (* seconds 1000))]
+    (swap! meeting-timers assoc meeting-id timer-until)
+    timer-until))
+
+(defn get-timer-seconds-remaining
+  "Get the number of seconds remaining for a meeting timer"
+  [meeting-id]
+  (if-let [timer-until (get @meeting-timers meeting-id)]
+    (max 0 (int (/ (- timer-until (System/currentTimeMillis)) 1000)))
+    0))
 
 (defn home [{session :session :as request}]
   (let [oauth2-config (get-oauth-config (utils/app-config))
@@ -71,6 +97,23 @@
        (mapv (fn [topic] (assoc topic :user-vote (db/get-user-vote-for-topic user-id (:id topic)))))
        (sort-by (juxt (comp - :vote-score) (comp - #(.getTime (:created-at %)))))))
 
+(defn get-userinfo-by-user-id
+  [user-id]
+  (let [user-details (db/get-user-by-id user-id)
+        session-userinfo {:email (:user/email user-details)
+                          :name (:user/name user-details)
+                          :user-id (:user-id user-details)
+                          :given-name (:user/given-name user-details)
+                          :family-name (:user/family-name user-details)
+                          :picture (:user/picture user-details)
+                          :logged-in true
+                          :auth-provider (:user/auth-provider user-details)
+                          :access-level (:user/access-level user-details)}
+        ]
+    session-userinfo)
+)
+
+
 (defn get-meeting-screen-data [meeting-id user-id]
   (let [meeting-data (db/get-meeting-by-id meeting-id)
         topics-with-votes (get-topics-for-meeting meeting-id user-id)
@@ -78,8 +121,8 @@
         can-change-meeting (db/user-can-change-meeting? user-id meeting-id)
         actions (db/get-actions-for-meeting meeting-id)
         team-members (db/get-team-members-for-meeting meeting-id)
+        userinfo (get-userinfo-by-user-id user-id)
         ]
-    (pprint current-topic)
     {:meeting-id meeting-id
      :meeting meeting-data
      :topics topics-with-votes
@@ -87,6 +130,8 @@
      :can-change-meeting can-change-meeting
      :current-user-id user-id
      :actions actions
+     :userinfo userinfo
+     :countdown (get-timer-seconds-remaining meeting-id)
      :team-members team-members}))
 
 (defn render-topics [meeting-id user-id]
@@ -167,6 +212,7 @@
       (log/error "Error in create-or-login-user:" (.getMessage e))
       {:success false :error (.getMessage e)})))
 
+
 (defn app-landing [request]
   (log/info "App landing screen (after oauth2)")
   (let [access-token (get-in request [:session :ring.middleware.oauth2/access-tokens :google :token])]
@@ -179,16 +225,8 @@
           (let [user-result (create-or-login-user (:userinfo userinfo-result))]
             (if (:success user-result)
               ;; Get user details and update session
-              (let [user-details (db/get-user-by-id (:user-id user-result))
-                    session-userinfo {:email (:user/email user-details)
-                                     :name (:user/name user-details)
-                                     :user-id (:user-id user-result)
-                                     :given-name (:user/given-name user-details)
-                                     :family-name (:user/family-name user-details)
-                                     :picture (:user/picture user-details)
-                                     :logged-in true
-                                     :auth-provider (:user/auth-provider user-details)
-                                     :access-level (:user/access-level user-details)}
+              (let [
+                    session-userinfo (get-userinfo-by-user-id (:user-id user-result))
                     updated-session (assoc (:session request) :userinfo session-userinfo)]
                 (pprint updated-session)
                 {:status 302
@@ -457,6 +495,52 @@
           :else
           (log/warn "Invalid input - user-id:" user-id "topic-id:" topic-id)
           )))}))
+
+
+(defn meeting-start-timer [request]
+  (->sse-response
+   request
+   {hk-gen/on-open
+    (fn [sse]
+      (let [user-name (get-in request [:session :userinfo :name])
+            user-id (get-in request [:session :userinfo :user-id])
+            meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            timer-str (get-in request [:json :timer])]
+        (log/info "Start timer by:" user-name timer-str)
+        ;; Set the timer for this meeting
+        (set-meeting-timer! meeting-id timer-str)
+        (log/info "Timer set for meeting" meeting-id "until" (get @meeting-timers meeting-id))
+        ;; Loop while timer is active, sending updates every second
+        (while (> (get-timer-seconds-remaining meeting-id) 0)
+          (let [remaining (get-timer-seconds-remaining meeting-id)]
+            (log/info "Timer remaining for meeting" meeting-id ":" remaining "seconds")
+            ;; Send timer update to client here if needed
+            (broadcast-meeting-page-signals! meeting-id (json/write-str {"countdown" remaining}) nil)
+            (Thread/sleep 800)))
+        (broadcast-meeting-page-signals! meeting-id (json/write-str {"countdown" 0}) nil)
+        
+        (log/info "Timer finished for meeting" meeting-id)
+        (broadcast-execute-script! "alert('Timer is up!')")
+        ; (broadcast-meeting-page-signals! meeting-id (json/write-str reflection) nil)
+        (d*/close-sse! sse)))}))
+
+(defn meeting-stop-timer [request]
+  (->sse-response
+   request
+   {hk-gen/on-open
+    (fn [sse]
+      (let [user-name (get-in request [:session :userinfo :name])
+            user-id (get-in request [:session :userinfo :user-id])
+            meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+            timer-str (get-in request [:json :timer])]
+        (log/info "Start timer by:" user-name timer-str)
+        ;; Set the timer for this meeting
+        ;; (set-meeting-timer! meeting-id timer-str)
+        (log/info "Timer set for meeting" meeting-id "until" (get @meeting-timers meeting-id))
+        (swap! meeting-timers dissoc meeting-id)
+        (broadcast-meeting-page-signals! meeting-id (json/write-str {"countdown" 0}) nil)
+        (d*/close-sse! sse)))}))
+
 
 (defn meeting-add-action [request]
   (->sse-response

@@ -41,18 +41,29 @@
         <div class="px-4">
           <div class="level mb-4">
             <div class="level-left">
-            {% comment %}
-              <div class="level-item">
+              <div class="level-item" data-signals-timer data-signals-countdown="{{ countdown }}">
                 <div class="field is-grouped">
                   <div class="control">
                     <div class="field has-addons">
-                      <div class="control">
-                        <input class="input" type="text" placeholder="Timer (mm:ss)" value="15:00">
+                      <div class="control" data-show="$countdown">
+                        <input class="input" type="text" data-bind-countdown disabled title="countdown from meeting server">
                       </div>
-                      <div class="control">
-                        <button class="button is-info">
+                      <div class="control" data-show="!$countdown">
+                        <input class="input" type="text" placeholder="Timer (mm:ss)" value="15:00" data-bind-timer>
+                      </div>
+                      <div class="control" data-show="!$countdown">
+                        <button class="button is-info" {% ifequal userinfo.access-level "user" %} disabled title="staff required"{% else %}
+                                data-on-click="@post('/meeting/{{ meeting-id }}/start-timer')"{% endifequal %}>
                           <span class="icon">
                             <i class="fas fa-play"></i>
+                          </span>
+                        </button>
+                      </div>
+                      <div class="control" data-show="$countdown">
+                        <button class="button is-danger" {% ifequal userinfo.access-level "user" %} disabled title="staff required"{% else %}
+                                data-on-click="@post('/meeting/{{ meeting-id }}/stop-timer')"{% endifequal %}>
+                          <span class="icon">
+                            <i class="fas fa-stop"></i>
                           </span>
                         </button>
                       </div>
@@ -60,8 +71,8 @@
                   </div>
                 </div>
               </div>
-            {% endcomment %}
             </div>
+
             {% if can-change-meeting %}
             <div class="level-right">
               <div class="level-item">
@@ -110,7 +121,7 @@
                 </p>
                 {% if can-change-meeting %}
                 <div class="card-header-icon">
-                  <button class="button is-small is-warning" 
+                  <button class="button is-small is-warning"
                           data-on-click="confirm('Are you sure you want to finish this topic? This action cannot be undone.') && @post('/meeting/{{ meeting-id }}/topic/{{ current-topic.db/id }}/finish')"
                           {% if current-topic.topic/finished-at %}disabled{% endif %}>
                     <span class="icon is-small">
