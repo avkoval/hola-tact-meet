@@ -45,6 +45,8 @@ jobs:
       run: clojure -T:slim build
       env:
         SECRET_KEY: "temp-ci-secret-key-for-compilation-only-not-for-production-use"
+        OAUTH2_GOOGLE_CLIENT_ID: "test"
+        OAUTH2_GOOGLE_CLIENT_SECRET: "test"
 
     - name: Rename jar file
       run: mv target/standalone.jar target/hola-tact-meet-${{ github.ref_name }}.jar
