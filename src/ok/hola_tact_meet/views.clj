@@ -330,7 +330,7 @@
           (let [result (db/add-topic! meeting-id user-id (clojure.string/trim new-topic))]
             (if (:success result)
               (do
-                (broadcast-meeting-page-update! render-file meeting-id ["templates/add-new-topic.html" {}] false)
+                (d*/patch-elements! sse (render-file "templates/add-new-topic.html" {}))
                 (broadcast-meeting-page-update! render-topics meeting-id [] true))
               (do
                 (log/error "Failed to add topic:" (:error result))
