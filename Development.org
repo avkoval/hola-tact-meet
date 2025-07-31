@@ -100,7 +100,7 @@
       - PDF
       - Directly to Confluence via API (if API is enabled)
 
-* COMMENT Current work plan & progress [43%]
+* COMMENT Current work plan & progress [41%]
 
 ** DONE Set appropriate License
    CLOSED: [2025-06-15 Sun 21:30]
@@ -177,6 +177,11 @@ I need fake login to quickly login several users for testing purposes on localho
 - [X] save data
 - [X] for staff user - limit teams to member only
   - [X] for admin user - no limits
+
+** WORKING nginx issues & correct config
+   :LOGBOOK:
+   - State "WORKING"    from              [2025-07-31 Thu 08:55]
+   :END:
 
 ** TODO To finish before 1st deploy
    :LOGBOOK:
@@ -281,7 +286,6 @@ I need fake login to quickly login several users for testing purposes on localho
 - [ ] Project settings - shows some dialog, but nothing works.
 - [ ] Past Meetings must work for finished meetings
 - [ ] profile info to be displayed on meeting page (pass variable)
-
 
 ** TODO Meeting screen (the biggest part) [50%] [7/14]
    :PROPERTIES:

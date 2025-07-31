@@ -261,7 +261,8 @@
   [request]
   (->sse-response
    request
-   {hk-gen/on-open
+   {:headers {"X-Accel-Buffering" "no"}
+    hk-gen/on-open
     (fn [sse-gen]
       (log/info "meeting-main-refresh-content-watcher established hk-gen/on-open" sse-gen)
       (swap! !meeting-screen-sse-gens conj (meeting-screen-sse-gen-data request sse-gen))
