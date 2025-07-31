@@ -14,15 +14,12 @@
         helpshift/faker {:mvn/version "0.3.0"}
         metosin/malli {:mvn/version "0.19.1"}
         ;; datastar
-        datastar/sdk {:git/url "https://github.com/starfederation/datastar/"
-              :git/sha "4cd5e85f546082592263123eca57f88bb050528d"
-              :deps/root "sdk/clojure/sdk"}
-        datastar/http-kit {:git/url "https://github.com/starfederation/datastar/"
-                           :git/sha "4cd5e85f546082592263123eca57f88bb050528d"
-                           :deps/root "sdk/clojure/adapter-http-kit"}
-        datastar/malli-schemas {:git/url "https://github.com/starfederation/datastar/"
-                                :git/sha "4cd5e85f546082592263123eca57f88bb050528d"
-                                :deps/root "sdk/clojure/malli-schemas"}
+        dev.data-star.clojure/sdk {:mvn/version "1.0.0-RC1"}
+        dev.data-star.clojure/http-kit {:mvn/version "1.0.0-RC1"}
+        dev.data-star.clojure/ring {:mvn/version "1.0.0-RC1"}
+        dev.data-star.clojure/brotli {:mvn/version "1.0.0-RC1"}
+        dev.data-star.clojure/malli-schemas {:mvn/version "1.0.0-RC1"}
+
         ;; Notes on logging: https://gist.github.com/jacobobryant/76b7a08a07d5ef2cc076b048d078f1f3
         org.slf4j/slf4j-simple     {:mvn/version "2.0.0-alpha5"}
         org.slf4j/log4j-over-slf4j {:mvn/version "1.7.36"}

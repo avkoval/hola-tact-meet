@@ -512,6 +512,7 @@
         (set-meeting-timer! meeting-id timer-str)
         (log/info "Timer set for meeting" meeting-id "until" (get @meeting-timers meeting-id))
         ;; Loop while timer is active, sending updates every second
+        (d*/close-sse! sse)
         (while (> (get-timer-seconds-remaining meeting-id) 0)
           (let [remaining (get-timer-seconds-remaining meeting-id)]
             (log/info "Timer remaining for meeting" meeting-id ":" remaining "seconds")
@@ -519,11 +520,10 @@
             (broadcast-meeting-page-signals! meeting-id (json/write-str {"countdown" remaining}) nil)
             (Thread/sleep 800)))
         (broadcast-meeting-page-signals! meeting-id (json/write-str {"countdown" 0}) nil)
-        
         (log/info "Timer finished for meeting" meeting-id)
         (broadcast-execute-script! "alert('Timer is up!')")
-        ; (broadcast-meeting-page-signals! meeting-id (json/write-str reflection) nil)
-        (d*/close-sse! sse)))}))
+        (broadcast-meeting-page-signals! meeting-id (json/write-str {"countdown" 0}) nil)
+        ))}))
 
 (defn meeting-stop-timer [request]
   (->sse-response
@@ -534,10 +534,9 @@
             user-id (get-in request [:session :userinfo :user-id])
             meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
             timer-str (get-in request [:json :timer])]
-        (log/info "Start timer by:" user-name timer-str)
+        (log/info "Stop timer by:" user-name timer-str)
         ;; Set the timer for this meeting
         ;; (set-meeting-timer! meeting-id timer-str)
-        (log/info "Timer set for meeting" meeting-id "until" (get @meeting-timers meeting-id))
         (swap! meeting-timers dissoc meeting-id)
         (broadcast-meeting-page-signals! meeting-id (json/write-str {"countdown" 0}) nil)
         (d*/close-sse! sse)))}))
