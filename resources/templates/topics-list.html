@@ -15,7 +15,7 @@
               </form>
             {% endif %}
           {% endifequal %}
-          <div class="columns is-mobile is-vcentered">
+          <div class="columns is-mobile is-vcentered" {% ifequal topic.id current-topic.db/id %}style="background-color: Linen"{% endifequal %}>
             <div class="column">
               <p class="subtitle is-6 mb-1">{{ topic.title }}</p>
               <p class="is-size-7 has-text-grey">by {{ topic.created-by-name }}</p>
@@ -40,7 +40,7 @@
                 {% if can-change-meeting %}
                   <form data-on-submit="@post('/meeting/{{ meeting-id }}/set-current-topic', {contentType: 'form'})" style="display: inline;">
                     <input type="hidden" name="topic_id" value="{{ topic.id }}">
-                    <button type="submit" class="button is-info{% if current-topic.db/id = topic.id %} is-active{% endif %}" title="Set as current topic"{% ifequal meeting.meeting/status "scheduled" %} disabled{% endifequal %}{% if topic.finished-at %} disabled{% endif %}>
+                    <button type="submit" class="button is-info{% if current-topic.db/id = topic.id %} is-active{% endif %}" title="Set as current topic"{% ifequal meeting.meeting/status "scheduled" %} disabled{% endifequal %}{% if topic.finished-at %} disabled{% endif %} {% ifequal topic.id current-topic.db/id %} disabled{% endifequal %}>
                       <span class="icon is-small">
                         <i class="fas fa-play"></i>
                       </span>
