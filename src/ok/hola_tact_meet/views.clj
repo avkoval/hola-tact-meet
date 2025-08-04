@@ -29,12 +29,17 @@
 (defn parse-timer-string
   "Parse timer string like '00:20', '0:20', or '20' and return total seconds"
   [timer-str]
-  (let [parts (clojure.string/split timer-str #":")]
-    (cond
-      (= (count parts) 2) (+ (* (Integer/parseInt (first parts)) 60)
-                             (Integer/parseInt (second parts)))
-      (= (count parts) 1) (Integer/parseInt (first parts))
-      :else 0)))
+  (try
+    (if (and timer-str (not (clojure.string/blank? timer-str)))
+      (let [parts (clojure.string/split timer-str #":")]
+        (cond
+          (= (count parts) 2) (+ (* (Integer/parseInt (first parts)) 60)
+                                 (Integer/parseInt (second parts)))
+          (= (count parts) 1) (Integer/parseInt (first parts))
+          :else 0))
+      0)
+    (catch Exception _
+      0)))
 
 (defn set-meeting-timer!
   "Set timer for a meeting. timer-str can be '00:20', '0:20', or '20'"
