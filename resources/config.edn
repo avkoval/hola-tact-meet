@@ -12,7 +12,7 @@
  :oauth2/google-client-secret      #or [#env OAUTH2_GOOGLE_CLIENT_SECRET #ref [:secrets :app1/google-client-secret]]
  :secret-key #or [#env SECRET_KEY #ref [:secrets :app1/secret-key] ""]
  :log-level #or [#env LOG_LEVEL "WARN"]
- :sentry/dsn #or [#env SENTRY_DSN #ref [:secrets :app1/sentry-dsn]]
+ :sentry/dsn #or [#env SENTRY_DSN nil]
  :sentry/environment #or [#env SENTRY_ENVIRONMENT "development"]
  :sentry/enabled #or [#env SENTRY_ENABLED false]
  :datomic/system #or [#env DATOMIC_SYSTEM "dev"]

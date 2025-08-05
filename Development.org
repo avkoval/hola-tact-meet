@@ -100,7 +100,7 @@
       - PDF
       - Directly to Confluence via API (if API is enabled)
 
-* COMMENT Current work plan & progress [41%]
+* COMMENT Current work plan & progress [36%]
 
 ** DONE Set appropriate License
    CLOSED: [2025-06-15 Sun 21:30]
@@ -177,6 +177,23 @@ I need fake login to quickly login several users for testing purposes on localho
 - [X] save data
 - [X] for staff user - limit teams to member only
   - [X] for admin user - no limits
+
+** TODO Fix [Login as] button in users list
+   :LOGBOOK:
+   - State "TODO"       from              [2025-08-05 Tue 12:30]
+   :END:
+
+** WORKING Testing frontend with Playwrite
+   SCHEDULED: <2025-08-04 Mon>
+   :LOGBOOK:
+   - State "WORKING"    from "TODO"       [2025-08-04 Mon 23:25]
+   - State "TODO"       from              [2025-08-04 Mon 23:25]
+   :END:
+
+*** Pages
+ - https://github.com/pfeodrippe/wally
+ - https://playwright.dev/docs/intro
+
 
 ** WORKING nginx issues & correct config
    :LOGBOOK:

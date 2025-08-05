@@ -3,6 +3,6 @@
           :test-paths ["test"]
           :source-paths ["src"]
           :ns-patterns ["-test$"]}]
- :watch {:ignore ["resources/" "target/" ".git/"]}
+ :watch {:ignore ["resources/" "target/" ".git/" "test-ui/"]}
  :color? true
  :fail-fast? false}

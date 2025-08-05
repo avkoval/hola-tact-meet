@@ -24,6 +24,7 @@
 *.class
 *.jar
 *.swp
+.wally
 *~
 /checkouts
 /classes
