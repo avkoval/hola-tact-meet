@@ -61,4 +61,12 @@
                          {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
             :main-opts ["-m" "cognitect.test-runner" "-d" "test-ui"]
             :jvm-opts ["-DPLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0"
-                       "-Djava.util.logging.level=SEVERE"]}}}
+                       "-Djava.util.logging.level=SEVERE"
+                       "-Dwally.headless=true"
+                       "-Dwally.user-data-dir=/tmp/wally-test-ui"]}
+
+  :test-server {:extra-paths ["src" "resources" "test-ui"]
+                :extra-deps {io.github.pfeodrippe/wally {:mvn/version "0.0.4"}}
+                :main-opts ["-m" "ok.hola-tact-meet.core" "test"
+                            "--middleware" "[cider.nrepl/cider-middleware]"]
+                :jvm-opts ["-Dorg.slf4j.simpleLogger.defaultLogLevel=info"]}}}

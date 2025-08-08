@@ -100,7 +100,7 @@
       - PDF
       - Directly to Confluence via API (if API is enabled)
 
-* COMMENT Current work plan & progress [36%]
+* COMMENT Current work plan & progress [35%]
 
 ** DONE Set appropriate License
    CLOSED: [2025-06-15 Sun 21:30]
@@ -178,6 +178,259 @@ I need fake login to quickly login several users for testing purposes on localho
 - [X] for staff user - limit teams to member only
   - [X] for admin user - no limits
 
+** TODO Wally as UI tests of separate components
+   :LOGBOOK:
+   - State "TODO"       from              [2025-08-06 Wed 00:20]
+   :END:
+*** For testing applicaction in Clojure and Datomic - is there a way to run each test case in a clean database?
+
+Does datomic provide a way to run this with in-memory database so its recreated fast?
+
+
+
+
+#+begin_reasoning
+**Analyzing the Problem*
+
+I've zeroed in on the core challenge: achieving a fresh database state for each test in a Clojure/Datomic context. My initial focus is deconstructing the user's need. I'm thinking about the fundamental problem and the implicit constraints of the request, which seems to revolve around isolated and predictable test environments.
+
+
+*Refining the Approach*
+
+I'm now zeroing in on a solid strategy. Considering the user's need for a practical solution, I'm leaning toward demonstrating a complete test fixture. My focus is on creating a clear, concise example using =clojure.test/use-fixtures= with Datomic's in-memory database feature. This will include creating, connecting, transacting schema, and deleting the database for each test, directly answering the core problem. I'm aiming for a copy-pasteable code block that showcases the ideal workflow.
+
+
+*Structuring the Response*
+
+I've crafted the structure of the response to be direct and practical. I'll start with a concise "Yes" to address the immediate question. Subsequently, I'll delve into the "how," explaining test fixtures and showcasing key Datomic and Clojure.test functions. A clear code example, complete with setup and teardown, will be included. I am emphasizing unique database names using =gensym= or UUIDs to mitigate potential parallel test conflicts.
+
+
+*Finalizing the Code*
+
+I'm deep into the coding phase now. I've chosen a concise and effective code structure, making sure that it directly addresses the user's specific need. The fixture function is solid, using =try...finally= to ensure clean database teardown. My key focus right now is to ensure the example is perfectly copy-pasteable, easy to understand, and covers the essential Datomic and Clojure.test functions. I've added comments to guide the user and made the code self-explanatory.
+
+
+*Expanding the Solution*
+
+The solution structure is ready, and now I'm thinking about making the example more robust. Beyond the basic setup, I'll explain how to use =:once= fixtures for schema creation to improve test speed, along with the =:each= fixture. I'll cover =d/with= for isolated read access. This expands on the initial response, providing a more versatile, real-world example. It will showcase a few key Datomic features, like transactions and queries. The example will highlight how Datomic's in-memory database significantly simplifies testing, but also touch on potential performance bottlenecks and how to avoid them with the =:once= option. I'll make sure to note that the =:once= approach assumes the schema doesn't change from test to test.
+
+
+*Expanding the Example*
+
+I've gone beyond the basics and am now adding details to solidify the example. The new version will explain the crucial =:once= and =:each= test fixture approaches and when each is appropriate. It shows how the database can be created, populated, and managed to handle different testing needs. I will include information about isolated test access using =d/with=, so that the user understands a broader range of techniques.
+
+
+
+#+end_reasoning
+
+Yes, absolutely. Datomic is excellent for this. You can use its *in-memory database*, which is recreated very quickly for each test.
+
+The standard Clojure pattern is to use a =clojure.test= fixture. This fixture creates a fresh in-memory database, runs a single test, and then deletes the database.
+
+Here is a complete, runnable example:
+
+#+begin_src clojure
+(ns my-app.core-test
+  (:require [clojure.test :refer :all]
+            [datomic.api :as d]))
+
+;; A dynamic var to hold the connection for each test
+(def ^:dynamic *conn* nil)
+
+;; A unique URI for the in-memory database
+(def test-db-uri "datomic:mem://my-app-test")
+
+;; Your schema definition
+(def schema
+  [{:db/ident :user/email
+    :db/valueType :db.type/string
+    :db/cardinality :db.cardinality/one
+    :db/unique :db.unique/identity}])
+
+;; The test fixture
+(defn with-clean-db [f]
+  (d/create-database test-db-uri)
+  (let [conn (d/connect test-db-uri)]
+    (try
+      (binding [*conn* conn]  ; Bind the connection for the test
+        (d/transact *conn* schema) ; Install schema
+        (f)) ; <-- Run the actual test function
+      (finally
+        (d/delete-database test-db-uri))))) ; <-- Guaranteed cleanup
+
+;; Apply the fixture to every test in this namespace
+(use-fixtures :each with-clean-db)
+
+;; --- Your Tests ---
+
+(deftest create-and-find-user
+  (testing "A user can be created and retrieved"
+    ;; Transact data into the clean database
+    @(d/transact *conn* [{:user/email "test@example.com"}])
+
+    ;; Query the database
+    (let [db (d/db *conn*)
+          user-id (d/q '[:find ?e . :where [?e :user/email "test@example.com"]] db)]
+      (is (some? user-id) "User should be found in the database."))))
+
+(deftest another-test
+  (testing "The database is empty at the start of this test"
+    (let [db (d/db *conn*)
+          user-id (d/q '[:find ?e . :where [?e :user/email "test@example.com"]] db)]
+      (is (nil? user-id) "Previous test's data should not exist."))))
+#+end_src
+
+**** How it Works:
+
+ 1.  *=with-clean-db= function*: This is your fixture. It takes a test function =f= as an argument.
+ 2.  *=d/create-database=*: Creates a new, empty in-memory database before the test runs.
+ 3.  *=binding=*: We use =binding= to make the =*conn*= var available within the dynamic scope of the test.
+ 4.  *=(f)=*: This executes the test body (e.g., the code inside =create-and-find-user=).
+ 5.  *=finally=*: This block is crucial. It /guarantees/ that =d/delete-database= is called, even if the test fails with an assertion error or an exception.
+ 6.  *=use-fixtures :each=*: This tells =clojure.test= to wrap every single =deftest= in this namespace with the =with-clean-db= fixture.
+
+*** Please help me define the concept of frontend UI testing in clojure.
+
+ I think I am going to use playwright wrapper called `wally`. But having good library and ability to test UI is not enough. I am thinking
+ about close integration with db - so I can define for example several test users with different access level and test UI using
+ those various users and so to see how permissions affect the app. Also I think I always need to start from empty database and test
+ each case in isolation, this should make it easier to write the tests. Also, may be I will check how UI actions affect the database -
+ are users actually saved, etc...
+
+ Can you provide a review of my plan? Is it reasonable or there are more options
+
+
+ #+begin_reasoning
+ **Exploring Wally Integration*
+
+ I'm currently focused on how to best integrate =wally=, the Playwright wrapper, into frontend UI testing within Clojure. The plan is to create effective tests for the user's interface using Clojure and =wally=. I'm also looking into the best way to structure the testing code. I'm excited by the initial promise of a Clojure and Playwright integration.
+
+
+ *Assessing Test User Creation*
+
+ I've been thinking about the best way to create test users with different access levels and how that should integrate with =wally=. I'm starting to visualize how I'd use Clojure to streamline user account setup and how I'd structure the testing suite to manage these user scenarios, and their specific access requirements. I'm focusing on creating a workflow that's both efficient and comprehensive.
+
+
+ *Evaluating Database Setup*
+
+ Now, I'm thinking about how to best seed the database before each test. I'm exploring different approaches, like using fixtures or transactions, and weighing the trade-offs of each method. It feels like a key decision to make early on, to ensure consistent and efficient test execution. I also need to make sure the database setup is easy to manage, since there will be a lot of users and data I'm simulating.
+
+
+ *Considering E2E Test Structure*
+
+ I'm now thinking about how to structure these UI tests to be as maintainable as possible. I'm considering using the Page Object Model (POM) pattern to separate the UI elements and interactions from the test logic. I'm also exploring different ways to organize tests to improve clarity and readability, especially when dealing with different user roles and their associated scenarios. My goal is to make these tests scalable and resilient as the UI evolves.
+
+
+ *Developing Test Strategies*
+
+ I've been honing my strategy for testing, specifically focusing on how to set up and tear down the database for each test efficiently, and how to define different test users with specific roles and access. Using fixtures for setup and teardown seems a promising approach, as well as a transaction rollback strategy for database isolation. I'm also considering creating data seeding helpers, to simplify and organize the process of creating test users.
+
+
+ *Evaluating Test Execution*
+
+ I've been examining how to optimize test execution speed. I'm focusing on using transaction rollbacks to make sure each test starts clean.  I'm also setting up fixtures to streamline test setup and teardown, particularly for things like database connections. The goal is to get a fast and reliable test execution loop using =wally=.
+
+
+ *Evaluating Test Performance*
+
+ I'm now exploring how to optimize the execution speed of these Clojure E2E tests, particularly in the context of database interaction. While I've implemented transaction rollbacks for isolation, I'm thinking about pre-seeding the database in some cases to speed up the tests. I'm considering using fixtures to further streamline the setup and teardown process to gain maximum speed.
+
+
+
+ #+end_reasoning
+
+ Excellent plan. You have identified the core principles of robust end-to-end (E2E) testing. This approach moves beyond simple UI interaction checking and into verifying the behavior of the entire system.
+
+ Here is a review of your plan with additional suggestions:
+
+**** Review of Your Plan
+
+  1.  *DB Integration (User Roles):* *Excellent.* This is crucial for testing authorization logic. You're not just testing if a button exists, but if the /correct/ button exists for a given user.
+  2.  *Test Isolation (Empty DB):* *Best Practice.* Starting each test from a known, clean state prevents cascading failures and makes tests deterministic and easier to debug.
+  3.  *State Verification (Check DB):* *Essential.* This confirms that the UI is correctly wired to the backend. It closes the loop, verifying the full "cause and effect" of a user action.
+
+  Your plan is not just reasonable; it's the right way to build a reliable E2E test suite.
+
+**** More Options & Refinements
+
+  Here are some established patterns in the Clojure ecosystem to implement your plan effectively.
+
+  1.  *Use =clojure.test= Fixtures for Setup/Teardown:*
+      =clojure.test= has a built-in mechanism for running setup and teardown code. This is the perfect place to manage your database state.
+
+      #+begin_src clojure
+      (use-fixtures :each (fn [f]
+                           ;; 1. Start a transaction or clean the DB
+                           (db/clear-all-tables!)
+                           ;; 2. Run the actual test
+                           (f)
+                           ;; 3. Rollback the transaction
+                           ))
+      #+end_src
+
+  2.  *Database State Management Strategy:*
+      You have two primary options for the "clean DB" step:
+
+      *   *Transaction Rollback (Preferred):* For databases that support it (like Postgres), wrap each test in a transaction and roll it back afterward. This is extremely fast and clean. You can implement this in your =:each= fixture.
+      *   *DB Migration + Truncation:* For simpler databases (or as an alternative), use a library like [Migratus](https://github.com/yogthos/migratus) to set up the schema once, and then truncate all tables before each test. Slower, but very reliable.
+
+  3.  *Data Seeding Helpers:*
+      Abstract the creation of test data. Instead of writing raw SQL/Datalog in your tests, create helper functions. This makes tests more readable and maintainable.
+
+      #+begin_src clojure
+      (ns my-app.test.db-helpers)
+
+      (defn create-user! [db-conn attrs]
+        ;; logic to insert a user into the DB
+        (d/transact! db-conn [[:db/add (d/tempid :db.part/user)
+                              (merge {:user/email "test@example.com"} attrs)]]))
+
+      ;; In your test:
+      (create-user! *db* {:user/role :admin :user/name "Admin User"})
+      #+end_src
+
+  4.  *Page Object Model (POM):*
+      This is a design pattern to make your =wally= code more organized. Create a namespace for each page or major component of your UI. This namespace will contain functions that hide the details of selectors and interactions.
+
+      *   *Without POM:* =(w/fill "input#login-email" "test@example.com")=
+      *   *With POM:* =(login-page/enter-email "test@example.com")=
+
+      This separation makes tests easier to read and isolates changes. If a CSS selector changes, you only update it in one place (the page object) instead of many tests.
+
+**** Example Test Structure
+
+  #+begin_src clojure
+  (ns my-app.login-test
+    (:require [clojure.test :refer :all]
+              [my-app.db :as db]
+              [my-app.test.db-helpers :as th]
+              [wally.core :as w]
+              [my-app.test.pages.login :as login-page]))
+
+  ;; Fixture to ensure a clean DB for every test
+  (use-fixtures :each db/with-rollback-fixture)
+
+  ;; Fixture to manage the browser instance
+  (use-fixtures :once w/with-browser-fixture)
+
+  (deftest admin-user-can-log-in
+    (testing "An existing admin user can successfully log in and see the admin panel."
+      ;; 1. Setup: Create the test user in the DB
+      (th/create-user! db/*conn* {:user/email "admin@example.com" :user/role :admin})
+
+      (w/with-page (w/new-page @w/browser)
+        (login-page/goto)
+        (login-page/login-as "admin@example.com" "password123")
+
+        ;; 2. Assert: Check for UI changes
+        (is (w/visible? "text=Admin Dashboard"))
+
+        ;; 3. (Optional) Assert: Check for DB/session state changes
+        ;; ...
+        )))
+  #+end_src
+
+  Your approach is solid. By adding fixtures for lifecycle management and helper namespaces for data and UI interactions, you will create a powerful and maintainable test suite.
 ** TODO Fix [Login as] button in users list
    :LOGBOOK:
    - State "TODO"       from              [2025-08-05 Tue 12:30]
@@ -193,7 +446,6 @@ I need fake login to quickly login several users for testing purposes on localho
 *** Pages
  - https://github.com/pfeodrippe/wally
  - https://playwright.dev/docs/intro
-
 
 ** WORKING nginx issues & correct config
    :LOGBOOK:
@@ -580,3 +832,298 @@ https://github.com/weavejester/ring-oauth2
 - [ ] gitlab/github CI?
 - [ ] manage/search users - commented out for now
 - [ ] auto add team to selected list for user after creation via modal
+
+** Running Tests
+
+This project includes several types of tests that can be run individually or together.
+
+*** Standard Unit Tests
+
+Run all unit tests (non-UI) using the standard test alias:
+#+begin_src bash
+# Run all unit tests
+clj -M:test
+
+# Run specific test namespace
+clj -M:test -n my-app.core-test
+
+# Run tests matching a pattern
+clj -M:test -v my-app.db-test/create-user-test
+#+end_src
+
+*** Watch Mode Tests
+
+For continuous testing during development, use the test-watch alias:
+#+begin_src bash
+# Run tests in watch mode (reruns on file changes)
+clj -M:test-watch
+#+end_src
+
+*** UI Tests (Playwright/Wally)
+
+UI tests use Playwright through the Wally wrapper for browser automation:
+
+#+begin_src bash
+# Run all UI tests (headless browser mode)
+clj -M:test-ui
+
+# Run specific UI test namespace
+clj -M:test-ui -n ok.hola-tact-meet.fake-login-test-page
+
+# Run specific UI test namespace (admin tests)
+clj -M:test-ui -n ok.hola-tact-meet.admin-users-page-test
+#+end_src
+
+**** UI Test Requirements
+- Requires a running test server on port 8082 (started automatically by test fixtures)
+- Uses in-memory Datomic database for isolation
+- Runs in headless browser mode for CI/CD compatibility
+- Each test starts with a clean database state
+
+**** Individual UI Test Examples
+
+#+begin_src bash
+# Test fake login functionality
+clj -M:test-ui -n ok.hola-tact-meet.fake-login-test-page
+
+# Test admin user management
+clj -M:test-ui -n ok.hola-tact-meet.admin-users-page-test
+
+# Test basic UI navigation
+clj -M:test-ui -n ok.hola-tact-meet.basic-ui-test
+#+end_src
+
+**** Running Individual Test Functions
+
+You can also run specific test functions using the -v flag:
+#+begin_src bash
+# Run a specific test function
+clj -M:test-ui -v ok.hola-tact-meet.fake-login-test-page/create-fake-admin-user-test
+
+# Run multiple specific tests
+clj -M:test-ui -v ok.hola-tact-meet.fake-login-test-page/create-fake-admin-user-test \
+                   ok.hola-tact-meet.fake-login-test-page/create-fake-staff-user-test
+#+end_src
+
+*** Test Development Workflow
+
+**** Interactive Testing in REPL
+For developing and debugging tests, use CIDER in Emacs:
+
+1. Start REPL with the appropriate alias:
+   - For unit tests: =cider-jack-in= with =clj -M:dev=
+   - For UI tests: =cider-jack-in= with =clj -M:dev= (includes Wally dependencies)
+
+2. Evaluate test functions interactively using the comment blocks in test files
+
+3. Use the helper functions in =common.clj= for test setup:
+   #+begin_src clojure
+   ;; Start test server
+   (common/start-test-server!)
+
+   ;; Navigate to page (browser starts automatically)
+   (navigate-to-fake-login-page)
+
+   ;; Test interactions
+   (get-page-title)
+
+   ;; Clean up
+   (common/stop-test-server!)
+   #+end_src
+
+**** Test Server Management
+UI tests automatically manage a test server on port 8082:
+- Uses in-memory Datomic database (=memory://test-meetings=)
+- Fresh database for each test run
+- Server starts automatically when needed
+- Uses Aero test profile for configuration
+
+**** Debugging Failed Tests
+When UI tests fail:
+1. Check if the test server is running correctly
+2. Verify page elements exist (selectors might have changed)
+3. Use REPL for interactive debugging with the comment blocks
+4. Check browser console for JavaScript errors (when testing in non-headless mode)
+
+** How to use Wally selectors
+
+Wally is a Clojure Playwright wrapper for browser automation testing. It provides multiple ways to select and interact with web elements.
+
+*** Core API Functions
+
+**** Navigation & Interaction
+#+begin_src clojure
+;; Basic navigation and interaction
+(w/navigate "http://localhost:8081")       ; Navigate to URL
+(w/click selector)                         ; Click element
+(w/fill selector "text")                   ; Fill form field
+(w/keyboard-press "Enter")                 ; Simulate keyboard press
+
+;; Browser session management
+;; Browser starts automatically on first Wally command (e.g., w/navigate)
+;; Browser lifecycle is managed automatically by Playwright
+#+end_src
+
+**** Element Querying
+#+begin_src clojure
+;; Query elements
+(w/-query selector)                        ; Find single element
+(w/is-visible? selector)                   ; Check visibility
+(w/get-page)                              ; Get Playwright page object
+
+;; Get element content
+(.textContent (w/-query "h1.title"))      ; Get text content
+#+end_src
+
+*** Selector Types
+
+**** 1. String Selectors (CSS)
+Most straightforward for simple selections:
+#+begin_src clojure
+;; CSS selectors
+(w/-query "h1.title")                     ; Class selector
+(w/-query "#user-table")                  ; ID selector
+(w/-query "tbody tr")                     ; Element selector
+(w/-query "td:nth-child(3)")             ; Pseudo selector
+(w/-query "button.is-danger")            ; Combined selectors
+(w/-query "a[href*='teams']")            ; Attribute selector
+#+end_src
+
+**** 2. Wally Selectors (ws/)
+Special selectors for text-based matching:
+#+begin_src clojure
+(require '[wally.selectors :as ws])
+
+;; Text-based selection (must use vector syntax)
+(w/-query [(ws/text "Copy")])                    ; Find by text content
+(w/-query [(ws/text "Manage Users")])            ; Find by exact text
+(w/-query [(ws/text "Copy") (ws/nth= "1")])     ; Combined: text + nth occurrence
+
+;; Common pattern from wally-example
+(w/click [(ws/text "Copy") (ws/nth= "1")])
+#+end_src
+
+**** 3. Garden Selectors (s/)
+For more complex programmatic selector building:
+#+begin_src clojure
+(require '[garden.selectors :as s])
+
+;; Attribute-based selection
+(w/click (s/a (s/attr= :href "/login/fake")))    ; Link by href attribute
+(w/fill (s/input (s/attr= :type "email")))      ; Input by type
+
+;; Programmatic selector building
+(s/div (s/class :column))                        ; div.column
+(s/h1 (s/class :title))                         ; h1.title
+#+end_src
+
+*** Testing Patterns
+
+**** Page Object Model Example
+#+begin_src clojure
+;; Define page interactions as functions
+(defn navigate-to-users-page []
+  (w/navigate (str APP_URL "admin/manage-users")))
+
+(defn get-page-title []
+  (.textContent (w/-query "h1.title")))
+
+(defn get-first-user-email []
+  (.textContent (w/-query "tbody tr td:nth-child(2)")))
+
+(defn click-first-user-toggle []
+  (w/click "tbody tr button"))
+#+end_src
+
+**** REPL-Driven Development
+#+begin_src clojure
+(comment
+  ;; Interactive development workflow
+
+  ;; 1. Start browser
+  (w/start-browser!)
+
+  ;; 2. Navigate and setup
+  (w/navigate "http://localhost:8081")
+  (w/click (s/a (s/attr= :href "/login/fake")))
+
+  ;; 3. Test selectors interactively
+  (w/-query "h1.title")                    ; Find element
+  (.textContent (w/-query "h1.title"))     ; Get text
+  (w/is-visible? "table.table")           ; Check visibility
+
+  ;; 4. Test interactions
+  (w/click "button.button")
+  (w/fill "#search" "test query")
+
+  ;; 5. Clean up
+  (w/stop-browser!)
+  )
+#+end_src
+
+**** Common Gotchas & Solutions
+
+***** Issue: Function not found errors
+#+begin_src clojure
+;; ❌ WRONG - These functions don't exist
+(w/get-text "selector")         ; No such function
+(w/-query-all "selector")       ; No such function
+(w/-query-from element "sel")   ; No such function
+
+;; ✅ CORRECT - Use these instead
+(.textContent (w/-query "selector"))              ; Get text
+(w/-query "selector")                            ; Get first element
+(w/-query "parent-sel child-sel")               ; Query within element
+#+end_src
+
+***** Issue: Selector syntax errors
+#+begin_src clojure
+;; ❌ WRONG - Wally selectors need vector syntax
+(w/-query (ws/text "Copy"))
+
+;; ✅ CORRECT - Use vector for wally selectors
+(w/-query [(ws/text "Copy")])
+
+;; ❌ WRONG - Garden selectors in vectors
+(w/-query [(s/a (s/attr= :href "/login"))])
+
+;; ✅ CORRECT - Garden selectors direct
+(w/click (s/a (s/attr= :href "/login")))
+#+end_src
+
+***** Issue: Element not found
+#+begin_src clojure
+;; Add visibility checks and waits
+(when (w/is-visible? "table.table")
+  (w/click "tbody tr button"))
+
+;; Use more specific selectors
+(w/-query "div.modal.is-active")          ; More specific
+(w/-query ".modal")                       ; Less specific
+#+end_src
+
+*** Example: Complete Admin Users Test
+#+begin_src clojure
+(deftest ^:ui admin-users-page-test
+  (testing "Admin users page functionality"
+    (w/with-browser
+      ;; Login
+      (w/navigate APP_URL)
+      (w/click (s/a (s/attr= :href "/login/fake")))
+
+      ;; Navigate to admin page
+      (w/navigate (str APP_URL "admin/manage-users"))
+
+      ;; Verify page loaded
+      (is (= "Manage Users" (.textContent (w/-query "h1.title"))))
+      (is (w/is-visible? "table.table"))
+
+      ;; Test user data
+      (let [first-user-email (.textContent (w/-query "tbody tr td:nth-child(2)"))]
+        (is (clojure.string/includes? first-user-email "@")))
+
+      ;; Test interactions
+      (w/click "tbody tr button")           ; Click toggle
+      (w/click [(ws/text "Manage Teams")])  ; Click by text
+      )))
+#+end_src

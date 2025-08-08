@@ -15,7 +15,7 @@
  :sentry/dsn #or [#env SENTRY_DSN nil]
  :sentry/environment #or [#env SENTRY_ENVIRONMENT "development"]
  :sentry/enabled #or [#env SENTRY_ENABLED false]
- :datomic/system #or [#env DATOMIC_SYSTEM "dev"]
- :datomic/db-name #or [#env DATOMIC_DB_NAME "meetings"]
- :server/port #or [#env PORT 8081]
+ :datomic/system #or [#env DATOMIC_SYSTEM #profile {:dev "dev" :test "test"}]
+ :datomic/db-name #or [#env DATOMIC_DB_NAME #profile {:dev "meetings" :test "memory://test-meetings"}] 
+ :server/port #or [#env PORT #profile {:dev 8081 :test 8082} 8081]
 }

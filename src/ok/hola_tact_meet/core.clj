@@ -120,15 +120,29 @@
              {:port port}))))
 
 (def nrepl-port 7889)
+(def test-nrepl-port 7890)
 
 (defn start-nrepl []
   (log/info "Starting nrepl-server on port:" nrepl-port)
   (nrepl-server/start-server :port nrepl-port :handler cider-nrepl-handler))
 
+(defn start-test-nrepl []
+  (log/info "Starting test nrepl-server on port:" test-nrepl-port)
+  (nrepl-server/start-server :port test-nrepl-port :handler cider-nrepl-handler))
+
 (defn run [& _args]
   (start!))
 
-(defn -main [& _args]
-  (start!)
-  (selmer/cache-off!)
-  (start-nrepl))
+(defn -main [& args]
+  (if (= "test" (first args))
+    (do
+      (println "Starting server in TEST mode with test profile")
+      ;; Set the profile for Aero configuration
+      (System/setProperty "aero.profile" "test")
+      (start!)
+      (start-test-nrepl)
+      (selmer/cache-off!))
+    (do
+      (start!)
+      (selmer/cache-off!)  ;; FIXME this should not be done on production!
+      (start-nrepl))))

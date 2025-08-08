@@ -15,19 +15,24 @@
 
 (defn ensure-database-exists!
   "Create the database if it doesn't exist"
-  []
-  (let [config (utils/app-config)
-        db-name (:datomic/db-name config)
-        client (get-client)]
+  [db-name]
+  (let [client (get-client)]
     (d/create-database client {:db-name db-name})))
+
+;; Generate unique DB name once per JVM startup for memory databases
+(defonce unique-db-suffix (System/currentTimeMillis))
 
 (defn get-connection
   "Get connection to the database, creating it if necessary"
   []
   (let [config (utils/app-config)
-        db-name (:datomic/db-name config)
+        base-db-name (:datomic/db-name config)
+        ;; For memory databases, add unique suffix to avoid lock conflicts
+        db-name (if (.startsWith base-db-name "memory://")
+                  (str base-db-name "-" unique-db-suffix)
+                  base-db-name)
         client (get-client)]
-    (ensure-database-exists!)
+    (ensure-database-exists! db-name)
     (d/connect client {:db-name db-name})))
 
 

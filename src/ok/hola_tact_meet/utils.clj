@@ -9,7 +9,10 @@
   (:gen-class))
 
 (defn app-config []
-  (read-config (clojure.java.io/resource "config.edn")))
+  (let [profile (System/getProperty "aero.profile")]
+    (if profile
+      (read-config (clojure.java.io/resource "config.edn") {:profile (keyword profile)})
+      (read-config (clojure.java.io/resource "config.edn")))))
 
 (defn configure-logging!
   "Configure SLF4J Simple logging based on config.edn log level
