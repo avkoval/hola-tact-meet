@@ -23,52 +23,66 @@
 
 (defn create-test-admin-user
   "Create a test admin user in the database and return the user ID"
-  []
-  (let [test-admin {:email "test-admin@example.com"
-                    :name "Test Admin"
-                    :given-name "Test"
-                    :family-name "Admin"
-                    :access-level "admin"
-                    :active true
-                    :auth-provider "fake"}]
-    (try
-      (db/create-user test-admin)
-      (catch Exception e
-        ;; User might already exist, find existing user
-        (println "Admin user already exists or creation failed:" (.getMessage e))
-        (db/find-user-by-email "test-admin@example.com")))))
+  ([] (create-test-admin-user ""))
+  ([suffix]
+   (let [email (str "test-admin" suffix "@example.com")
+         test-admin {:email email
+                     :name (str "Test Admin" suffix)
+                     :given-name "Test"
+                     :family-name (str "Admin" suffix)
+                     :access-level "admin"
+                     :active true
+                     :auth-provider "fake"}]
+     (try
+       (db/create-user test-admin)
+       (catch Exception e
+         ;; User might already exist, find existing user
+         (println "Admin user already exists or creation failed:" (.getMessage e))
+         (db/find-user-by-email email))))))
 
 (defn create-test-staff-user
   "Create a test staff user in the database and return the user ID"
-  []
-  (let [test-staff {:email "test-staff@example.com"
-                    :name "Test Staff"
-                    :given-name "Test"
-                    :family-name "Staff"
-                    :access-level "staff"
-                    :active true
-                    :auth-provider "fake"}]
-    (try
-      (db/create-user test-staff)
-      (catch Exception e
-        (println "Staff user already exists or creation failed:" (.getMessage e))
-        (db/find-user-by-email "test-staff@example.com")))))
+  ([] (create-test-staff-user ""))
+  ([suffix]
+   (let [email (str "test-staff" suffix "@example.com")
+         test-staff {:email email
+                     :name (str "Test Staff" suffix)
+                     :given-name "Test"
+                     :family-name (str "Staff" suffix)
+                     :access-level "staff"
+                     :active true
+                     :auth-provider "fake"}]
+     (try
+       (let [user-id (db/create-user test-staff)]
+         (println "Created staff user with ID:" user-id)
+         user-id)
+       (catch Exception e
+         (println "Staff user creation failed, trying to find existing:" (.getMessage e))
+         (let [existing-user-id (db/find-user-by-email email)]
+           (println "Found existing staff user with ID:" existing-user-id)
+           existing-user-id))))))
 
 (defn create-test-regular-user
   "Create a test regular user in the database and return the user ID"
-  []
-  (let [test-user {:email "test-user@example.com"
-                   :name "Test User"
-                   :given-name "Test"
-                   :family-name "User"
-                   :access-level "user"
-                   :active true
-                   :auth-provider "fake"}]
-    (try
-      (db/create-user test-user)
-      (catch Exception e
-        (println "Regular user already exists or creation failed:" (.getMessage e))
-        (db/find-user-by-email "test-user@example.com")))))
+  ([] (create-test-regular-user ""))
+  ([suffix]
+   (let [email (str "test-user" suffix "@example.com")
+         test-user {:email email
+                    :name (str "Test User" suffix)
+                    :given-name "Test"
+                    :family-name (str "User" suffix)
+                    :access-level "user"
+                    :active true
+                    :auth-provider "fake"}]
+     (try
+       (let [user-id (db/create-user test-user)]
+         (println "Created regular user with ID:" user-id)
+         user-id)
+       (catch Exception e
+         (println "Regular user creation failed, trying to find existing:" (.getMessage e))
+         (let [existing-user-id (db/find-user-by-email email)]
+           (println "Found existing regular user with ID:" existing-user-id)
+           existing-user-id))))))
 
 (defn setup-test-users
   "Setup a full set of test users for comprehensive testing
@@ -77,6 +91,61 @@
   {:admin (create-test-admin-user)
    :staff (create-test-staff-user)
    :user (create-test-regular-user)})
+
+(defn create-test-team
+  "Create a test team in the database and return the team ID.
+   If team already exists, returns existing team ID - perfect for REPL usage."
+  ([] (create-test-team ""))
+  ([suffix]
+   (let [team-name (str "Test Team" suffix)]
+     ;; First check if team already exists
+     (if-let [existing-team-id (db/find-team-by-name team-name)]
+       (do
+         (println "Found existing team" team-name "with ID:" existing-team-id)
+         existing-team-id)
+       ;; Team doesn't exist, create it
+       (let [team-data {:name team-name
+                        :description (str "Test team for UI testing" suffix)
+                        :managers []}]
+         (try
+           (let [result (db/create-team-with-validation! team-data)]
+             (if (:success result)
+               (do
+                 (println "Created new team" team-name "with ID:" (:team-id result))
+                 (:team-id result))
+               (do
+                 (println "Team creation failed:" (:error result))
+                 nil)))
+           (catch Exception e
+             (println "Team creation failed:" (.getMessage e))
+             nil)))))))
+
+(defn verify-user-team-membership
+  "Verify user is member of specific team. REPL-friendly."
+  [user-id team-id]
+  (let [user-data (db/get-user-by-id user-id)
+        user-teams (:user/teams user-data)
+        team-ids (map :db/id user-teams)
+        is-member (some #(= team-id %) team-ids)]
+    (println "User" user-id "teams:" team-ids)
+    (println "Checking membership in team:" team-id)
+    (println "Is member:" is-member)
+    is-member))
+
+(defn add-user-to-team
+  "Add user to team for testing purposes"
+  [user-id team-id]
+  (println "Adding user" user-id "to team" team-id)
+  (try
+    (let [result (db/add-user-to-teams! user-id [team-id])]
+      (println "Add user to team result:" result)
+      ;; Verify the assignment worked
+      (verify-user-team-membership user-id team-id)
+      result)
+    (catch Exception e
+      (println "Adding user to team failed:" (.getMessage e))
+      (println "Stack trace:" (.printStackTrace e))
+      nil)))
 
 (defn clean-test-database
   "Clean the test database - Now using in-memory database for true isolation.
@@ -151,6 +220,32 @@
   (wait-for-page-load selector))
 
 ;; =============================================================================
+;; BROWSER MANAGEMENT FOR REPL/TEST COORDINATION
+;; =============================================================================
+
+(defn pause-repl-browser!
+  "Temporarily close REPL browser to allow test runner to use Playwright.
+   Use this when you want to run clj -M:test-ui while keeping REPL active."
+  []
+  (try
+    (println "Pausing REPL browser to allow test runner...")
+    (let [current-page (w/get-page)]
+      (.close (.context current-page)))
+    (println "✅ REPL browser closed. You can now run: clj -M:test-ui")
+    (catch Exception e
+      (println "Browser was already closed or not initialized"))))
+
+(defn resume-repl-browser!
+  "Resume REPL browser after tests complete by resetting wally's internal state."
+  []
+  (println "Resuming REPL browser...")
+  ;; Reset wally's internal page state to force new browser creation
+  (alter-var-root #'w/*page* (constantly (delay (w/make-page))))
+  ;; Now navigate to restart the browser
+  (w/navigate (str APP_URL "login/fake"))
+  (println "✅ REPL browser restarted"))
+
+;; =============================================================================
 ;; TEST SERVER MANAGEMENT
 ;; =============================================================================
 
@@ -180,7 +275,9 @@
   []
   (when @test-server-process
     (println "Stopping test server...")
-    (.destroy @test-server-process)
+    ;; For HTTP server, call the server stop function
+    (when (fn? @test-server-process)
+      (@test-server-process))
     (reset! test-server-process nil)
     (Thread/sleep 1000)
     (println "Test server stopped!")))
@@ -201,21 +298,17 @@
   (if (server-already-running?)
     (println "✅ Test server already running on port" TEST_PORT "- using existing server")
     (when-not @test-server-process
-      (println "Starting test server with Aero test profile...")
-      (let [process (-> (ProcessBuilder. ["clj" "-M:test-server"])
-                        (.directory (java.io.File. "."))
-                        (.redirectOutput java.lang.ProcessBuilder$Redirect/INHERIT)
-                        (.redirectError java.lang.ProcessBuilder$Redirect/INHERIT)
-                        (.start))]
-        (reset! test-server-process process)
-        ;; Wait for server to be ready
-        (println "Waiting for test server to be ready...")
-        (if (wait-for-server-ready TEST_PORT 15)
-          (println "✅ Test server started and ready!")
-          (do
-            (println "❌ Failed to start test server")
-            (stop-test-server!)
-            (throw (Exception. "Test server failed to start"))))))))
+      (println "Starting test server in same JVM with test profile...")
+      (try
+        ;; Import core namespace functions
+        (require '[ok.hola-tact-meet.core :as core])
+        ;; Start the server in the current JVM (shares database)
+        (reset! test-server-process ((resolve 'ok.hola-tact-meet.core/start!)))
+        (println "✅ Test server started in same JVM and ready!")
+        (catch Exception e
+          (println "❌ Failed to start test server:" (.getMessage e))
+          (reset! test-server-process nil)
+          (throw e))))))
 
 (defn restart-test-server!
   "Restart the test server"

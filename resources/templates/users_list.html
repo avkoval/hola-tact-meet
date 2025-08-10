@@ -1,6 +1,6 @@
 <tbody id="users-list">
   {% for user in users %}
-    <tr>
+    <tr id="row-{{ user.id }}">
       <td>
         <div class="media">
           <div class="media-left">
@@ -86,12 +86,12 @@
           {% endif %}
 
           {% if user.active %}
-            <button class="button is-link">
+            <a href="/access/login-as/{{ user.id }}" class="button is-link">
               <span class="icon is-small">
                 <i class="fas fa-user-secret"></i>
               </span>
               <span>Login as</span>
-            </button>
+            </a>
           {% endif %}
 
           

@@ -63,10 +63,14 @@
             :jvm-opts ["-DPLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0"
                        "-Djava.util.logging.level=SEVERE"
                        "-Dwally.headless=true"
-                       "-Dwally.user-data-dir=/tmp/wally-test-ui"]}
+                       "-Dwally.browser=firefox"
+                       "-Dwally.user-data-dir=/tmp/wally-test-ui-firefox"]}
 
   :test-server {:extra-paths ["src" "resources" "test-ui"]
                 :extra-deps {io.github.pfeodrippe/wally {:mvn/version "0.0.4"}}
                 :main-opts ["-m" "ok.hola-tact-meet.core" "test"
                             "--middleware" "[cider.nrepl/cider-middleware]"]
-                :jvm-opts ["-Dorg.slf4j.simpleLogger.defaultLogLevel=info"]}}}
+                :jvm-opts ["-Dorg.slf4j.simpleLogger.defaultLogLevel=info"
+                           "-Dwally.user-data-dir=/tmp/wally-repl-dev"
+                           "-Dwally.remote-debugging-port=9222"
+                           "-Dwally.headless=false"]}}}

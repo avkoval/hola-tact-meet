@@ -1220,3 +1220,25 @@
 (defn logout [_]
   (-> (response/redirect "/")
       (assoc :session {})))
+
+(defn admin-login-as-user
+  "Allow admin to login as another user"
+  [{{user-id :user-id} :path-params session :session :as request}]
+  (let [user-id (parse-long user-id)]
+    (if-let [target-user (db/get-user-by-id user-id)]
+      (let [new-userinfo {:logged-in true
+                          :user-id user-id
+                          :email (:user/email target-user)
+                          :name (:user/name target-user)
+                          :given-name (:user/given-name target-user)
+                          :family-name (:user/family-name target-user)
+                          :access-level (:user/access-level target-user)
+                          :picture (:user/picture target-user)
+                          :auth-provider (:user/auth-provider target-user)}
+            updated-session (assoc session :userinfo new-userinfo)]
+        (log/info "Admin login-as: User" user-id "(" (:user/email target-user) ")")
+        (-> (response/redirect "/app")
+            (assoc :session updated-session)))
+      {:status 404
+       :headers {"Content-Type" "text/plain"}
+       :body "User not found"})))

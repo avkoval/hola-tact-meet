@@ -265,8 +265,10 @@
         ;; Create the team
         (let [;; Validate that manager IDs exist in database
               valid-managers (validate-user-ids managers)
-              ;; Create transaction data
-              team-tx-data (cond-> {:team/name name
+              ;; Create transaction data with temp ID
+              temp-id "new-team"
+              team-tx-data (cond-> {:db/id temp-id
+                                   :team/name name
                                    :team/description (or description "")
                                    :team/created-at (java.util.Date.)}
                              (seq valid-managers) (assoc :team/managers valid-managers)
@@ -275,7 +277,7 @@
                              (assoc :team/auto-domains (clojure.string/trim auto-domains)))
               _ (log/debug "Team transaction data:" team-tx-data)
               result (d/transact (get-conn) {:tx-data [team-tx-data]})
-              team-id (get-in result [:tempids (first (keys (:tempids result)))])]
+              team-id (get-in result [:tempids temp-id])]
           (log/debug "Team created with ID:" team-id)
           {:success true :team-id team-id}))
 
@@ -383,24 +385,26 @@
         user-team-ids (mapv first user-teams-result)]
     (if (seq user-team-ids)
       ;; Get meetings for user's teams, sorted by created-at desc, limit 3
-      (let [meetings-result (d/q '[:find ?meeting ?title ?created-at ?created-by-name
+      (let [meetings-result (d/q '[:find ?meeting ?title ?created-at ?created-by-name ?description
                                   :in $ [?team-id ...]
                                   :where
                                   [?meeting :meeting/team ?team-id]
                                   [?meeting :meeting/title ?title]
                                   [?meeting :meeting/created-at ?created-at]
                                   [?meeting :meeting/created-by ?created-by]
-                                  [?created-by :user/name ?created-by-name]]
+                                  [?created-by :user/name ?created-by-name]
+                                  [?meeting :meeting/description ?description]]
                                 db user-team-ids)
             ;; Sort by created-at desc and take first 3
             sorted-meetings (->> meetings-result
                                (sort-by #(nth % 2) #(compare %2 %1))
                                (take 3))]
-        (mapv (fn [[meeting-id title created-at created-by-name]]
+        (mapv (fn [[meeting-id title created-at created-by-name description]]
                 {:id meeting-id
                  :title title
                  :created-at created-at
-                 :created-by-name created-by-name})
+                 :created-by-name created-by-name
+                 :description description})
               sorted-meetings))
       [])))
 

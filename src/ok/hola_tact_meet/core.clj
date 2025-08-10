@@ -66,6 +66,7 @@
      ["/admin/manage-users/:user/teams/add" {:post (middleware/wrap-require-admin views/admin-user-teams-add)}]
      ["/change-css-theme" {:get views/change-css-theme}]
      ["/logout" {:get views/logout}]
+     ["/access/login-as/:user-id" {:get (middleware/wrap-require-admin views/admin-login-as-user)}]
      ["/meeting/join" {:get (middleware/wrap-require-auth views/join-meeting-modal)}]
      ["/meeting/:meeting-id/join" {:post (middleware/wrap-require-auth views/join-meeting)}]
      ["/meeting/:meeting-id/start" {:post (middleware/wrap-require-staff views/meeting-start)}]
