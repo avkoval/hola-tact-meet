@@ -385,26 +385,27 @@
         user-team-ids (mapv first user-teams-result)]
     (if (seq user-team-ids)
       ;; Get meetings for user's teams, sorted by created-at desc, limit 3
-      (let [meetings-result (d/q '[:find ?meeting ?title ?created-at ?created-by-name ?description
+      (let [meetings-result (d/q '[:find ?meeting ?title ?created-at ?created-by-name
                                   :in $ [?team-id ...]
                                   :where
                                   [?meeting :meeting/team ?team-id]
                                   [?meeting :meeting/title ?title]
                                   [?meeting :meeting/created-at ?created-at]
                                   [?meeting :meeting/created-by ?created-by]
-                                  [?created-by :user/name ?created-by-name]
-                                  [?meeting :meeting/description ?description]]
+                                  [?created-by :user/name ?created-by-name]]
                                 db user-team-ids)
             ;; Sort by created-at desc and take first 3
             sorted-meetings (->> meetings-result
                                (sort-by #(nth % 2) #(compare %2 %1))
                                (take 3))]
-        (mapv (fn [[meeting-id title created-at created-by-name description]]
-                {:id meeting-id
-                 :title title
-                 :created-at created-at
-                 :created-by-name created-by-name
-                 :description description})
+        (mapv (fn [[meeting-id title created-at created-by-name]]
+                (let [;; Use d/pull to safely get optional attributes
+                      meeting-data (d/pull (get-db) [:meeting/description] meeting-id)]
+                  {:id meeting-id
+                   :title title
+                   :created-at created-at
+                   :created-by-name created-by-name
+                   :description (:meeting/description meeting-data)}))
               sorted-meetings))
       [])))
 

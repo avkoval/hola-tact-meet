@@ -99,7 +99,7 @@
                        :cookie-attrs {:http-only true}
                        })
         middleware/wrap-request-logging
-        middleware/wrap-exception-handling
+        ;; middleware/wrap-exception-handling
         wrap-cookies
         wrap-forwarded-remote-addr
         middleware/wrap-force-https
@@ -144,6 +144,10 @@
       (start-test-nrepl)
       (selmer/cache-off!))
     (do
+      ;; Set dev profile if no profile is already set
+      (when-not (System/getProperty "aero.profile")
+        (println "Starting server in DEV mode with dev profile")
+        (System/setProperty "aero.profile" "dev"))
       (start!)
       (selmer/cache-off!)  ;; FIXME this should not be done on production!
       (start-nrepl))))

@@ -244,9 +244,6 @@
   ;; Click on radio button for current level
   (w/click (str "input[name='access-level-" repl-user-id "'][value='" current-level "']"))
 
-  ;; Wait for update
-  (Thread/sleep 200)
-
   ;; Verify UI selection
   (w/-query (str "input[name='access-level-" repl-user-id "'][value='" current-level "']:checked"))
 
