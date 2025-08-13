@@ -100,7 +100,7 @@
       - PDF
       - Directly to Confluence via API (if API is enabled)
 
-* COMMENT Current work plan & progress [35%]
+* COMMENT Current work plan & progress [33%]
 
 ** DONE Set appropriate License
    CLOSED: [2025-06-15 Sun 21:30]
@@ -177,6 +177,41 @@ I need fake login to quickly login several users for testing purposes on localho
 - [X] save data
 - [X] for staff user - limit teams to member only
   - [X] for admin user - no limits
+
+** Next stage (before friday)
+*** DONE Make sure meetings are displayed for today
+    CLOSED: [2025-08-13 Wed 08:30]
+    :LOGBOOK:
+    - State "DONE"       from "REJECTED"   [2025-08-13 Wed 08:30]
+    - State "REJECTED"   from "DONE"       [2025-08-13 Wed 08:30]
+    - State "DONE"       from "TODO"       [2025-08-13 Wed 08:30]
+    CLOCK: [2025-08-13 Wed 08:29]--[2025-08-13 Wed 08:29] =>  0:00
+    - State "TODO"       from              [2025-08-11 Mon 19:40]
+    :END:
+
+ ... No such problem as we display all 'active' meetings!
+
+*** TODO Finish playwright tests for the meeting screen
+    :LOGBOOK:
+    CLOCK: [2025-08-13 Wed 08:35]
+    - State "TODO"       from              [2025-08-11 Mon 19:40]
+    :END:
+
+**** Prepare data
+
+***** TODO Make sure one active meeting per user exists
+      :LOGBOOK:
+      - State "TODO"       from              [2025-08-13 Wed 08:35]
+      :END:
+
+***** 
+
+** TODO Small bugs to fix from [2025-08-13 Wed] [0/1]
+   :LOGBOOK:
+   - State "TODO"       from              [2025-08-13 Wed 08:40]
+   :END:
+
+ - [ ] delete topic - ask confirmation
 
 ** TODO Wally as UI tests of separate components
    :LOGBOOK:
