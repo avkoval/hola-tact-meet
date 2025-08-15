@@ -193,7 +193,7 @@ I need fake login to quickly login several users for testing purposes on localho
 
 *** TODO Finish playwright tests for the meeting screen
     :LOGBOOK:
-    CLOCK: [2025-08-13 Wed 08:35]
+    CLOCK: [2025-08-13 Wed 08:35]--[2025-08-13 Wed 09:00] =>  0:25
     - State "TODO"       from              [2025-08-11 Mon 19:40]
     :END:
 
