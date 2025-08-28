@@ -1072,6 +1072,19 @@
     (when (or (seq user-action-result) (seq team-action-result))
       (get-action-by-id action-id))))
 
+(defn find-meeting-by-title
+  "Find existing meeting by title, returns meeting ID or nil"
+  [meeting-title]
+  (let [db (get-db)
+        result (d/q '[:find ?e
+                      :in $ ?title
+                      :where
+                      [?e :meeting/title ?title]
+                      [?e :meeting/status ?status]
+                      [(not= ?status "finished")]]
+                    db meeting-title)]
+    (ffirst result)))
+
 (defn update-action-status!
   "Update action status (complete or reject) with completion notes"
   [action-id status completion-notes]

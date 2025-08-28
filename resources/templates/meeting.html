@@ -1,5 +1,7 @@
 {% extends "templates/app.html" %}
 
+{% block page-title %}{{ block.super }} / {{ meeting.meeting/title }}{% endblock %}
+
 {% block current-breadcrumb %}
 <li><a href="/app">Meetings</a></li>
 <li class="is-active"><a href="#" aria-current="page" style="color: #363636 !important; text-decoration: none; cursor: default;">{{ meeting.meeting/title }}</a></li>
