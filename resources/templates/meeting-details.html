@@ -1,0 +1,304 @@
+{% extends "templates/app.html" %}
+
+{% block current-breadcrumb %}
+  <li><a href="/app">Dashboard</a></li>
+  <li><a href="/meetings">Meetings</a></li>
+  <li class="is-active"><a href="/meeting/{{ meeting.db/id }}/details">{{ meeting.meeting/title }}</a></li>
+{% endblock %}
+
+{% block app_content %}
+
+  <section class="section">
+    <div class="container">
+      <div class="level">
+        <div class="level-left">
+          <div class="level-item">
+            <div>
+              <h1 class="title">{{ meeting.meeting/title }}</h1>
+              <p class="subtitle">
+                Meeting Details and Summary
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="level-right">
+          <div class="level-item">
+            <div class="buttons">
+              <a href="/meetings" class="button">
+                <span class="icon">
+                  <i class="fas fa-arrow-left"></i>
+                </span>
+                <span>Back to Meetings</span>
+              </a>
+              {% if meeting.meeting/join-url %}
+                <a href="{{ meeting.meeting/join-url }}" target="_blank" class="button is-primary">
+                  <span class="icon">
+                    <i class="fas fa-external-link-alt"></i>
+                  </span>
+                  <span>Join Meeting</span>
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-5">
+        <header class="card-header">
+          <div class="card-header-title is-flex is-justify-content-space-between" style="width: 100%;">
+            <div>
+              <div class="tags">
+                <span class="tag is-primary">{{ meeting.meeting/team.team/name }}</span>
+                <span class="tag {% if meeting.meeting/status = "finished" %}is-success{% elif meeting.meeting/status = "started" %}is-warning{% else %}is-info{% endif %}">
+                  {% if meeting.meeting/status = "finished" %}
+                    Finished
+                  {% elif meeting.meeting/status = "started" %}
+                    In Progress
+                  {% elif meeting.meeting/status = "scheduled" %}
+                    Scheduled
+                  {% else %}
+                    {{ meeting.meeting/status|title }}
+                  {% endif %}
+                </span>
+                <span class="tag">{{ meeting.meeting/scheduled-at|date:"MMM d, yyyy 'at' h:mm a" }}</span>
+                {% if meeting.meeting/allow-topic-voting %}
+                  <span class="tag is-light">
+                    <span class="icon is-small">
+                      <i class="fas fa-vote-yea"></i>
+                    </span>
+                    <span>Voting Enabled</span>
+                  </span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="has-text-right">
+              <p class="has-text-grey is-size-7">Created by</p>
+              <p class="has-text-weight-semibold">{{ meeting.meeting/created-by.user/name }}</p>
+              <p class="has-text-grey is-size-7">{{ meeting.meeting/created-at|date:"MMM d, yyyy" }}</p>
+            </div>
+          </div>
+        </header>
+        
+        <div class="card-content">
+          {% if meeting.meeting/description %}
+            <div class="content mb-4">
+              <h4 class="title is-5">Description</h4>
+              <p>{{ meeting.meeting/description }}</p>
+            </div>
+          {% endif %}
+
+          {% if meeting.meeting/current-topic %}
+            <div class="notification is-info mb-4">
+              <h4 class="title is-5 has-text-white">
+                <span class="icon">
+                  <i class="fas fa-comment-dots"></i>
+                </span>
+                Current Topic
+              </h4>
+              <p class="has-text-white"><strong>{{ meeting.meeting/current-topic.topic/title }}</strong></p>
+              {% if meeting.meeting/current-topic.topic/discussion-notes %}
+                <div class="content has-text-white mt-3">
+                  <p>{{ meeting.meeting/current-topic.topic/discussion-notes }}</p>
+                </div>
+              {% endif %}
+              <p class="is-size-7 has-text-white-ter mt-2">
+                Created by {{ meeting.meeting/current-topic.topic/created-by.user/name }}
+                {% if meeting.meeting/current-topic.topic/finished-at %}
+                  • Finished on {{ meeting.meeting/current-topic.topic/finished-at|date:"MMM d, yyyy 'at' h:mm a" }}
+                {% endif %}
+              </p>
+            </div>
+          {% endif %}
+
+          <div class="columns">
+            <!-- Topics Column -->
+            <div class="column is-half">
+              <h3 class="title is-4">
+                <span class="icon has-text-info">
+                  <i class="fas fa-comments"></i>
+                </span>
+                Topics Discussed ({{ topics|length }})
+              </h3>
+              
+              {% if topics %}
+                {% for topic in topics %}
+                  <div class="box mb-4 {% if meeting.meeting/current-topic.db/id = topic.id %}has-background-dark{% elif topic.finished-at %}has-background-success-light{% endif %}">
+                    <div class="columns is-mobile is-gapless">
+                      <div class="column" style="min-width: 0;">
+                        <div style="overflow-wrap: break-word; word-wrap: break-word; word-break: break-word;">
+                          <h5 class="subtitle is-5 mb-2 {% if meeting.meeting/current-topic.db/id = topic.id %}has-text-white{% endif %}" style="overflow-wrap: break-word; word-wrap: break-word;">
+                            {% if topic.finished-at %}
+                              <span class="icon has-text-success">
+                                <i class="fas fa-check-circle"></i>
+                              </span>
+                            {% endif %}
+                            {{ topic.title }}
+                            {% if meeting.meeting/current-topic.db/id = topic.id %}
+                              <span class="tag is-warning is-small ml-2">Current</span>
+                            {% elif topic.finished-at %}
+                              <span class="tag is-success is-small ml-2">
+                                <span class="icon is-small">
+                                  <i class="fas fa-check"></i>
+                                </span>
+                                <span>Finished</span>
+                              </span>
+                            {% endif %}
+                          </h5>
+                          {% if topic.discussion-notes %}
+                            <div class="content {% if meeting.meeting/current-topic.db/id = topic.id %}has-text-white{% endif %}" style="overflow-wrap: break-word; word-wrap: break-word;">
+                              <p style="overflow-wrap: break-word; word-wrap: break-word;">{{ topic.discussion-notes }}</p>
+                            </div>
+                          {% endif %}
+                          <p class="is-size-7 {% if meeting.meeting/current-topic.db/id = topic.id %}has-text-light{% else %}has-text-grey{% endif %}" style="overflow-wrap: break-word; word-wrap: break-word;">
+                              By {{ topic.created-by-name }} • 
+                              Created {{ topic.created-at|date:"MMM d, h:mm a" }}
+                              {% if topic.finished-at %}
+                                • Finished {{ topic.finished-at|date:"MMM d, h:mm a" }}
+                              {% endif %}
+                              {% if meeting.meeting/allow-topic-voting %}
+                                •
+                                {% if topic.vote-score > 0 %}
+                                  <span class="has-text-success">+{{ topic.vote-score }}</span>
+                                {% elif topic.vote-score < 0 %}
+                                  <span class="has-text-danger">{{ topic.vote-score }}</span>
+                                {% else %}
+                                  <span>{{ topic.vote-score }}</span>
+                                {% endif %}
+                                votes
+                              {% endif %}
+                            </p>
+                        </div>
+                      </div>
+                      {% if meeting.meeting/allow-topic-voting %}
+                        <div class="column is-narrow">
+                          <div class="tags">
+                            <span class="tag is-small is-success is-light">
+                              <span class="icon is-small">
+                                <i class="fas fa-thumbs-up"></i>
+                              </span>
+                              <span>{{ topic.upvotes }}</span>
+                            </span>
+                            <span class="tag is-small is-danger is-light">
+                              <span class="icon is-small">
+                                <i class="fas fa-thumbs-down"></i>
+                              </span>
+                              <span>{{ topic.downvotes }}</span>
+                            </span>
+                          </div>
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="notification is-light">
+                  <p class="has-text-grey">
+                    <span class="icon">
+                      <i class="fas fa-info-circle"></i>
+                    </span>
+                    No topics were discussed in this meeting yet.
+                  </p>
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Actions Column -->
+            <div class="column is-half">
+              <h3 class="title is-4">
+                <span class="icon has-text-warning">
+                  <i class="fas fa-tasks"></i>
+                </span>
+                Action Items ({{ actions|length }})
+              </h3>
+              
+              {% if actions %}
+                {% for action in actions %}
+                  <div class="box mb-4">
+                    <div class="columns is-mobile is-gapless">
+                      <div class="column" style="min-width: 0;">
+                        <div style="overflow-wrap: break-word; word-wrap: break-word; word-break: break-word;">
+                          <h5 class="subtitle is-5 mb-2" style="overflow-wrap: break-word; word-wrap: break-word;">{{ action.description }}</h5>
+                          {% if action.completion-notes %}
+                            <div class="content" style="overflow-wrap: break-word; word-wrap: break-word;">
+                              <p style="overflow-wrap: break-word; word-wrap: break-word;"><strong>Notes:</strong> {{ action.completion-notes }}</p>
+                            </div>
+                          {% endif %}
+                          <p class="is-size-7 has-text-grey" style="overflow-wrap: break-word; word-wrap: break-word;">
+                            Assigned to: 
+                            {% if action.is-team-action %}
+                              <span class="tag is-info is-small">{{ action.assigned-to-team-name }}</span>
+                            {% else %}
+                              <span class="tag is-warning is-small">{{ action.assigned-to-user-name }}</span>
+                            {% endif %}
+                            {% if action.deadline %}
+                              <br>Due: {{ action.deadline|date:"MMM d, yyyy" }}
+                            {% endif %}
+                            <br>Added: {{ action.added-at|date:"MMM d, h:mm a" }}
+                          </p>
+                        </div>
+                      </div>
+                      <div class="column is-narrow">
+                          <div class="tags">
+                            {% if action.completed-at %}
+                              <span class="tag is-success">
+                                <span class="icon is-small">
+                                  <i class="fas fa-check"></i>
+                                </span>
+                                <span>Completed</span>
+                              </span>
+                              <span class="tag is-light is-small">{{ action.completed-at|date:"MMM d" }}</span>
+                            {% elif action.rejected-at %}
+                              <span class="tag is-danger">
+                                <span class="icon is-small">
+                                  <i class="fas fa-times"></i>
+                                </span>
+                                <span>Rejected</span>
+                              </span>
+                              <span class="tag is-light is-small">{{ action.rejected-at|date:"MMM d" }}</span>
+                            {% else %}
+                              <span class="tag is-warning">
+                                <span class="icon is-small">
+                                  <i class="fas fa-clock"></i>
+                                </span>
+                                <span>Pending</span>
+                              </span>
+                            {% endif %}
+                          </div>
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="notification is-light">
+                  <p class="has-text-grey">
+                    <span class="icon">
+                      <i class="fas fa-info-circle"></i>
+                    </span>
+                    No action items were created for this meeting yet.
+                  </p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Meeting Statistics -->
+          <div class="level mt-5 pt-4" style="border-top: 1px solid #dbdbdb;">
+            <div class="level-item has-text-centered">
+              <div>
+                <p class="heading">Total Topics</p>
+                <p class="title">{{ topics|length }}</p>
+              </div>
+            </div>
+            <div class="level-item has-text-centered">
+              <div>
+                <p class="heading">Action Items</p>
+                <p class="title">{{ actions|length }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+{% endblock %}
