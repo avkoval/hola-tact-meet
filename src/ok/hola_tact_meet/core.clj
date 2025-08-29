@@ -46,6 +46,7 @@
      ["/app" {:get (middleware/wrap-require-auth views/app-main)}]
      ["/app-landing" {:get views/app-landing}]
      ["/meetings" {:get (middleware/wrap-require-auth views/meetings-list)}]
+     ["/meeting/:meeting-id/details" {:get (middleware/wrap-require-auth views/meeting-details)}]
      ["/actions" {:get (middleware/wrap-require-auth views/my-actions)}]
      ["/test-session" {:get views/test-session}]
      ["/google-login" {:post views/google-login}]

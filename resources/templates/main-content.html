@@ -28,7 +28,7 @@
                   </span>
                   <span>Join Meeting {% if meetings-count > 0 %}({{ meetings-count }}){% endif %}</span>
                 </button>
-                <a class="button is-link is-fullwidth" {% ifequal meetings-count 0 %}disabled {% else %}href="/meetings"  {% endifequal %}>
+                <a class="button is-link is-fullwidth" {% ifequal recent-meetings-count 0 %}disabled {% else %}href="/meetings"  {% endifequal %}>
                   <span class="icon">
                     <i class="fas fa-history"></i>
                   </span>
@@ -151,10 +151,30 @@
                 <div class="media-content">
                   <div class="content">
                     <p>
-                      <strong>{{ meeting.title }}</strong>
+                      <strong><a href="/meeting/{{ meeting.id }}/details" class="has-text-dark">{{ meeting.title }}</a></strong>
                       <br>
                       <small>Created by {{ meeting.created-by-name }} on {{ meeting.created-at|date:"MMM d, yyyy" }}</small>
                     </p>
+                  </div>
+                </div>
+                <div class="media-right">
+                  <div class="buttons are-small">
+                    <a href="/meeting/{{ meeting.id }}/details" class="button is-info is-small">
+                      <span class="icon">
+                        <i class="fas fa-eye"></i>
+                      </span>
+                      <span>Details</span>
+                    </a>
+                    {% if not meeting.status = "finished" %}
+                      <form method="post" action="/meeting/{{ meeting.id }}/join" style="display: inline;">
+                        <button type="submit" class="button is-primary is-small">
+                          <span class="icon">
+                            <i class="fas fa-external-link-alt"></i>
+                          </span>
+                          <span>Join</span>
+                        </button>
+                      </form>
+                    {% endif %}
                   </div>
                 </div>
               </article>

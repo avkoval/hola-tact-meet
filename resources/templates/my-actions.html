@@ -38,6 +38,7 @@
                 <tr>
                   <th>Meeting Title</th>
                   <th>Action Description</th>
+                  <th>Assignment</th>
                   <th>Deadline</th>
                   <th>Status</th>
                   <th>Completion Notes</th>
@@ -62,6 +63,27 @@
                   <td>
                     <div>
                       <p>{{ action.description }}</p>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="is-flex is-align-items-center">
+                      {% if action.is-team-action %}
+                        <span class="icon has-text-info mr-2">
+                          <i class="fas fa-users"></i>
+                        </span>
+                        <div>
+                          <span class="tag is-info is-small">Team</span>
+                          <p class="is-size-7 has-text-grey mt-1">{{ action.team-name }}</p>
+                        </div>
+                      {% else %}
+                        <span class="icon has-text-warning mr-2">
+                          <i class="fas fa-user"></i>
+                        </span>
+                        <div>
+                          <span class="tag is-warning is-small">Individual</span>
+                          <p class="is-size-7 has-text-grey mt-1">Assigned to you</p>
+                        </div>
+                      {% endif %}
                     </div>
                   </td>
                   <td>
@@ -133,7 +155,7 @@
                   <td>
                     <div class="field is-grouped">
                       <div class="control">
-                        <a href="/meeting/{{ action.meeting-id }}/main" class="button is-small is-info is-outlined">
+                        <a href="/meeting/{{ action.meeting-id }}/details" class="button is-small is-info is-outlined">
                           <span class="icon">
                             <i class="fas fa-external-link-alt"></i>
                           </span>

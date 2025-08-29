@@ -100,7 +100,7 @@
       - PDF
       - Directly to Confluence via API (if API is enabled)
 
-* COMMENT Current work plan & progress [51%]
+* COMMENT Current work plan & progress [53%]
 
 ** DONE Set appropriate License
    CLOSED: [2025-06-15 Sun 21:30]
@@ -201,6 +201,29 @@ I need fake login to quickly login several users for testing purposes on localho
  - [ ] team admins manage
  - [ ] rename/change description
  - [ ] deactivate team
+
+** DONE Prepare for meeting of [2025-08-29 Fri]
+   CLOSED: [2025-08-29 Fri 11:55]
+   :LOGBOOK:
+   - State "DONE"       from "WORKING"    [2025-08-29 Fri 11:55]
+   CLOCK: [2025-08-29 Fri 08:24]--[2025-08-29 Fri 11:54] =>  3:30
+   CLOCK: [2025-08-29 Fri 08:02]--[2025-08-29 Fri 08:09] =>  0:07
+   - State "WORKING"    from              [2025-08-29 Fri 08:00]
+   :END:
+
+ - [ ] +Join meeting - to be href!+ its a POST action, it can't be GET
+ - [X] link to join meeting in recent meetings (join button)
+ - [X] Fix issue with discussion notes
+ - [X] why "past meetings" is not active ? We have 2 past meetings
+ - [X] forbid access to finished meeting
+ - [X] for the finished meeting, disable the topics swithing, adding actions, etc or think how to
+ - [X] click on recent meetings should display
+ - [X] Display discussion notes on past meetings/my actions
+ - [ ] edit topic?
+ - [ ] +negative action?+
+ - [X] my actions - for me or for team?
+ - [ ] problem with topic text
+ - [X] topic description on join meeting
 
 ** TODO Finish playwright tests for the meeting screen
    :LOGBOOK:

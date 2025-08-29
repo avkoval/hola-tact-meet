@@ -151,10 +151,15 @@
   (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
         userinfo (:userinfo session)
         user-id (:user-id userinfo)
+        meeting (db/get-meeting-by-id meeting-id)
         ]
-    {:status 200
-     :headers {"Content-Type" "text/html"}
-     :body (render-meeting-body true meeting-id user-id)}))
+    (if (= (:meeting/status meeting) "finished")
+      {:status 403
+       :headers {"Content-Type" "text/plain"}
+       :body "Access denied: This meeting has been finished"}
+      {:status 200
+       :headers {"Content-Type" "text/html"}
+       :body (render-meeting-body true meeting-id user-id)})))
 
 
 (defn fetch-google-userinfo
@@ -671,6 +676,43 @@
      :body (render-file "templates/meetings-list.html" {:userinfo userinfo
                                                         :meetings finished-meetings
                                                         :is-admin is-admin})}))
+
+(defn meeting-details
+  "Display detailed information about a single meeting"
+  [{session :session :as request}]
+  (log/info "Meeting details page accessed")
+  (let [meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+        userinfo (:userinfo session)
+        user-id (:user-id userinfo)
+        user-access (:access-level userinfo)
+        is-admin (= user-access "admin")
+        meeting (db/get-meeting-by-id meeting-id)]
+
+    (if meeting
+      ;; Check if user has access to this meeting
+      (let [user-has-access (or is-admin
+                                (db/user-has-active-meeting? user-id meeting-id)
+                                ;; Also check if meeting is finished and user was part of the team
+                                (and (= (:meeting/status meeting) "finished")
+                                     (db/user-is-team-member? user-id (get-in meeting [:meeting/team :db/id]))))
+            topics (db/get-topics-for-meeting meeting-id)
+            actions (db/get-actions-for-meeting meeting-id)]
+
+        (if user-has-access
+          {:status 200
+           :headers {"Content-Type" "text/html"}
+           :body (render-file "templates/meeting-details.html"
+                             {:userinfo userinfo
+                              :meeting meeting
+                              :topics topics
+                              :actions actions
+                              :is-admin is-admin})}
+          {:status 403
+           :headers {"Content-Type" "text/plain"}
+           :body "Access denied: You don't have permission to view this meeting"}))
+      {:status 404
+       :headers {"Content-Type" "text/plain"}
+       :body "Meeting not found"})))
 
 (defn my-actions
   "Display all actions assigned to the current user"

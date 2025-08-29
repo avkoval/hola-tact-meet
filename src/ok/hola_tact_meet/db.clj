@@ -385,27 +385,30 @@
         user-team-ids (mapv first user-teams-result)]
     (if (seq user-team-ids)
       ;; Get meetings for user's teams, sorted by created-at desc, limit 3
-      (let [meetings-result (d/q '[:find ?meeting ?title ?created-at ?created-by-name
+      (let [meetings-result (d/q '[:find ?meeting ?title ?created-at ?created-by-name ?status
                                   :in $ [?team-id ...]
                                   :where
                                   [?meeting :meeting/team ?team-id]
                                   [?meeting :meeting/title ?title]
                                   [?meeting :meeting/created-at ?created-at]
                                   [?meeting :meeting/created-by ?created-by]
-                                  [?created-by :user/name ?created-by-name]]
+                                  [?created-by :user/name ?created-by-name]
+                                   [?meeting :meeting/status ?status]]
                                 db user-team-ids)
             ;; Sort by created-at desc and take first 3
             sorted-meetings (->> meetings-result
                                (sort-by #(nth % 2) #(compare %2 %1))
                                (take 3))]
-        (mapv (fn [[meeting-id title created-at created-by-name]]
+        (mapv (fn [[meeting-id title created-at created-by-name status]]
                 (let [;; Use d/pull to safely get optional attributes
                       meeting-data (d/pull (get-db) [:meeting/description] meeting-id)]
                   {:id meeting-id
                    :title title
                    :created-at created-at
                    :created-by-name created-by-name
-                   :description (:meeting/description meeting-data)}))
+                   :status status
+                   :description (:meeting/description meeting-data)
+                   }))
               sorted-meetings))
       [])))
 
@@ -646,6 +649,7 @@
                  {:meeting/team [:db/id :team/name]}
                  {:meeting/created-by [:db/id :user/name :user/email]}
                  {:meeting/current-topic [:db/id :topic/title :topic/finished-at
+                                          :topic/discussion-notes
                                          {:topic/created-by [:db/id :user/name]}]}]
             meeting-id)))
 
@@ -961,6 +965,73 @@
      :team-members team-members-count
      :meetings-this-month meetings-this-month}))
 
+(defn- get-action-details
+  "Get detailed information for an action (deadline, completion status, notes)"
+  [db action-id]
+  (let [deadline-result (d/q '[:find ?deadline
+                              :in $ ?action-id
+                              :where [?action-id :action/deadline ?deadline]]
+                            db action-id)
+        deadline (ffirst deadline-result)
+        completed-at-result (d/q '[:find ?completed-at
+                                 :in $ ?action-id
+                                 :where [?action-id :action/completed-at ?completed-at]]
+                               db action-id)
+        completed-at (ffirst completed-at-result)
+        rejected-at-result (d/q '[:find ?rejected-at
+                                :in $ ?action-id
+                                :where [?action-id :action/rejected-at ?rejected-at]]
+                              db action-id)
+        rejected-at (ffirst rejected-at-result)
+        completion-notes-result (d/q '[:find ?notes
+                                     :in $ ?action-id
+                                     :where [?action-id :action/completion-notes ?notes]]
+                                   db action-id)
+        completion-notes (ffirst completion-notes-result)
+        status (cond
+                 completed-at "completed"
+                 rejected-at "rejected"
+                 :else "pending")]
+    {:deadline deadline
+     :completed-at completed-at
+     :rejected-at rejected-at
+     :completion-notes completion-notes
+     :status status}))
+
+(defn- process-user-action
+  "Process a single user action (individual assignment)"
+  [db [action-id description added-at meeting-id meeting-title]]
+  (let [action-details (get-action-details db action-id)]
+    (merge {:id action-id
+            :description description
+            :added-at added-at
+            :meeting-id meeting-id
+            :meeting-title meeting-title
+            :is-team-action false
+            :assignment-type "Individual"}
+           action-details)))
+
+(defn- process-team-action
+  "Process a single team action with team name lookup"
+  [db [action-id description added-at meeting-id meeting-title]]
+  (let [team-name-result (d/q '[:find ?team-name
+                               :in $ ?action-id
+                               :where
+                               [?action-id :action/assigned-to-team ?team]
+                               [?team :team/name ?team-name]]
+                             db action-id)
+        team-name (ffirst team-name-result)
+        action-details (get-action-details db action-id)]
+    (merge {:id action-id
+            :description description
+            :added-at added-at
+            :meeting-id meeting-id
+            :meeting-title meeting-title
+            :is-team-action true
+            :assignment-type "Team"
+            :team-name team-name}
+           action-details)))
+
 (defn get-user-actions
   "Get all actions assigned to a specific user across all meetings"
   [user-id]
@@ -993,48 +1064,14 @@
                                     [?action :action/meeting ?meeting]
                                     [?meeting :meeting/title ?meeting-title]]
                                   db user-team-ids)
-                             [])]
+                             [])
 
-    ;; Combine and process both types of actions
-    (mapv (fn [[action-id description added-at meeting-id meeting-title]]
-            (let [;; Get deadline separately if it exists
-                  deadline-result (d/q '[:find ?deadline
-                                        :in $ ?action-id
-                                        :where [?action-id :action/deadline ?deadline]]
-                                      db action-id)
-                  deadline (ffirst deadline-result)
-                  ;; Get completion status
-                  completed-at-result (d/q '[:find ?completed-at
-                                           :in $ ?action-id
-                                           :where [?action-id :action/completed-at ?completed-at]]
-                                         db action-id)
-                  completed-at (ffirst completed-at-result)
-                  rejected-at-result (d/q '[:find ?rejected-at
-                                          :in $ ?action-id
-                                          :where [?action-id :action/rejected-at ?rejected-at]]
-                                        db action-id)
-                  rejected-at (ffirst rejected-at-result)
-                  ;; Get completion notes
-                  completion-notes-result (d/q '[:find ?notes
-                                               :in $ ?action-id
-                                               :where [?action-id :action/completion-notes ?notes]]
-                                             db action-id)
-                  completion-notes (ffirst completion-notes-result)
-                  status (cond
-                           completed-at "completed"
-                           rejected-at "rejected"
-                           :else "pending")]
-              {:id action-id
-               :description description
-               :deadline deadline
-               :added-at added-at
-               :meeting-id meeting-id
-               :meeting-title meeting-title
-               :status status
-               :completed-at completed-at
-               :rejected-at rejected-at
-               :completion-notes completion-notes}))
-          (sort-by :added-at #(compare %2 %1) (concat user-actions-result team-actions-result)))))
+        ;; Process actions using helper functions
+        processed-user-actions (mapv (partial process-user-action db) user-actions-result)
+        processed-team-actions (mapv (partial process-team-action db) team-actions-result)]
+
+    ;; Combine and sort all actions
+    (sort-by :added-at #(compare %2 %1) (concat processed-user-actions processed-team-actions))))
 
 (defn get-action-by-id
   "Get action by ID with all details"

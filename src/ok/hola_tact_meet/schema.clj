@@ -118,7 +118,7 @@
                      {:db/ident       :meeting/status
                       :db/valueType   :db.type/string
                       :db/cardinality :db.cardinality/one
-                      :db/doc         "Status: new, started, finished."}
+                      :db/doc         "Status: new, scheduled, started, finished."}
 
                      {:db/ident       :meeting/join-url
                       :db/valueType   :db.type/string

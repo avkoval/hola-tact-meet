@@ -50,7 +50,9 @@
             <header class="card-header">
               <div class="card-header-title is-flex is-justify-content-space-between" style="width: 100%;">
                 <div>
-                  <h2 class="title is-4 mb-2">{{ meeting.title }}</h2>
+                  <h2 class="title is-4 mb-2">
+                    <a href="/meeting/{{ meeting.id }}/details" class="has-text-dark">{{ meeting.title }}</a>
+                  </h2>
                   <div class="tags">
                     <span class="tag is-primary">{{ meeting.team-name }}</span>
                     <span class="tag is-success">Finished</span>
@@ -63,7 +65,7 @@
                 </div>
               </div>
             </header>
-            
+
             <div class="card-content">
               {% if meeting.description %}
                 <div class="content mb-4">
@@ -80,7 +82,7 @@
                     </span>
                     Topics Discussed ({{ meeting.topics|length }})
                   </h3>
-                  
+
                   {% if meeting.topics %}
                     {% for topic in meeting.topics %}
                       <div class="box is-small mb-3">
@@ -91,7 +93,7 @@
                                 <p class="subtitle is-6 mb-1">{{ topic.title }}</p>
                                 <p>{{ topic.discussion-notes }}</p>
                                 <p class="is-size-7 has-text-grey">
-                                  By {{ topic.created-by-name }} • 
+                                  By {{ topic.created-by-name }} •
                                   {% if topic.vote-score > 0 %}
                                     <span class="has-text-success">+{{ topic.vote-score }}</span>
                                   {% elif topic.vote-score < 0 %}
@@ -140,7 +142,7 @@
                     </span>
                     Action Items ({{ meeting.actions|length }})
                   </h3>
-                  
+
                   {% if meeting.actions %}
                     {% for action in meeting.actions %}
                       <div class="box is-small mb-3">
@@ -150,7 +152,7 @@
                               <div>
                                 <p class="subtitle is-6 mb-1">{{ action.description }}</p>
                                 <p class="is-size-7 has-text-grey">
-                                  Assigned to: 
+                                  Assigned to:
                                   {% if action.is-team-action %}
                                     {{ action.assigned-to-team-name }}
                                   {% else %}
@@ -181,6 +183,15 @@
                 </div>
               </div>
             </div>
+
+            <footer class="card-footer">
+              <a href="/meeting/{{ meeting.id }}/details" class="card-footer-item">
+                <span class="icon">
+                  <i class="fas fa-eye"></i>
+                </span>
+                <span>View Details</span>
+              </a>
+            </footer>
           </div>
         {% endfor %}
       {% else %}
