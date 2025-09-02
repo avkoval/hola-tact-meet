@@ -86,42 +86,38 @@
                   {% if meeting.topics %}
                     {% for topic in meeting.topics %}
                       <div class="box is-small mb-3">
-                        <div class="level is-mobile">
-                          <div class="level-left">
-                            <div class="level-item">
-                              <div>
-                                <p class="subtitle is-6 mb-1">{{ topic.title }}</p>
-                                <p>{{ topic.discussion-notes }}</p>
-                                <p class="is-size-7 has-text-grey">
-                                  By {{ topic.created-by-name }} •
-                                  {% if topic.vote-score > 0 %}
-                                    <span class="has-text-success">+{{ topic.vote-score }}</span>
-                                  {% elif topic.vote-score < 0 %}
-                                    <span class="has-text-danger">{{ topic.vote-score }}</span>
-                                  {% else %}
-                                    <span>{{ topic.vote-score }}</span>
-                                  {% endif %}
-                                  votes
-                                </p>
-                              </div>
+                        <div class="columns is-mobile is-gapless">
+                          <div class="column" style="min-width: 0;">
+                            <div style="overflow-wrap: break-word; word-wrap: break-word; word-break: break-word;">
+                              <p class="subtitle is-6 mb-1" style="overflow-wrap: break-word; word-wrap: break-word;">{{ topic.title }}</p>
+                              <p style="overflow-wrap: break-word; word-wrap: break-word;">{{ topic.discussion-notes }}</p>
+                              <p class="is-size-7 has-text-grey" style="overflow-wrap: break-word; word-wrap: break-word;">
+                                By {{ topic.created-by-name }} •
+                                {% if topic.vote-score > 0 %}
+                                  <span class="has-text-success">+{{ topic.vote-score }}</span>
+                                {% elif topic.vote-score < 0 %}
+                                  <span class="has-text-danger">{{ topic.vote-score }}</span>
+                                {% else %}
+                                  <span>{{ topic.vote-score }}</span>
+                                {% endif %}
+                                votes
+                              </p>
                             </div>
                           </div>
-                          <div class="level-right">
-                            <div class="level-item">
-                              <div class="tags">
-                                <span class="tag is-small is-light">
-                                  <span class="icon is-small">
-                                    <i class="fas fa-thumbs-up"></i>
-                                  </span>
-                                  <span>{{ topic.upvotes }}</span>
+                          <div class="column is-narrow">
+                            <div class="tags">
+                              <span class="tag is-small is-light">
+                                <span class="icon is-small">
+                                  <i class="fas fa-thumbs-up"></i>
                                 </span>
-                                <span class="tag is-small is-light">
-                                  <span class="icon is-small">
-                                    <i class="fas fa-thumbs-down"></i>
-                                  </span>
-                                  <span>{{ topic.downvotes }}</span>
+                                <span>{{ topic.upvotes }}</span>
+                              </span>
+                              <span class="tag is-small is-light">
+                                <span class="icon is-small">
+                                  <i class="fas fa-thumbs-down"></i>
                                 </span>
-                              </div>
+                                <span>{{ topic.downvotes }}</span>
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -146,31 +142,27 @@
                   {% if meeting.actions %}
                     {% for action in meeting.actions %}
                       <div class="box is-small mb-3">
-                        <div class="level is-mobile">
-                          <div class="level-left">
-                            <div class="level-item">
-                              <div>
-                                <p class="subtitle is-6 mb-1">{{ action.description }}</p>
-                                <p class="is-size-7 has-text-grey">
-                                  Assigned to:
-                                  {% if action.is-team-action %}
-                                    {{ action.assigned-to-team-name }}
-                                  {% else %}
-                                    {{ action.assigned-to-user-name }}
-                                  {% endif %}
-                                  {% if action.deadline %}
-                                    • Due: {{ action.deadline|date:"MMM d, yyyy" }}
-                                  {% endif %}
-                                </p>
-                              </div>
+                        <div class="columns is-mobile is-gapless">
+                          <div class="column" style="min-width: 0;">
+                            <div style="overflow-wrap: break-word; word-wrap: break-word; word-break: break-word;">
+                              <p class="subtitle is-6 mb-1" style="overflow-wrap: break-word; word-wrap: break-word;">{{ action.description }}</p>
+                              <p class="is-size-7 has-text-grey" style="overflow-wrap: break-word; word-wrap: break-word;">
+                                Assigned to:
+                                {% if action.is-team-action %}
+                                  {{ action.assigned-to-team-name }}
+                                {% else %}
+                                  {{ action.assigned-to-user-name }}
+                                {% endif %}
+                                {% if action.deadline %}
+                                  • Due: {{ action.deadline|date:"MMM d, yyyy" }}
+                                {% endif %}
+                              </p>
                             </div>
                           </div>
-                          <div class="level-right">
-                            <div class="level-item">
-                              <span class="tag is-small {% if action.is-team-action %}is-info{% else %}is-warning{% endif %}">
-                                {% if action.is-team-action %}Team{% else %}Individual{% endif %}
-                              </span>
-                            </div>
+                          <div class="column is-narrow">
+                            <span class="tag is-small {% if action.is-team-action %}is-info{% else %}is-warning{% endif %}">
+                              {% if action.is-team-action %}Team{% else %}Individual{% endif %}
+                            </span>
                           </div>
                         </div>
                       </div>
