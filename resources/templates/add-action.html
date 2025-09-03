@@ -1,8 +1,11 @@
-<form id="add-action-form" style="display: none" data-show="$showAddAction" data-signals-team-action="false">
+<form id="add-action-form" style="display: none" data-show="$showAddAction" 
+      data-signals-team-action="false"
+>
+  <input type="hidden" name="action-id" data-bind-action-id value="">
   <div class="field">
     <label class="label">Action Description</label>
     <div class="control">
-      <input class="input" type="text" name="action-description" placeholder="Describe the action to be taken" data-attr-required="$showAddAction">
+      <input class="input" type="text" name="action-description" data-bind-action-description placeholder="Describe the action to be taken" data-attr-required="$showAddAction">
     </div>
   </div>
 
@@ -27,7 +30,7 @@
       <div class="field">
         <label class="label">Deadline (Optional)</label>
         <div class="control">
-          <input class="input" type="date" name="deadline">
+          <input class="input" type="date" name="deadline" data-bind-action-deadline>
         </div>
       </div>
     </div>
@@ -46,11 +49,12 @@
     <div class="control">
       <div class="buttons">
         <button class="button is-primary" type="submit"
-                data-on-click="@post('/meeting/{{ meeting-id }}/add-action', {contentType: 'form'})">
+                data-on-click="@post('/meeting/{{ meeting-id }}/save-action', {contentType: 'form'})">
           <span class="icon">
             <i class="fas fa-plus"></i>
           </span>
-          <span>Add Action</span>
+          <span data-show="!$actionId">Add Action</span>
+          <span data-show="$actionId">Update</span>
         </button>
         <button class="button" data-on-click="$showAddAction=false">Cancel</button>
 

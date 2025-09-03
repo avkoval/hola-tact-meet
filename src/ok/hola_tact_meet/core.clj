@@ -82,7 +82,9 @@
      ["/meeting/:meeting-id/topic/:topic-id" {:post (middleware/wrap-require-auth views/meeting-edit-topic)}]
      ["/meeting/:meeting-id/topic/:topic-id/save" {:post (middleware/wrap-require-auth views/meeting-edit-topic-save)}]
      ["/meeting/:meeting-id/topic/:topic-id/finish" {:post (middleware/wrap-require-auth views/topic-finish)}]
-     ["/meeting/:meeting-id/add-action" {:post (middleware/wrap-require-auth views/meeting-add-action)}]
+     ["/meeting/:meeting-id/save-action" {:post (middleware/wrap-require-auth views/meeting-add-action)}]
+     ["/meeting/:meeting-id/action/:action-id" {:get (middleware/wrap-require-auth views/meeting-edit-action)
+                                                :delete (middleware/wrap-require-auth views/meeting-delete-action)}]
      ["/meeting/:meeting-id/finish" {:post (middleware/wrap-require-auth views/meeting-finish)}]
      ["/action/:action-id/completion-modal" {:get (middleware/wrap-require-auth views/action-completion-modal)}]
      ["/action/:action-id/update-status" {:post (middleware/wrap-require-auth views/action-update-status)}]

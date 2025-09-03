@@ -551,6 +551,30 @@
         (broadcast-meeting-page-signals! meeting-id (json/write-str {"countdown" 0}) nil)
         (d*/close-sse! sse)))}))
 
+(defn get-meeting-action-context
+  "Get meeting data and permission context for action operations"
+  [request]
+  (let [user-id (get-in request [:session :userinfo :user-id])
+        meeting-id (Long/parseLong (get-in request [:path-params :meeting-id]))
+        action-id (when-let [aid (get-in request [:path-params :action-id])]
+                    (Long/parseLong aid))
+        meeting-data (db/get-meeting-by-id meeting-id)
+        is-meeting-finished (= "finished" (:meeting/status meeting-data))
+        meeting-actions (db/get-actions-for-meeting meeting-id)
+        is-can-change-this-meeting (db/user-can-change-meeting? user-id meeting-id)
+        is-action-of-this-meeting (if action-id
+                                    (some? (some (comp #{action-id} :id) meeting-actions))
+                                    true)
+        is-ok-to-proceed (and is-can-change-this-meeting is-action-of-this-meeting (not is-meeting-finished))]
+    {:user-id user-id
+     :meeting-id meeting-id
+     :action-id action-id
+     :meeting-data meeting-data
+     :is-meeting-finished is-meeting-finished
+     :meeting-actions meeting-actions
+     :is-can-change-this-meeting is-can-change-this-meeting
+     :is-action-of-this-meeting is-action-of-this-meeting
+     :is-ok-to-proceed is-ok-to-proceed}))
 
 (defn meeting-add-action [request]
   (->sse-response
@@ -564,31 +588,42 @@
             assigned-to (get-in request [:form-params "assigned-to"])
             deadline-str (get-in request [:form-params "deadline"])
             is-team-action (= (get-in request [:form-params "team-action"]) "on")
+            action-id-str (get-in request [:form-params "action-id"])
+            action-id (when (and action-id-str (not (clojure.string/blank? action-id-str)))
+                        (Long/parseLong action-id-str))
             deadline (when (and deadline-str (not (clojure.string/blank? deadline-str)))
                       (java.time.Instant/parse (str deadline-str "T00:00:00Z")))
             assigned-to-user (when (and assigned-to (not is-team-action) (not= assigned-to ""))
                               (Long/parseLong assigned-to))
             assigned-to-team (when is-team-action
-                              (:db/id (:meeting/team (db/get-meeting-by-id meeting-id))))]
+                              (:db/id (:meeting/team (db/get-meeting-by-id meeting-id))))
+            is-updating (some? action-id)]
 
-        (log/info "Adding action:" description "assigned to user:" assigned-to-user "team:" assigned-to-team)
+        (log/info (if is-updating "Updating action:" "Adding action:") 
+                  description "assigned to user:" assigned-to-user "team:" assigned-to-team)
 
         (if (and description user-id meeting-id (not (clojure.string/blank? description)))
-          (let [result (db/add-action! meeting-id
-                                      (when current-topic-id (Long/parseLong current-topic-id))
-                                      (clojure.string/trim description)
-                                      assigned-to-user
-                                      assigned-to-team
-                                      (when deadline (java.util.Date/from deadline)))]
+          (let [result (if is-updating
+                         (db/update-action! action-id
+                                           (clojure.string/trim description)
+                                           assigned-to-user
+                                           assigned-to-team
+                                           (when deadline (java.util.Date/from deadline)))
+                         (db/add-action! meeting-id
+                                        (when current-topic-id (Long/parseLong current-topic-id))
+                                        (clojure.string/trim description)
+                                        assigned-to-user
+                                        assigned-to-team
+                                        (when deadline (java.util.Date/from deadline))))]
             (if (:success result)
               (do
-                (log/info "Action added successfully")
+                (log/info (if is-updating "Action updated successfully" "Action added successfully"))
                 (broadcast-meeting-page-update! render-meeting-body meeting-id [false] true)
                 (d*/patch-signals! sse "{showAddAction: false}")
                 (d*/execute-script! sse "document.getElementById('add-action-form').reset()")
                 )
 
-              (log/error "Failed to add action:" (:error result))
+              (log/error (if is-updating "Failed to update action:" "Failed to add action:") (:error result))
                 ))
           (log/warn "Invalid action input - description:" description "user-id:" user-id "meeting-id:" meeting-id)
           ))
@@ -1284,3 +1319,58 @@
       {:status 404
        :headers {"Content-Type" "text/plain"}
        :body "User not found"})))
+
+(defn meeting-edit-action [request]
+  (->sse-response
+   request
+   {hk-gen/on-open
+    (fn [sse]
+      (let [{:keys [user-id meeting-id action-id is-ok-to-proceed]}
+            (get-meeting-action-context request)
+            action-data (db/get-action-by-id action-id)
+            assigned-to-user (:db/id (:action/assigned-to-user action-data))
+            assigned-to-team (:action/assigned-to-team action-data)
+            ]
+
+        (log/info "User" user-id "attempting to edit action" action-id "in meeting" meeting-id)
+
+        (if is-ok-to-proceed
+          (do
+            (log/info "Action" action-id "edit request by user" user-id)
+            ;; TODO: Implement action editing logic here
+            ;; This would typically return the action data for editing form
+            ;;(broadcast-meeting-page-update! render-meeting-body meeting-id [false] true)
+            (when-not (nil? assigned-to-user)
+              (d*/patch-signals! sse (json/write-str {"assignedTo" assigned-to-user})))
+            (when-not (nil? assigned-to-team)
+              (d*/patch-signals! sse (json/write-str {"teamAction" true}))
+              (println (json/write-str {"teamAction" true}))
+              )
+            (d*/patch-signals! sse (json/write-str {"actionDescription" (:action/description action-data)}))
+            (d*/patch-signals! sse (json/write-str {"actionDeadline" (utils/as-form-date (:action/deadline action-data))}))
+            (d*/patch-signals! sse (json/write-str {"actionId" action-id}))
+            )
+          (let [msg "This action cannot be edited: permission denied"]
+            (d*/execute-script! sse (str "alert('" msg "')"))
+            (log/error msg))))
+      (d*/close-sse! sse))}))
+
+(defn meeting-delete-action [request]
+  (->sse-response
+   request
+   {hk-gen/on-open
+    (fn [sse]
+      (let [{:keys [user-id meeting-id action-id is-ok-to-proceed]}
+            (get-meeting-action-context request)]
+        (log/info "User" user-id "attempting to delete action" action-id " can do? " is-ok-to-proceed)
+        (if is-ok-to-proceed
+          (do
+            (db/delete-action! action-id)
+            (broadcast-meeting-page-update! render-meeting-body meeting-id [false] true)
+            )
+          (let [msg "This topic can not be deleted: permission denied"]
+            (d*/execute-script! sse (str "alert('" msg "')"))
+            (log/error msg)
+            )
+          )
+        ))}))

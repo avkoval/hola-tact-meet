@@ -230,6 +230,20 @@
                               {% endif %}
                             </span>
                           </div>
+                          <div class="buttons ml-3">
+                            <button class="button is-small is-info" title="Edit action"
+                                    data-on-click="@get('/meeting/{{ meeting-id }}/action/{{ action.id }}') ; $showAddAction=true">
+                              <span class="icon is-small">
+                                <i class="fas fa-edit"></i>
+                              </span>
+                            </button>
+                            <button class="button is-small is-danger" title="Delete action"
+                                    data-on-click="confirm('Are you sure you want to delete this action?') && @delete('/meeting/{{ meeting-id }}/action/{{ action.id }}')">
+                              <span class="icon is-small">
+                                <i class="fas fa-trash"></i>
+                              </span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>

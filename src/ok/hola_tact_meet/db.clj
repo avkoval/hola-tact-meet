@@ -417,6 +417,14 @@
   [user-id]
   (let [db (get-db)
         now (java.util.Date.)
+        ;; Get start of today (midnight)
+        today-start (let [cal (java.util.Calendar/getInstance)]
+                      (.setTime cal now)
+                      (.set cal java.util.Calendar/HOUR_OF_DAY 0)
+                      (.set cal java.util.Calendar/MINUTE 0)
+                      (.set cal java.util.Calendar/SECOND 0)
+                      (.set cal java.util.Calendar/MILLISECOND 0)
+                      (.getTime cal))
         ;; First get user's teams
         user-teams-result (d/q '[:find ?team
                                 :in $ ?user-id
@@ -426,7 +434,7 @@
     (if (seq user-team-ids)
       ;; Get active meetings for user's teams (excluding finished meetings)
       (let [meetings-result (d/q '[:find ?meeting ?title ?scheduled-at ?created-by-name ?join-url ?status
-                                  :in $ [?team-id ...] ?now
+                                  :in $ [?team-id ...] ?today-start
                                   :where
                                   [?meeting :meeting/team ?team-id]
                                   [?meeting :meeting/title ?title]
@@ -436,9 +444,9 @@
                                   [?created-by :user/name ?created-by-name]
                                   [?meeting :meeting/join-url ?join-url]
                                   [?meeting :meeting/status ?status]
-                                  [(>= ?scheduled-at ?now)]
+                                  [(>= ?scheduled-at ?today-start)]
                                   [(not= ?status "finished")]]
-                                db user-team-ids now)
+                                db user-team-ids today-start)
             ;; Sort by scheduled-at asc (earliest first)
             sorted-meetings (->> meetings-result
                                (sort-by #(nth % 2)))]
@@ -686,6 +694,35 @@
         is-participant (seq participant-result)]
 
     (and has-staff-access is-participant)))
+
+(defn delete-action! [action-id]
+  (d/transact (get-conn) {:tx-data [[:db/retractEntity action-id]]})
+)
+
+(defn update-action!
+  "Update an existing action"
+  [action-id description assigned-to-user assigned-to-team deadline]
+  (try
+    (let [action-data (cond-> {:db/id action-id
+                              :action/description description}
+                        assigned-to-user (assoc :action/assigned-to-user assigned-to-user)
+                        assigned-to-team (assoc :action/assigned-to-team assigned-to-team)
+                        deadline (assoc :action/deadline deadline))
+          ;; Remove existing assignments if switching between user/team
+          retract-data (cond-> []
+                         (and (nil? assigned-to-user) (not (nil? assigned-to-team)))
+                         (conj [:db/retract action-id :action/assigned-to-user])
+                         (and (nil? assigned-to-team) (not (nil? assigned-to-user)))
+                         (conj [:db/retract action-id :action/assigned-to-team])
+                         (nil? deadline)
+                         (conj [:db/retract action-id :action/deadline]))
+          tx-data (concat [action-data] retract-data)
+          result (d/transact (get-conn) {:tx-data tx-data})]
+      (log/info "Action updated successfully:" action-data)
+      {:success true})
+    (catch Exception e
+      (log/error "Failed to update action:" (.getMessage e))
+      {:success false :error (.getMessage e)})))
 
 (defn delete-topic!
   "Delete a topic by ID, including all related votes"

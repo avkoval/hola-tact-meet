@@ -103,3 +103,9 @@
   (if (= "true" (get headers "datastar-request")) 
     (json/read-str (slurp body) :key-fn keyword) 
     {}))
+
+(defn as-form-date
+  "Format a date as yyyy-MM-dd for HTML form inputs. Returns nil if date is nil."
+  [date]
+  (when date
+    (.format (java.text.SimpleDateFormat. "yyyy-MM-dd") date)))
